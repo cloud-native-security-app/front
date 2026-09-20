@@ -346,3 +346,58 @@ bloqueantes).
 
 Pendiente para la próxima sesión: elegir la siguiente feature `pending`
 (id 8, `containerization`) siguiendo el protocolo de `AGENTS.md`.
+
+## Sesión 2026-09-20 — Feature 8: containerization
+
+- **Feature:** `8 - containerization` — Imagen de despliegue de los
+  assets estáticos.
+- **Agente:** leader, **sin** `implementer`/`reviewer`: esta feature no
+  toca `src/`/`tests/`/`e2e/` en absoluto (solo `Dockerfile`,
+  `.dockerignore`, `nginx.conf.template`, `docs/architecture.md`), lo que
+  cae explícitamente bajo "Cuándo NO aplica este rol" de
+  `.claude/agents/leader.md`/`CLAUDE.md` ("cambios fuera de `src/` y
+  `tests/`/`e2e/` (docs, configuración, `progress/`) → puedes editar tú
+  mismo").
+- **Resultado:** `done`.
+
+Resumen: `Dockerfile` multi-stage siguiendo el mismo patrón ya establecido
+por los repos hermanos (`gateway`/`user-service`/`nmap-service`: imágenes
+base fijadas por tag **y** digest `@sha256:...`). Stage `builder`
+(`node:22-bookworm-slim`) corre `npm ci && npm run build` (incluye `tsc
+--noEmit`); stage runtime (`nginx:1.27-alpine`) sirve únicamente `dist/` +
+una configuración de nginx generada desde `nginx.conf.template`, sin
+Node/`node_modules`/código fuente, como el usuario no-root `nginx` (uid
+101) que ya trae la imagen base. `VITE_GATEWAY_BASE_URL` es un build-arg
+obligatorio (el build falla explícitamente si falta) que Vite hornea en
+el bundle JS y que **también** parametriza `connect-src` en la
+Content-Security-Policy servida por nginx (`default-src 'none'` +
+overrides mínimos para `script-src`/`style-src`/`img-src` `'self'` sin
+`unsafe-inline`, y `connect-src` restringido exactamente al Gateway
+configurado en build) — nunca se abre la puerta a un origen distinto.
+`.dockerignore` excluye `node_modules/`, `dist/`, `.git/`, `.claude/`,
+`progress/`, `docs/`, `tests/`, `e2e/`.
+
+Verificación manual documentada (no hay tests automatizados para esta
+feature, consistente con su propio criterio de aceptación): `docker
+build --build-arg VITE_GATEWAY_BASE_URL=https://gateway.example.com -t
+front:local .` completa sin error; `docker run` sirve la SPA
+correctamente en el puerto 8080 (verificado con `curl`, `200 OK`, HTML y
+bundle JS servidos); `docker exec ... whoami`/`id` confirman que el
+proceso corre como `nginx` (uid 101), nunca root; se confirmó por
+inspección (`command -v node`, búsqueda de `node_modules`, `/app`
+inexistente) que la imagen final no contiene Node, `node_modules`, código
+fuente ni el `/app` del builder. `./init.sh` sigue en verde tras los
+cambios (no afectan a `npm run test`/`test:e2e`/`build`). Imagen de
+prueba (`front:local`) eliminada tras la verificación, no se deja como
+artefacto.
+
+`docs/architecture.md` actualizado con la nota de despliegue exigida por
+el criterio de aceptación (qué incluye/excluye cada stage, por qué el
+build-arg es obligatorio, por qué la CSP es restrictiva).
+
+Detalle completo de la verificación: este mismo resumen (no hay
+`progress/impl_containerization.md`/`progress/review_containerization.md`
+porque no se despachó ningún subagente).
+
+**Con esta feature se completan las 8 features de `feature_list.json`.**
+No queda ninguna feature `pending`.

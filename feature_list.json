@@ -125,7 +125,7 @@
         "docker build completa sin error y docker run sirve la SPA correctamente (verificación manual documentada)",
         "docs/architecture.md se actualiza con una nota breve de despliegue (imagen, qué incluye y qué no)"
       ],
-      "status": "pending"
+      "status": "done"
     }
   ]
 }
