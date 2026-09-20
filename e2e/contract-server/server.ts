@@ -38,7 +38,7 @@ import {
   findOwnedScan,
   type ContractServerStore,
   type ScanRecord,
-} from "./store";
+} from "./store.ts";
 
 const SESSION_COOKIE_NAME = "gateway_session";
 const SCAN_EVENT_INTERVAL_MS = 20;

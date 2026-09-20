@@ -9,7 +9,7 @@
  * fuera del rango que usa `vite preview`/`playwright.config.ts`).
  */
 
-import { startContractServer } from "./server";
+import { startContractServer } from "./server.ts";
 
 const port = Number(process.env["CONTRACT_SERVER_PORT"] ?? "4310");
 

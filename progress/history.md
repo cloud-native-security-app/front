@@ -140,3 +140,55 @@ Pendiente para la próxima sesión: elegir la siguiente feature `pending`
 (id 4, `scan_request_form`) siguiendo el protocolo de `AGENTS.md`. Esa
 feature probablemente deba resolver la integración de `App.tsx`/`main.tsx`
 mencionada arriba.
+
+## Sesión 2026-09-20 — Feature 4: scan_request_form
+
+- **Feature:** `4 - scan_request_form` — Formulario de nueva solicitud de
+  escaneo.
+- **Agente:** leader (investigación e infraestructura propia + 1
+  `implementer` + 1 `reviewer`; tarea "compleja").
+- **Resultado:** `done`.
+
+Resumen: esta fue la primera feature en integrar de verdad
+`SessionProvider`/`ProtectedRoute` (feature `auth_session`) en
+`src/App.tsx` real, decisión explícitamente diferida hasta este punto. El
+leader investigó y resolvió la infraestructura necesaria antes de
+despachar trabajo de negocio: (1) un proxy en `vite.config.ts`
+(`/api`,`/auth`,`/__test__` → servidor de contrato) para evitar el
+problema de CORS al probar una sesión real en un navegador contra dos
+procesos distintos; (2) `playwright.config.ts` con `webServer` como array
+(contract-server en puerto fijo 4310 + `vite preview` con
+`VITE_GATEWAY_BASE_URL=http://localhost:4173` inyectada solo en la config
+de test); (3) un bug latente en `init.sh` corregido (`build` corría
+después de `test:e2e`, sirviendo un `dist/` potencialmente
+desactualizado); (4) `.env.example` nuevo. El implementer aplicó un fix
+mínimo de 2 líneas en `e2e/contract-server/` (imports de valor sin
+extensión `.ts`, necesarios para que Node lo arranque como proceso
+standalone sin bundler), integró `SessionProvider`/`ProtectedRoute` en
+`App.tsx` manteniendo `<h1>front</h1>` persistente fuera de la ruta
+protegida (preserva el criterio de `scaffolding`), y ajustó
+`e2e/scaffolding.spec.ts`/`tests/App.test.tsx` (features 1 y 3, ya
+`done`) de forma mínima y justificada (sesión sintética antes de navegar,
+para evitar una redirección real no determinista hacia Google en un
+smoke test).
+
+Feature de negocio: `src/features/scan/validateScanTarget.ts` (validador
+puro de IPv4/CIDR con mensajes específicos por tipo de fallo, nunca un
+genérico "inválido") y `ScanForm.tsx` (envío deshabilitado con entrada
+inválida o petición en curso, usa `submitScan` de `src/api` sin
+reimplementarlo, muestra `scanId` de inmediato o un error explícito por
+tipo). `src/api` no fue tocado. 55/55 tests unitarios y 6/6 specs e2e
+verdes (incluyendo los tres specs de features previas, confirmados sin
+romperse).
+
+El reviewer prestó atención especial al alcance ampliado (cambios en
+`e2e/contract-server/`, `e2e/scaffolding.spec.ts`, `tests/App.test.tsx`,
+todos de features ya `done`) y confirmó con `git diff` que cada cambio es
+mínimo, justificado y no relaja ningún criterio de aceptación original.
+
+Detalle completo: `progress/impl_scan_request_form.md` y
+`progress/review_scan_request_form.md` (veredicto: `approved`, sin
+cambios requeridos).
+
+Pendiente para la próxima sesión: elegir la siguiente feature `pending`
+(id 5, `realtime_status`) siguiendo el protocolo de `AGENTS.md`.

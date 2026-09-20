@@ -107,17 +107,22 @@ else
     EXIT_CODE=1
   fi
 
-  if npm run test:e2e --if-present 2>&1; then
-    ok "Tests end-to-end (playwright) pasan o no hay ninguno todavía"
-  else
-    fail "Hay tests end-to-end (playwright) rotos, o falta 'npx playwright install'. Si es por navegadores no instalados, documenta el bloqueo en progress/current.md (ver docs/verification.md) — no los reemplaces por mocks."
-    EXIT_CODE=1
-  fi
-
+  # `build` corre antes que `test:e2e` a propósito: el `webServer` de
+  # Playwright sirve `dist/` vía `vite preview`, así que un `test:e2e`
+  # ejecutado contra una build vieja/inexistente daría una falsa sensación
+  # de verde (o un fallo por `dist/` desactualizado en vez de por el
+  # código fuente actual).
   if npm run build --if-present 2>&1; then
     ok "npm run build (vite) genera sin errores"
   else
     fail "npm run build falló"
+    EXIT_CODE=1
+  fi
+
+  if npm run test:e2e --if-present 2>&1; then
+    ok "Tests end-to-end (playwright) pasan o no hay ninguno todavía"
+  else
+    fail "Hay tests end-to-end (playwright) rotos, o falta 'npx playwright install'. Si es por navegadores no instalados, documenta el bloqueo en progress/current.md (ver docs/verification.md) — no los reemplaces por mocks."
     EXIT_CODE=1
   fi
 fi

@@ -66,7 +66,7 @@
         "Test de componente: entrada inválida deshabilita el envío; entrada válida + submit exitoso muestra el scanId; submit fallido muestra el error",
         "Test e2e (servidor de contrato): flujo completo de ingresar una IP válida y ver el scanId en pantalla"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 5,
