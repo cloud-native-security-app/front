@@ -9,6 +9,7 @@ export { getMe, loginRedirectUrl } from "./auth";
 export { cancelScan, getScanHistory, submitScan } from "./scans";
 export { getReport } from "./report";
 export { subscribeToScanEvents } from "./scanEvents";
+export { onUnauthorized } from "./unauthorized";
 export type { ConnectionStatus, ScanEventsSubscription } from "./scanEvents";
 export type {
   ApiError,

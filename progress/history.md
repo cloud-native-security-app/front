@@ -90,3 +90,53 @@ Pendiente para la próxima sesión: elegir la siguiente feature `pending`
 (id 3, `auth_session`) siguiendo el protocolo de `AGENTS.md`. Leer
 `docs/security-scope.md` antes de tocar login/sesión (regla ya aplicable
 a esa feature).
+
+## Sesión 2026-09-20 — Feature 3: auth_session
+
+- **Feature:** `3 - auth_session` — Sesión y rutas protegidas.
+- **Agente:** leader (orquestó `implementer` + `reviewer`, sin explorers:
+  el contrato del Gateway ya estaba documentado desde la feature 2).
+- **Resultado:** `done`.
+
+Resumen: se implementó `src/auth` (`SessionProvider`, `useSession`,
+`ProtectedRoute`, `LoginButton`) construido sobre `src/api` ya existente
+(`getMe`, `loginRedirectUrl`), sin duplicar lógica. Para el criterio "un
+401/403 de **cualquier** llamada de `src/api` limpia la sesión" (no solo
+`getMe()`), se añadió un pub/sub interno de una sola dirección
+(`src/api/unauthorized.ts`: `onUnauthorized`/`notifyUnauthorized`,
+enganchado en `httpClient.ts#mapCommonErrorStatus`) — `src/api` nunca
+importa de `src/auth`, respetando el límite de capas de
+`docs/architecture.md`. El login y la reacción a un 401/403 son siempre
+navegación completa del navegador (`window.location.href`), nunca
+`fetch`. Sin tokens/credenciales persistidas (`localStorage`/
+`sessionStorage`), único dato en memoria es `MeResponse` vía `useState`.
+
+Decisión de alcance explícita del implementer, verificada y aceptada por
+el reviewer: **no se integró** `SessionProvider`/`ProtectedRoute` en
+`src/App.tsx`/`src/main.tsx` reales en esta sesión, porque hacerlo exigía
+resolver `VITE_GATEWAY_BASE_URL` para build/preview (tocando
+`vite.config.ts`/`playwright.config.ts`/`package.json`, fuera del alcance
+permitido) y rompería `e2e/scaffolding.spec.ts` (feature 1, ya `done`).
+Los criterios de aceptación de la feature 3 no exigen esa integración
+literalmente, y `docs/architecture.md` la ubica en la capa 8 junto con el
+router (aún inexistente). En su lugar, `src/auth` se probó completo con
+sus componentes reales: unitarios contra el servidor de contrato real
+(sin mocks de `src/api`) y un harness e2e dedicado
+(`e2e/authHarness/`, documentado como exclusivo de test, Vite programático
++ proxy hacia el servidor de contrato) que monta los componentes reales
+sin duplicar su lógica. Los 5 specs e2e y 39 tests unitarios pasan juntos.
+
+Queda como decisión pendiente para la próxima feature con UI de negocio
+real (naturalmente `scan_request_form`, la primera en necesitar una ruta
+protegida real): cómo resolver `VITE_GATEWAY_BASE_URL` para build/preview
+al integrar `SessionProvider`/`ProtectedRoute` en `App.tsx`/`main.tsx` de
+verdad.
+
+Detalle completo: `progress/impl_auth_session.md` y
+`progress/review_auth_session.md` (veredicto: `approved`, sin cambios
+requeridos).
+
+Pendiente para la próxima sesión: elegir la siguiente feature `pending`
+(id 4, `scan_request_form`) siguiendo el protocolo de `AGENTS.md`. Esa
+feature probablemente deba resolver la integración de `App.tsx`/`main.tsx`
+mencionada arriba.

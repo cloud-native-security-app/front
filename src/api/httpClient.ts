@@ -11,6 +11,7 @@
 
 import { gatewayBaseUrl } from "./config";
 import type { ApiError } from "./types";
+import { notifyUnauthorized } from "./unauthorized";
 
 export interface RawResponse {
   status: number;
@@ -60,6 +61,12 @@ export async function performRequest(
  * porque su significado varía por endpoint (no hay un envelope uniforme,
  * ver `progress/explore_gateway_contract.md` §5) — el status code es la
  * señal principal, el body de texto plano es secundario/informativo.
+ *
+ * Un 401/403 aquí también dispara `notifyUnauthorized()` (ver
+ * `./unauthorized.ts`) — es el único punto común a todas las funciones que
+ * usan este mapeo, así `src/auth` puede reaccionar a un 401/403 ocurrido en
+ * cualquier llamada, no solo en `getMe()` al montar (ver
+ * `feature_list.json`, feature `auth_session`).
  */
 export function mapCommonErrorStatus(
   status: number,
@@ -68,6 +75,7 @@ export function mapCommonErrorStatus(
   switch (status) {
     case 401:
     case 403:
+      notifyUnauthorized();
       return { kind: "unauthorized" };
     case 404:
       return { kind: "not_found" };

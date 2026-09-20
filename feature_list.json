@@ -50,7 +50,7 @@
         "Ningún token, cookie de sesión ni credencial se lee, escribe o loggea desde el código de esta feature (ver docs/security-scope.md)",
         "Tests: unitarios del hook de sesión (loading -> authenticated / anonymous según la respuesta de getMe()); e2e (servidor de contrato) cubre: usuario sin sesión es redirigido a login al visitar una ruta protegida; usuario con sesión ve el contenido protegido"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 4,
