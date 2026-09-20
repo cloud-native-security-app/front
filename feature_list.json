@@ -20,7 +20,7 @@
         "Playwright está configurado (playwright.config.ts) apuntando a un servidor local de dev/preview",
         "npm run build compila sin errores y sin warnings de TypeScript"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 2,
