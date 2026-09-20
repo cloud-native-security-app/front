@@ -35,7 +35,7 @@
         "Existe un servidor de contrato local (p. ej. en e2e/contract-server/) que implementa exactamente la misma forma de API (mismos endpoints, códigos de estado, formato de evento SSE) para que los tests end-to-end lo levanten como proceso real; su código documenta explícitamente que es una aproximación provisional al Gateway real (ver docs/verification.md)",
         "Tests unitarios (vitest): cada función de src/api mapea correctamente una respuesta de éxito y al menos un caso de error (401, red caída, payload inesperado) a su ApiError correspondiente, contra el servidor de contrato o un servidor HTTP de test en memoria (nunca interceptando fetch a nivel de módulo)"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 3,

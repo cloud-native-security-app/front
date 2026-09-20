@@ -40,3 +40,53 @@ requeridos).
 
 Pendiente para la próxima sesión: elegir la siguiente feature `pending`
 (id 2, `api_client`) siguiendo el protocolo de `AGENTS.md`.
+
+## Sesión 2026-09-20 — Feature 2: api_client
+
+- **Feature:** `2 - api_client` — Cliente tipado del Gateway y servidor de
+  contrato para tests.
+- **Agente:** leader (orquestó 2 `Explore`/`general-purpose` en paralelo →
+  `implementer` → `reviewer`; tarea "compleja" según la tabla de escalado).
+- **Resultado:** `done`.
+
+Resumen: se investigó primero el contrato real del Gateway (repo hermano,
+ya implementado con 11 features `done`) y el patrón recomendado de
+servidor de contrato/SSE — hallazgos en `progress/explore_gateway_contract.md`
+y `progress/explore_sse_contract_server.md`. Se detectó que el Gateway
+real **no tiene endpoint de reporte** (RF-11 depende de `ms-analisis`, que
+no existe como repo); se consultó al usuario, que decidió proceder
+implementando `getReport(scanId)` contra un endpoint propuesto
+(`GET /api/scans/{scanId}/report`) que reutiliza literalmente el shape de
+`ScanResult` que el Gateway ya serializa en el evento SSE `completed`,
+documentado explícitamente como especulativo/no confirmado en el Gateway
+real (seguimiento fuera de alcance de `front`: debería convertirse en una
+feature del repo `gateway`).
+
+Se implementó `src/api` (7 funciones tipadas: `getMe`, `submitScan`,
+`getScanHistory`, `cancelScan`, `subscribeToScanEvents`, `getReport`,
+`loginRedirectUrl`) con `ApiResult<T>`/`ApiError` tipado (ninguna función
+lanza string suelto ni deja promesa sin manejar), URL del Gateway leída de
+`VITE_GATEWAY_BASE_URL` (nunca hardcodeada), manejo correcto de errores
+como texto plano (no JSON, confirmado contra el contrato real), y
+`EventSource` nativo con `withCredentials: true` exponiendo estado de
+conexión sin reimplementar la reconexión. Servidor de contrato en
+`e2e/contract-server/` (`node:http` nativo, sin dependencias nuevas de
+framework), reutilizado in-process tanto por Vitest (30 tests) como por
+Playwright (2 tests e2e). El leader añadió `"undici": "8.10.2"` a
+`devDependencies` (dependencia usada por los polyfills de test, antes
+transitiva/no declarada) tras el informe del implementer, verificado sin
+cambios inesperados en el árbol de dependencias.
+
+Sin hallazgos de seguridad (sin tokens/cookies en `src/`, sin `any`/
+`@ts-ignore` sin justificar). Observación no bloqueante para features
+futuras: no volcar `ApiError.message` (texto crudo del Gateway) tal cual
+en la UI sin decidir qué se muestra al usuario.
+
+Detalle completo: `progress/impl_api_client.md` y
+`progress/review_api_client.md` (veredicto: `approved`, sin cambios
+requeridos).
+
+Pendiente para la próxima sesión: elegir la siguiente feature `pending`
+(id 3, `auth_session`) siguiendo el protocolo de `AGENTS.md`. Leer
+`docs/security-scope.md` antes de tocar login/sesión (regla ya aplicable
+a esa feature).
