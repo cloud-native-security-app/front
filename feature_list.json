@@ -94,7 +94,7 @@
         "Un error al cancelar (p. ej. el escaneo ya terminó justo antes) se muestra explícitamente, sin dejar la UI en un estado inconsistente",
         "Tests: componente de la tabla (muestra/oculta la acción de cancelar según estado); e2e (servidor de contrato) cancela un escaneo en curso y verifica que la fila pasa a FALLIDO/estado cancelado"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 7,

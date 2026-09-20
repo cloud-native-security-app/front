@@ -243,3 +243,46 @@ Pendiente para la próxima sesión: elegir la siguiente feature `pending`
 feature exista, revisar si conviene retomar la parte de "reflejar el
 cambio de estado en la fila del histórico" que `realtime_status` dejó
 fuera de alcance explícitamente por no existir todavía.
+
+## Sesión 2026-09-20 — Feature 6: scan_history
+
+- **Feature:** `6 - scan_history` — Histórico de escaneos y cancelación.
+- **Agente:** leader (orquestó `implementer` + `reviewer`, sin explorers:
+  `getScanHistory`/`cancelScan` de `src/api` ya cubrían todo lo
+  necesario).
+- **Resultado:** `done`.
+
+Resumen: se añadió `src/features/history` con una tabla de histórico
+(objetivo/estado/fecha) y acción de cancelar, construida enteramente
+sobre `getScanHistory()`/`cancelScan()` ya existentes (`src/api` sin
+tocar). `ScanHistoryEntry.scanId` es opcional en el contrato — una
+entrada sin `scanId` nunca muestra la acción de cancelar, sin importar su
+estado, verificado con tests explícitos en dos capas. Diseño
+contenedor/presentacional (`HistoryTable`/`HistoryTableView`) para poder
+testear ese caso límite (inalcanzable contra el servidor de contrato
+real, que siempre asigna `scanId`) con props fabricadas en un componente
+puro, sin recurrir a un mock de `src/api`. Tras cancelar, la fila se
+actualiza vía un refetch simple de la lista (sin recargar la página);
+los errores de cancelar (409/404/etc.) se muestran explícitos con
+mensajes propios (nunca el texto crudo del Gateway) y el botón queda
+reintentable, nunca colgado en estado de carga. `HistoryTable` se montó
+en `App.tsx` dentro del mismo `ProtectedRoute` que `ScanForm`, sin
+introducir routing nuevo.
+
+El e2e de cancelación encola el escaneo directo por API (no vía
+`ScanForm`) para evitar una ventana de ~40ms del guion del servidor de
+contrato que completaría el escaneo antes de poder cancelarlo en
+`PENDIENTE` — el reviewer evaluó esta simplificación y confirmó que no
+deja ningún flujo de usuario relevante sin probar (el envío vía
+formulario ya está cubierto en otros specs). 76/76 tests unitarios y 9/9
+specs e2e verdes.
+
+Detalle completo: `progress/impl_scan_history.md` y
+`progress/review_scan_history.md` (veredicto: `approved`, sin cambios
+requeridos).
+
+Pendiente para la próxima sesión: elegir la siguiente feature `pending`
+(id 7, `report_view`) siguiendo el protocolo de `AGENTS.md`. Recordar que
+`getReport(scanId)` (feature `api_client`) apunta a un endpoint
+especulativo/no confirmado en el Gateway real — ver
+`progress/explore_gateway_contract.md` y `src/api/report.ts`.

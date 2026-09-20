@@ -5,8 +5,8 @@
  *
  * - `features/scan` — formulario de nueva solicitud de escaneo (feature
  *   `scan_request_form`, id 4), ver `./scan`.
- * - `features/history` — histórico y cancelación, se crea en la feature
- *   `scan_history` (id 6).
+ * - `features/history` — histórico y cancelación (feature `scan_history`,
+ *   id 6), ver `./history`.
  * - `features/report` — visualización/exportación de reporte, se crea en
  *   la feature `report_view` (id 7).
  */
