@@ -24,7 +24,5 @@ test("ingresar_una_ip_valida_y_ver_el_scanId_en_pantalla", async ({ page }) => {
   await page.getByLabel("IP o rango a escanear").fill("172.16.10.5");
   await page.getByRole("button", { name: "Escanear" }).click();
 
-  await expect(page.getByRole("status")).toContainText(
-    /escaneo encolado\. id: .+/i,
-  );
+  await expect(page.getByText(/escaneo encolado\. id: .+/i)).toBeVisible();
 });

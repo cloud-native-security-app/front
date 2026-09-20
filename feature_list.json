@@ -80,7 +80,7 @@
         "El hook limpia su suscripción al desmontar el componente (sin fugas de EventSource abiertos)",
         "Tests: unitario del hook con un stream de eventos simulado (secuencia de estados, corte de conexión); e2e (servidor de contrato) emite una secuencia de eventos para un scanId y verifica que la UI la refleja en orden hasta el estado terminal"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 6,

@@ -3,15 +3,23 @@
  * formato de IP/rango en el cliente (`validateScanTarget`, UX, no el
  * control de seguridad real — ver docs/security-scope.md) y, si es válido,
  * encola el escaneo vía `submitScan` de `src/api`, mostrando de inmediato
- * el `scanId` devuelto. El estado en tiempo real del escaneo (RF-07/RF-08)
- * llega con la feature `realtime_status` — este componente solo cubre el
- * encolado inicial.
+ * el `scanId` devuelto. Una vez encolado, `useScanEvents` (feature
+ * `realtime_status`, RF-07/RF-08) refleja el estado del escaneo en tiempo
+ * real sin que el usuario recargue la página.
  */
 
 import { useState, type FormEvent } from "react";
 
-import { submitScan, type ApiError } from "../../api";
+import { submitScan, type ApiError, type ConnectionStatus } from "../../api";
+import { useScanEvents } from "./useScanEvents";
 import { validateScanTarget } from "./validateScanTarget";
+
+const CONNECTION_STATUS_LABEL: Record<ConnectionStatus, string> = {
+  connecting: "conectando",
+  open: "en vivo",
+  reconnecting: "reconectando",
+  closed: "desconectado",
+};
 
 type SubmitState =
   | { status: "idle" }
@@ -39,6 +47,9 @@ export function ScanForm() {
   const [submitState, setSubmitState] = useState<SubmitState>({
     status: "idle",
   });
+  const scanId =
+    submitState.status === "success" ? submitState.scanId : undefined;
+  const scanEvents = useScanEvents(scanId);
 
   const validation = validateScanTarget(target);
   const isSubmitting = submitState.status === "submitting";
@@ -84,6 +95,12 @@ export function ScanForm() {
       </button>
       {submitState.status === "success" && (
         <p role="status">Escaneo encolado. ID: {submitState.scanId}</p>
+      )}
+      {scanId && (
+        <p role="status">
+          Estado: {scanEvents.status} (
+          {CONNECTION_STATUS_LABEL[scanEvents.connectionStatus]})
+        </p>
       )}
       {submitState.status === "error" && (
         <p role="alert">{submitState.message}</p>

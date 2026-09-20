@@ -192,3 +192,54 @@ cambios requeridos).
 
 Pendiente para la próxima sesión: elegir la siguiente feature `pending`
 (id 5, `realtime_status`) siguiendo el protocolo de `AGENTS.md`.
+
+## Sesión 2026-09-20 — Feature 5: realtime_status
+
+- **Feature:** `5 - realtime_status` — Estado de escaneo en tiempo real.
+- **Agente:** leader (orquestó `implementer` + `reviewer`, sin explorers:
+  `src/api/scanEvents.ts` y el servidor de contrato ya cubrían todo lo
+  necesario).
+- **Resultado:** `done`.
+
+Resumen: se añadió `useScanEvents(scanId)` en `src/features/scan`,
+construido sobre `subscribeToScanEvents` (feature `api_client`, sin
+reimplementarla), que traduce el vocabulario SSE
+(`started`/`completed`/`failed`) al vocabulario de UI ya existente
+(`PENDIENTE`/`EN_PROGRESO`/`COMPLETADO`/`FALLIDO`, tipo `ScanStatus`
+reutilizado) y expone también el `ConnectionStatus` para que "reconectando"
+sea siempre visible, nunca un silencio indistinguible de "sin cambios".
+Se integró en `ScanForm` (feature `scan_request_form`, cuyo propio
+comentario de cabecera ya anticipaba este trabajo), y el hook limpia su
+suscripción al desmontar/cambiar de `scanId`. El servidor de contrato ya
+traía convenciones hechas a medida para esta feature (`target` con "fail"
+→ desenlace fallido; con "disconnect" → corte de conexión SSE simulado),
+descubiertas por el leader antes de despachar, evitando construir
+infraestructura nueva.
+
+Única desviación de "nunca mockear `src/api`" en todo el proyecto hasta
+ahora: `tests/features/scan/ScanForm.test.tsx` stubea puntualmente
+`subscribeToScanEvents` porque el polyfill de `EventSource` de `undici`
+(usado por los tests, feature `api_client`) es incompatible con el
+entorno `jsdom` (excepción no controlable en cuanto la conexión SSE
+recibe cualquier respuesta real) y no existe combinación del stack actual
+que permita renderizar un componente real (requiere `document`) y ejercer
+un `EventSource` real (crashea en `jsdom`) a la vez. El reviewer
+**reprodujo el crash de forma independiente** (test descartable, luego
+eliminado) antes de aceptar la justificación, y confirmó que la lógica
+que el stub reemplaza está cubierta sin mocks en
+`tests/features/scan/useScanEvents.test.ts` (entorno `node`, servidor de
+contrato real) y en `e2e/realtime-status.spec.ts` (navegador real).
+
+59/59 tests unitarios y 7/7 specs e2e verdes (incluyendo los 6 specs de
+features previas, confirmados sin romperse). `src/api` no tocado, sin
+dependencias nuevas.
+
+Detalle completo: `progress/impl_realtime_status.md` y
+`progress/review_realtime_status.md` (veredicto: `approved`, sin cambios
+requeridos).
+
+Pendiente para la próxima sesión: elegir la siguiente feature `pending`
+(id 6, `scan_history`) siguiendo el protocolo de `AGENTS.md`. Cuando esa
+feature exista, revisar si conviene retomar la parte de "reflejar el
+cambio de estado en la fila del histórico" que `realtime_status` dejó
+fuera de alcance explícitamente por no existir todavía.

@@ -3,19 +3,56 @@
  * 6): entrada inválida deshabilita el envío y muestra el error inline sin
  * llamar a `submitScan()`; entrada válida + submit exitoso muestra el
  * `scanId`; submit fallido muestra el error explícito. Contra el servidor
- * de contrato real (nunca `vi.mock`/`msw` sobre `src/api`, ver
- * docs/conventions.md).
+ * de contrato real para `getMe`/`submitScan` (nunca `vi.mock`/`msw` sobre
+ * esas llamadas, ver docs/conventions.md).
+ *
+ * Excepción puntual y documentada: `subscribeToScanEvents` (feature
+ * `realtime_status`) sí se sustituye aquí por un stub inerte. Motivo
+ * verificado empíricamente en esta sesión: bajo el entorno `jsdom` de este
+ * archivo, el polyfill de `EventSource` de `undici`
+ * (`e2e/contract-server/nodeTestSession.ts`, feature `api_client`) lanza una
+ * excepción no controlable desde userland
+ * (`TypeError: The "event" argument must be an instance of Event`) en
+ * cuanto la conexión recibe cualquier respuesta real — jsdom reemplaza el
+ * `Event` global después de que Node ya fijó su propio `Event` nativo
+ * dentro de `dispatchEvent`, y esa referencia nativa no es recuperable
+ * desde código de test (confirmado: no se expone vía ningún módulo
+ * importable). Es la misma incompatibilidad que documenta
+ * `tests/api/scanEvents.test.ts` (entorno "node" vía el pragma de cabecera
+ * de ese archivo) — aquí no es aplicable esa solución porque este archivo
+ * sí necesita DOM real (`render`/`userEvent`). El comportamiento real de
+ * `subscribeToScanEvents`/`useScanEvents` (secuencia de estados, corte de
+ * conexión) se verifica sin mocks en
+ * `tests/features/scan/useScanEvents.test.ts` (servidor de contrato real,
+ * mismo pragma de entorno "node") y en `e2e/realtime-status.spec.ts`
+ * (navegador real, sin este problema de `jsdom`).
  */
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import type { ScanEventsSubscription } from "../../../src/api";
 import { ScanForm } from "../../../src/features/scan";
 import {
   clearNodeTestSessionCookies,
   loginAsSyntheticUser,
   useContractServer,
 } from "../../api/testHelpers";
+
+vi.mock("../../../src/api", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../../src/api")>();
+  return {
+    ...actual,
+    subscribeToScanEvents: (
+      _scanId: string,
+      _onEvent: unknown,
+      onStatusChange: (status: string) => void,
+    ): ScanEventsSubscription => {
+      onStatusChange("connecting");
+      return { close: () => {} };
+    },
+  };
+});
 
 describe("ScanForm", () => {
   useContractServer();
@@ -60,9 +97,7 @@ describe("ScanForm", () => {
     await userEvent.click(screen.getByRole("button", { name: /escanear/i }));
 
     await waitFor(() => {
-      expect(screen.getByRole("status")).toHaveTextContent(
-        /escaneo encolado\. id: /i,
-      );
+      expect(screen.getByText(/escaneo encolado\. id: /i)).toBeInTheDocument();
     });
   });
 
