@@ -7,8 +7,8 @@
  *   `scan_request_form`, id 4), ver `./scan`.
  * - `features/history` — histórico y cancelación (feature `scan_history`,
  *   id 6), ver `./history`.
- * - `features/report` — visualización/exportación de reporte, se crea en
- *   la feature `report_view` (id 7).
+ * - `features/report` — visualización/exportación de reporte (feature
+ *   `report_view`, id 7), ver `./report`.
  */
 
 export {};

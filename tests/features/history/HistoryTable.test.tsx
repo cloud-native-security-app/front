@@ -10,7 +10,7 @@
  */
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { cancelScan, submitScan } from "../../../src/api";
 import { HistoryTable } from "../../../src/features/history";
@@ -35,7 +35,7 @@ describe("HistoryTable", () => {
     await loginAsSyntheticUser();
     await submitScan("10.1.0.10");
 
-    render(<HistoryTable />);
+    render(<HistoryTable onViewReport={vi.fn()} />);
 
     await waitFor(() => {
       expect(screen.getByText("10.1.0.10")).toBeInTheDocument();
@@ -50,7 +50,7 @@ describe("HistoryTable", () => {
     await loginAsSyntheticUser();
     await submitScan("10.1.0.13");
 
-    render(<HistoryTable />);
+    render(<HistoryTable onViewReport={vi.fn()} />);
 
     expect(
       await screen.findByRole("button", {
@@ -63,7 +63,7 @@ describe("HistoryTable", () => {
     await loginAsSyntheticUser();
     await submitScan("10.1.0.11");
 
-    render(<HistoryTable />);
+    render(<HistoryTable onViewReport={vi.fn()} />);
 
     const button = await screen.findByRole("button", {
       name: "Cancelar escaneo de 10.1.0.11",
@@ -86,7 +86,7 @@ describe("HistoryTable", () => {
       throw new Error("setup del test falló: submitScan no fue exitoso");
     }
 
-    render(<HistoryTable />);
+    render(<HistoryTable onViewReport={vi.fn()} />);
 
     const button = await screen.findByRole("button", {
       name: "Cancelar escaneo de 10.1.0.12",

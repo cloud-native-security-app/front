@@ -13,20 +13,36 @@
  * introduce routing nuevo, mismo principio ya aplicado en
  * `auth_session`/`scan_request_form`: no hace falta una URL separada
  * todavía.
+ *
+ * El reporte de un escaneo (`ReportView`, feature `report_view`, id 7,
+ * RF-11) sigue el mismo principio: no hay `react-router` ni una URL
+ * propia para "detalle de un escaneo". En vez de eso, `selectedScanId` es
+ * el único estado levantado aquí — se fija con la acción "Ver reporte" de
+ * `HistoryTable` (mismo patrón que `onCancel`, ver
+ * `src/features/history/HistoryTableView.tsx`) y `ReportView` solo se
+ * monta dentro del mismo `ProtectedRoute` cuando hay una selección.
  */
+
+import { useState } from "react";
 
 import { ProtectedRoute, SessionProvider } from "./auth";
 import { HistoryTable } from "./features/history";
+import { ReportView } from "./features/report";
 import { ScanForm } from "./features/scan";
 
 export function App() {
+  const [selectedScanId, setSelectedScanId] = useState<string | undefined>(
+    undefined,
+  );
+
   return (
     <SessionProvider>
       <main>
         <h1>front</h1>
         <ProtectedRoute>
           <ScanForm />
-          <HistoryTable />
+          <HistoryTable onViewReport={setSelectedScanId} />
+          {selectedScanId && <ReportView scanId={selectedScanId} />}
         </ProtectedRoute>
       </main>
     </SessionProvider>

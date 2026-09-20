@@ -108,7 +108,7 @@
         "Contenido de texto libre del reporte que provenga del backend se renderiza sin dangerouslySetInnerHTML sin sanitizar (ver docs/security-scope.md)",
         "Tests: componente (estructura del reporte renderizada correctamente a partir de datos de ejemplo, estado vacío para no-completado); e2e (servidor de contrato) abre el reporte de un escaneo completado y ejercita la exportación"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 8,

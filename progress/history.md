@@ -286,3 +286,63 @@ Pendiente para la próxima sesión: elegir la siguiente feature `pending`
 `getReport(scanId)` (feature `api_client`) apunta a un endpoint
 especulativo/no confirmado en el Gateway real — ver
 `progress/explore_gateway_contract.md` y `src/api/report.ts`.
+
+## Sesión 2026-09-20 — Feature 7: report_view
+
+- **Feature:** `7 - report_view` — Visualización y exportación del
+  reporte.
+- **Agente:** leader (orquestó `implementer` + `reviewer`, sin
+  explorers).
+- **Resultado:** `done`.
+
+Resumen: se añadió `src/features/report` (`ReportView`/`ReportDetails`)
+que obtiene el reporte vía `getReport(scanId)` (endpoint especulativo ya
+aprobado, feature `api_client`) y lo muestra estructurado (host, tabla de
+puertos, lista de vulnerabilidades) — nunca como JSON crudo en pantalla;
+el JSON solo aparece como contenido del archivo exportado
+(`buildReportExport.ts` + `downloadTextFile.ts`, `Blob`/`URL.createObjectURL`
+nativos, sin dependencias nuevas). `ApiError.kind === "not_ready"` (409,
+escaneo aún no completado) se traduce a un estado explicativo, distinto
+del error genérico. Texto libre del backend (descripciones de
+vulnerabilidades) se renderiza como texto JSX normal, nunca
+`dangerouslySetInnerHTML` — verificado con un test que inyecta
+`<script>...</script>` literal y confirma que se muestra como texto, no
+como HTML real.
+
+No existía forma de seleccionar "ver el reporte de este escaneo": se
+añadió una acción "Ver reporte" en `HistoryTableView`
+(`isReportViewableEntry`: solo `COMPLETADO` con `scanId` presente) que
+sube el `scanId` seleccionado hasta `App.tsx` (estado levantado, mismo
+patrón que `onCancel`), sin introducir `react-router` ni ninguna
+dependencia de routing — mismo principio de minimalismo ya aplicado en
+las 3 features anteriores. `scan_history` (feature 6, ya `done`) sigue
+verde tras el cambio de prop.
+
+Hallazgo técnico reutilizable: para un test de componente que necesita
+`render`/DOM real (a diferencia de los tests de hook en entorno `node`) Y
+que el guion SSE del servidor de contrato avance hasta `COMPLETADO`, ni
+`EventSource` (choca con `jsdom`) ni el entorno `node` (no tiene
+`document`) sirven — la solución fue un `fetch` normal al mismo endpoint
+`/api/scans/:id/events` drenado con `response.text()`, que mantiene la
+conexión abierta sin construir ningún `EventSource`. El reviewer lo
+verificó como servidor real (no un mock) y sin flakiness (5 ejecuciones
+aisladas seguidas).
+
+93/93 tests unitarios y 11/11 specs e2e verdes (confirmado 2 veces por el
+reviewer para descartar flakiness). Sin dependencias nuevas.
+
+**Seguimiento no bloqueante para la próxima sesión**: el segundo test de
+`e2e/report-view.spec.ts`
+(`un_escaneo_no_completado_muestra_un_estado_explicativo_en_el_reporte`)
+tiene un nombre/comentario que prometen más de lo que verifica (dicen que
+se navega a `ReportView` para probar su estado `not_ready`, pero en
+realidad solo comprueba que el histórico no ofrece "Ver reporte" para una
+fila no completada — una aserción válida, solo mal etiquetada). Corregir
+el nombre/comentario cuando se retome trabajo en esa zona.
+
+Detalle completo: `progress/impl_report_view.md` y
+`progress/review_report_view.md` (veredicto: `approved`, sin cambios
+bloqueantes).
+
+Pendiente para la próxima sesión: elegir la siguiente feature `pending`
+(id 8, `containerization`) siguiendo el protocolo de `AGENTS.md`.

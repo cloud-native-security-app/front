@@ -8,10 +8,18 @@
  * mockear `src/api` ni depender de red — ver `docs/conventions.md` y
  * `docs/verification.md` (nunca `vi.mock` de `src/api` en tests de
  * componente).
+ *
+ * También expone la acción "Ver reporte" (RF-11, feature `report_view`,
+ * id 7) para filas `COMPLETADO` con `scanId`: al hacer click, informa
+ * hacia arriba (`onViewReport`) qué `scanId` se seleccionó — mismo patrón
+ * de estado levantado ya usado para `onCancel`, hasta `App.tsx`, que
+ * decide qué renderizar (ver `docs/architecture.md`: no se introduce
+ * routing nuevo para esto).
  */
 
 import type { ScanHistoryEntry } from "../../api";
 import { isCancellableEntry } from "./isCancellableEntry";
+import { isReportViewableEntry } from "./isReportViewableEntry";
 
 export type RowCancelState =
   | { status: "idle" }
@@ -22,6 +30,7 @@ export interface HistoryTableViewProps {
   entries: ScanHistoryEntry[];
   rowStates: Record<string, RowCancelState>;
   onCancel: (scanId: string) => void;
+  onViewReport: (scanId: string) => void;
 }
 
 function formatRequestedAt(isoDate: string): string {
@@ -33,6 +42,7 @@ export function HistoryTableView({
   entries,
   rowStates,
   onCancel,
+  onViewReport,
 }: HistoryTableViewProps) {
   if (entries.length === 0) {
     return <p role="status">Todavía no hay escaneos en tu histórico.</p>;
@@ -80,6 +90,15 @@ export function HistoryTableView({
                       <p role="alert">{rowState.message}</p>
                     )}
                   </>
+                )}
+                {isReportViewableEntry(entry) && scanId && (
+                  <button
+                    type="button"
+                    aria-label={`Ver reporte de ${entry.target}`}
+                    onClick={() => onViewReport(scanId)}
+                  >
+                    Ver reporte
+                  </button>
                 )}
               </td>
             </tr>

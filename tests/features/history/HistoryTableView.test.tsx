@@ -72,6 +72,7 @@ describe("HistoryTableView", () => {
         entries={BASE_ENTRIES}
         rowStates={{}}
         onCancel={vi.fn()}
+        onViewReport={vi.fn()}
       />,
     );
 
@@ -88,6 +89,7 @@ describe("HistoryTableView", () => {
         entries={BASE_ENTRIES}
         rowStates={{}}
         onCancel={vi.fn()}
+        onViewReport={vi.fn()}
       />,
     );
 
@@ -105,6 +107,7 @@ describe("HistoryTableView", () => {
         entries={BASE_ENTRIES}
         rowStates={{}}
         onCancel={vi.fn()}
+        onViewReport={vi.fn()}
       />,
     );
 
@@ -122,6 +125,7 @@ describe("HistoryTableView", () => {
         entries={BASE_ENTRIES}
         rowStates={{}}
         onCancel={vi.fn()}
+        onViewReport={vi.fn()}
       />,
     );
 
@@ -137,6 +141,7 @@ describe("HistoryTableView", () => {
         entries={BASE_ENTRIES}
         rowStates={{}}
         onCancel={onCancel}
+        onViewReport={vi.fn()}
       />,
     );
 
@@ -156,6 +161,7 @@ describe("HistoryTableView", () => {
         entries={BASE_ENTRIES}
         rowStates={rowStates}
         onCancel={vi.fn()}
+        onViewReport={vi.fn()}
       />,
     );
 
@@ -177,6 +183,7 @@ describe("HistoryTableView", () => {
         entries={BASE_ENTRIES}
         rowStates={rowStates}
         onCancel={vi.fn()}
+        onViewReport={vi.fn()}
       />,
     );
 
@@ -189,10 +196,56 @@ describe("HistoryTableView", () => {
   });
 
   it("muestra_un_estado_vacio_explicito_cuando_no_hay_entradas", () => {
-    render(<HistoryTableView entries={[]} rowStates={{}} onCancel={vi.fn()} />);
+    render(
+      <HistoryTableView
+        entries={[]}
+        rowStates={{}}
+        onCancel={vi.fn()}
+        onViewReport={vi.fn()}
+      />,
+    );
 
     expect(screen.getByRole("status")).toHaveTextContent(
       /todavía no hay escaneos/i,
     );
+  });
+
+  it("muestra_la_accion_ver_reporte_solo_para_completado_con_scanId", () => {
+    render(
+      <HistoryTableView
+        entries={BASE_ENTRIES}
+        rowStates={{}}
+        onCancel={vi.fn()}
+        onViewReport={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Ver reporte de 10.0.0.3" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Ver reporte de 10.0.0.1" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Ver reporte de 10.0.0.4" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("llama_a_onViewReport_con_el_scanId_de_la_fila_completada_al_hacer_click", async () => {
+    const onViewReport = vi.fn();
+    render(
+      <HistoryTableView
+        entries={BASE_ENTRIES}
+        rowStates={{}}
+        onCancel={vi.fn()}
+        onViewReport={onViewReport}
+      />,
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Ver reporte de 10.0.0.3" }),
+    );
+
+    expect(onViewReport).toHaveBeenCalledWith("scan-completado");
   });
 });

@@ -12,6 +12,11 @@
  * un refetch después de una acción explícita del usuario (cancelar) ya
  * satisface el criterio de aceptación "sin recargar la página completa"
  * sin la complejidad de orquestar N suscripciones SSE en una tabla.
+ *
+ * `onViewReport` (RF-11, feature `report_view`, id 7) es un callback que
+ * simplemente se reenvía a `HistoryTableView`: la selección de "qué
+ * reporte ver" vive como estado levantado en `App.tsx`, no aquí — este
+ * componente no conoce `getReport` ni `ReportView`.
  */
 
 import { useEffect, useState } from "react";
@@ -67,7 +72,11 @@ function toHistoryState(
     : { status: "error", message: describeHistoryError(result.error) };
 }
 
-export function HistoryTable() {
+export interface HistoryTableProps {
+  onViewReport: (scanId: string) => void;
+}
+
+export function HistoryTable({ onViewReport }: HistoryTableProps) {
   const [state, setState] = useState<HistoryState>({ status: "loading" });
   const [rowStates, setRowStates] = useState<Record<string, RowCancelState>>(
     {},
@@ -127,6 +136,7 @@ export function HistoryTable() {
       entries={state.entries}
       rowStates={rowStates}
       onCancel={(scanId) => void handleCancel(scanId)}
+      onViewReport={onViewReport}
     />
   );
 }
