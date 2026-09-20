@@ -1,0 +1,41 @@
+{
+  "$schema_comment": "Hooks que automatizan la verificación. El harness los ejecuta, no el agente, así que no se pueden saltar.",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ -f package.json ] && npm run typecheck --if-present --silent 2>&1 | tail -20 || echo '[hook] package.json no existe aún — se omite typecheck (ver feature scaffolding)'",
+            "description": "Tras editar o escribir archivos, corre tsc --noEmit (rápido) y muestra los últimos errores, sin correr la suite completa de tests."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "./init.sh > /tmp/harness_init.log 2>&1 && echo '[harness] init.sh OK' || (echo '[harness] init.sh FALLÓ — revisa /tmp/harness_init.log antes de cerrar' && cat /tmp/harness_init.log | tail -20)",
+            "description": "Antes de cerrar la sesión, fuerza una verificación completa (lint, format, typecheck, test, e2e, build) vía init.sh."
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(./init.sh)",
+      "Bash(npm ci*)",
+      "Bash(npm run build*)",
+      "Bash(npm run lint*)",
+      "Bash(npm run format*)",
+      "Bash(npm run typecheck*)",
+      "Bash(npm run test*)",
+      "Bash(npm run dev*)",
+      "Bash(npx playwright*)"
+    ]
+  }
+}

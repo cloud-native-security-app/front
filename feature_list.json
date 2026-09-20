@@ -1,0 +1,131 @@
+{
+  "project": "front",
+  "description": "SPA (React + TypeScript + Vite) que corre en el navegador del analista y habla únicamente con el Gateway: login delegado (RF-01), ingreso y validación de IP/rango a escanear (RF-02/RF-03), encolado (RF-04), estado en tiempo real (RF-07/RF-08), histórico (RF-13), cancelación (RF-14) y visualización/exportación de reporte (RF-11).",
+  "rules": {
+    "one_feature_at_a_time": true,
+    "require_tests_to_close": true,
+    "valid_status": ["pending", "in_progress", "done", "blocked"]
+  },
+  "features": [
+    {
+      "id": 1,
+      "name": "scaffolding",
+      "title": "Scaffolding del proyecto React + TypeScript + Vite",
+      "description": "Inicializar el proyecto con Vite, TypeScript estricto, ESLint, Prettier, Vitest y Playwright, y la estructura de carpetas base.",
+      "acceptance": [
+        "Existe package.json (Vite + React + TypeScript) con scripts: dev, build, typecheck (tsc --noEmit), lint (eslint), format:check (prettier --check), test (vitest), test:e2e (playwright test)",
+        "tsconfig.json tiene \"strict\": true",
+        "Existen los directorios src/api, src/auth, src/features, src/components, src/routes (con al menos un stub documentado en cada uno) y tests/, e2e/",
+        "ESLint incluye los plugins de React/hooks/TypeScript; Prettier tiene configuración explícita (.prettierrc o equivalente)",
+        "Playwright está configurado (playwright.config.ts) apuntando a un servidor local de dev/preview",
+        "npm run build compila sin errores y sin warnings de TypeScript"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": 2,
+      "name": "api_client",
+      "title": "Cliente tipado del Gateway y servidor de contrato para tests",
+      "description": "Único módulo que conoce la URL y el contrato del Gateway (HTTP + SSE), y el servidor de contrato local que los tests end-to-end usan como aproximación real al Gateway (que vive en otro repo, aún no disponible).",
+      "acceptance": [
+        "src/api expone funciones tipadas: getMe(), submitScan(target), getScanHistory(), cancelScan(scanId), subscribeToScanEvents(onEvent), getReport(scanId), y un helper loginRedirectUrl() (o equivalente) para el flujo de login",
+        "La URL base del Gateway se lee de configuración de build (variable de entorno de Vite), nunca hardcodeada",
+        "Cada función de src/api tipa sus errores (ver docs/conventions.md, ApiError) — nunca lanza un string suelto ni deja una promesa sin manejar",
+        "subscribeToScanEvents usa EventSource (SSE) y reconecta automáticamente ante un corte de conexión, exponiendo el estado de conexión al llamante",
+        "Existe un servidor de contrato local (p. ej. en e2e/contract-server/) que implementa exactamente la misma forma de API (mismos endpoints, códigos de estado, formato de evento SSE) para que los tests end-to-end lo levanten como proceso real; su código documenta explícitamente que es una aproximación provisional al Gateway real (ver docs/verification.md)",
+        "Tests unitarios (vitest): cada función de src/api mapea correctamente una respuesta de éxito y al menos un caso de error (401, red caída, payload inesperado) a su ApiError correspondiente, contra el servidor de contrato o un servidor HTTP de test en memoria (nunca interceptando fetch a nivel de módulo)"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": 3,
+      "name": "auth_session",
+      "title": "Sesión y rutas protegidas",
+      "description": "Estado de sesión derivado de GET /api/me, guard de rutas protegidas, y el flujo de login/logout delegado en el Gateway.",
+      "acceptance": [
+        "src/auth expone un hook/contexto de sesión que llama a getMe() al montar la app y expone { status: 'loading' | 'authenticated' | 'anonymous', user }",
+        "Un componente de ruta protegida redirige a login si status === 'anonymous', sin renderizar contenido protegido mientras tanto",
+        "El botón/acción de login navega (redirección completa de navegador, no fetch) a la URL de login del Gateway (loginRedirectUrl())",
+        "Un 401/403 de cualquier llamada de src/api limpia el estado de sesión en memoria y redirige a login",
+        "Ningún token, cookie de sesión ni credencial se lee, escribe o loggea desde el código de esta feature (ver docs/security-scope.md)",
+        "Tests: unitarios del hook de sesión (loading -> authenticated / anonymous según la respuesta de getMe()); e2e (servidor de contrato) cubre: usuario sin sesión es redirigido a login al visitar una ruta protegida; usuario con sesión ve el contenido protegido"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": 4,
+      "name": "scan_request_form",
+      "title": "Formulario de nueva solicitud de escaneo",
+      "description": "Formulario para ingresar una IP/rango, validarlo en el cliente y encolarlo vía el Gateway, mostrando de inmediato el scanId devuelto.",
+      "acceptance": [
+        "Un validador puro (sin IO) en src/features/scan reconoce formato de IP v4 válida y de rango CIDR válido, y rechaza entradas malformadas con un mensaje específico (no un genérico 'inválido')",
+        "El formulario deshabilita el envío mientras la entrada no es válida y muestra el error de validación inline, sin llegar a llamar a submitScan()",
+        "Al enviar, se llama a submitScan(target) y se muestra el scanId devuelto de inmediato (RF-04), con un estado de carga mientras la petición está en curso",
+        "Un error de submitScan (red, 4xx/5xx) se muestra al usuario de forma explícita, sin dejar el formulario en un estado ambiguo",
+        "Tests unitarios (vitest) del validador: casos válidos e inválidos de IP y CIDR, mensajes de error específicos por tipo de fallo",
+        "Test de componente: entrada inválida deshabilita el envío; entrada válida + submit exitoso muestra el scanId; submit fallido muestra el error",
+        "Test e2e (servidor de contrato): flujo completo de ingresar una IP válida y ver el scanId en pantalla"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": 5,
+      "name": "realtime_status",
+      "title": "Estado de escaneo en tiempo real",
+      "description": "Suscripción a los eventos de estado de un escaneo (RF-07) vía SSE y reflejo en la UI sin recargar la página (RF-08).",
+      "acceptance": [
+        "Un hook (p. ej. useScanEvents(scanId)) usa subscribeToScanEvents de src/api y expone el estado más reciente (PENDIENTE/EN_PROGRESO/COMPLETADO/FALLIDO) del scanId dado",
+        "La vista de una solicitud recién creada (feature scan_request_form) y la fila correspondiente en el histórico (feature scan_history, si ya existe) reflejan el cambio de estado sin que el usuario recargue la página",
+        "Un corte de conexión SSE se refleja como un estado de 'reconectando' visible, no como un silencio indistinguible de 'sin cambios'",
+        "El hook limpia su suscripción al desmontar el componente (sin fugas de EventSource abiertos)",
+        "Tests: unitario del hook con un stream de eventos simulado (secuencia de estados, corte de conexión); e2e (servidor de contrato) emite una secuencia de eventos para un scanId y verifica que la UI la refleja en orden hasta el estado terminal"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": 6,
+      "name": "scan_history",
+      "title": "Histórico de escaneos y cancelación",
+      "description": "Tabla con el histórico de escaneos del usuario (RF-13) y la acción de cancelar un escaneo activo (RF-14).",
+      "acceptance": [
+        "src/features/history lista el histórico vía getScanHistory(), mostrando objetivo, estado y fecha de cada entrada",
+        "Una entrada en PENDIENTE o EN_PROGRESO muestra una acción de cancelar que llama a cancelScan(scanId); una entrada COMPLETADO/FALLIDO no la muestra",
+        "Tras cancelar, la fila refleja el nuevo estado sin recargar la página completa (invalidación/refetch de la lista o vía el hook de tiempo real de la feature realtime_status)",
+        "Un error al cancelar (p. ej. el escaneo ya terminó justo antes) se muestra explícitamente, sin dejar la UI en un estado inconsistente",
+        "Tests: componente de la tabla (muestra/oculta la acción de cancelar según estado); e2e (servidor de contrato) cancela un escaneo en curso y verifica que la fila pasa a FALLIDO/estado cancelado"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": 7,
+      "name": "report_view",
+      "title": "Visualización y exportación del reporte",
+      "description": "Vista del reporte consolidado de un escaneo COMPLETADO (hallazgos de ms-nmap enriquecidos por ms-analisis) y su exportación (RF-11).",
+      "acceptance": [
+        "src/features/report obtiene el reporte vía getReport(scanId) y lo muestra estructurado (objetivo, puertos/servicios, vulnerabilidades, severidad) — nunca como JSON crudo volcado en pantalla",
+        "Un scanId que no está en estado COMPLETADO muestra un estado vacío/explicativo, no un error genérico",
+        "Existe una acción de exportar (al menos un formato, p. ej. descarga como JSON o PDF generado en cliente) que produce un archivo con el contenido mostrado en pantalla",
+        "Contenido de texto libre del reporte que provenga del backend se renderiza sin dangerouslySetInnerHTML sin sanitizar (ver docs/security-scope.md)",
+        "Tests: componente (estructura del reporte renderizada correctamente a partir de datos de ejemplo, estado vacío para no-completado); e2e (servidor de contrato) abre el reporte de un escaneo completado y ejercita la exportación"
+      ],
+      "status": "pending"
+    },
+    {
+      "id": 8,
+      "name": "containerization",
+      "title": "Imagen de despliegue de los assets estáticos",
+      "description": "Dockerfile multi-stage que compila la SPA y la sirve como assets estáticos, con una Content-Security-Policy restrictiva.",
+      "acceptance": [
+        "Existe Dockerfile multi-stage: stage builder (node) que corre npm ci && npm run build, stage final mínimo (p. ej. nginx-alpine o equivalente) que solo sirve el contenido de dist/",
+        "La imagen final no contiene node_modules, código fuente, ni la toolchain de Node",
+        "El servidor estático incluye una Content-Security-Policy que restringe connect-src al dominio del Gateway configurado en build (ver docs/security-scope.md)",
+        "El contenedor corre como usuario no-root",
+        "Existe .dockerignore que excluye al menos node_modules/, dist/, .git/, .claude/, progress/, docs/",
+        "Las imágenes base están fijadas por tag concreto (no latest), idealmente por digest",
+        "docker build completa sin error y docker run sirve la SPA correctamente (verificación manual documentada)",
+        "docs/architecture.md se actualiza con una nota breve de despliegue (imagen, qué incluye y qué no)"
+      ],
+      "status": "pending"
+    }
+  ]
+}

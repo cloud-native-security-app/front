@@ -1,0 +1,8 @@
+node_modules/
+dist/
+dist-ssr/
+*.tmp
+.env
+.env.local
+playwright-report/
+test-results/
