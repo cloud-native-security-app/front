@@ -1,0 +1,26 @@
+# Contexto de build mínimo: solo lo que necesita `npm ci && npm run build`.
+# NO excluir package.json/package-lock.json (build reproducible), src/,
+# index.html, ni los archivos de configuración de build (tsconfig*.json,
+# vite.config.ts).
+#
+# tests/ y e2e/ no los necesita el build de producción, solo `npm run
+# test`/`npm run test:e2e` — se excluyen del contexto de build, igual que
+# hace `gateway/.dockerignore` con `tests/`.
+
+node_modules/
+dist/
+.git/
+.gitignore
+.claude/
+progress/
+docs/
+tests/
+e2e/
+playwright-report/
+test-results/
+*.md
+Dockerfile
+.dockerignore
+.env
+.env.local
+.env.example

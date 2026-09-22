@@ -96,15 +96,42 @@ documentada en `feature_list.json`.
 
 ## Despliegue
 
-> Detalle práctico (comando de build, dónde se sirven los assets
-> estáticos) se documenta en `README.md` una vez exista la feature
-> `containerization` — esta sección explica el *por qué*, no lo duplica.
-
 `front` compila a assets estáticos (`vite build`) servidos por un servidor
 HTTP simple (o una CDN/bucket estático) detrás del mismo dominio público que
 enruta al Gateway — no empaqueta ningún runtime de Node en producción. No se
 asume todavía un proveedor cloud concreto, mismo principio que documentan
 `broker`/`nmap-service`/`user-service` en sus propios `docs/architecture.md`.
+
+**Imagen de despliegue** (feature `containerization`, `Dockerfile` en la
+raíz del repo): multi-stage, mismo patrón que `gateway`/`user-service`/
+`nmap-service` (imágenes base fijadas por tag y digest).
+
+- **Stage `builder`** (`node:22-bookworm-slim`): `npm ci && npm run build`
+  (que ya corre `tsc --noEmit`). Incluye `node_modules`, código fuente y
+  toolchain de Node — nunca llega al runtime final.
+- **Stage runtime** (`nginx:1.27-alpine`): contiene únicamente `dist/` (los
+  assets estáticos ya compilados) y la configuración de nginx generada a
+  partir de `nginx.conf.template`. Sin Node, sin `node_modules`, sin código
+  fuente. Corre como el usuario no-root `nginx` (uid 101) que ya trae la
+  imagen base.
+- `VITE_GATEWAY_BASE_URL` es un build-arg **obligatorio** (el build falla
+  explícitamente si falta): Vite lo hornea en el bundle JS en tiempo de
+  build, igual que en dev/test — nunca se lee de una variable de entorno en
+  runtime, porque en runtime el resultado ya es un bundle estático servido
+  por nginx, no un proceso que pueda leer `process.env`. El mismo valor
+  parametriza `connect-src` en la Content-Security-Policy que sirve nginx,
+  para que la CSP no bloquee las propias llamadas de `src/api` sin abrir la
+  puerta a ningún otro origen.
+- La CSP (`nginx.conf.template`) es deliberadamente restrictiva:
+  `default-src 'none'` más overrides explícitos solo para `script-src`/
+  `style-src`/`img-src` (`'self'`, sin `unsafe-inline`: el código no usa
+  estilos/scripts inline) y `connect-src` (limitado exactamente al Gateway
+  configurado en build) — coherente con "front solo habla con el Gateway"
+  de este documento y con `docs/security-scope.md`.
+- `.dockerignore` excluye `node_modules/`, `dist/`, `.git/`, `.claude/`,
+  `progress/`, `docs/`, `tests/`, `e2e/` del contexto de build — el build de
+  producción no los necesita, solo `npm run test`/`npm run test:e2e` los
+  usan.
 
 ## Qué NO hacer
 

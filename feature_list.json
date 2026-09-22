@@ -20,7 +20,7 @@
         "Playwright está configurado (playwright.config.ts) apuntando a un servidor local de dev/preview",
         "npm run build compila sin errores y sin warnings de TypeScript"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 2,
@@ -35,7 +35,7 @@
         "Existe un servidor de contrato local (p. ej. en e2e/contract-server/) que implementa exactamente la misma forma de API (mismos endpoints, códigos de estado, formato de evento SSE) para que los tests end-to-end lo levanten como proceso real; su código documenta explícitamente que es una aproximación provisional al Gateway real (ver docs/verification.md)",
         "Tests unitarios (vitest): cada función de src/api mapea correctamente una respuesta de éxito y al menos un caso de error (401, red caída, payload inesperado) a su ApiError correspondiente, contra el servidor de contrato o un servidor HTTP de test en memoria (nunca interceptando fetch a nivel de módulo)"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 3,
@@ -50,7 +50,7 @@
         "Ningún token, cookie de sesión ni credencial se lee, escribe o loggea desde el código de esta feature (ver docs/security-scope.md)",
         "Tests: unitarios del hook de sesión (loading -> authenticated / anonymous según la respuesta de getMe()); e2e (servidor de contrato) cubre: usuario sin sesión es redirigido a login al visitar una ruta protegida; usuario con sesión ve el contenido protegido"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 4,
@@ -66,7 +66,7 @@
         "Test de componente: entrada inválida deshabilita el envío; entrada válida + submit exitoso muestra el scanId; submit fallido muestra el error",
         "Test e2e (servidor de contrato): flujo completo de ingresar una IP válida y ver el scanId en pantalla"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 5,
@@ -80,7 +80,7 @@
         "El hook limpia su suscripción al desmontar el componente (sin fugas de EventSource abiertos)",
         "Tests: unitario del hook con un stream de eventos simulado (secuencia de estados, corte de conexión); e2e (servidor de contrato) emite una secuencia de eventos para un scanId y verifica que la UI la refleja en orden hasta el estado terminal"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 6,
@@ -94,7 +94,7 @@
         "Un error al cancelar (p. ej. el escaneo ya terminó justo antes) se muestra explícitamente, sin dejar la UI en un estado inconsistente",
         "Tests: componente de la tabla (muestra/oculta la acción de cancelar según estado); e2e (servidor de contrato) cancela un escaneo en curso y verifica que la fila pasa a FALLIDO/estado cancelado"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 7,
@@ -108,7 +108,7 @@
         "Contenido de texto libre del reporte que provenga del backend se renderiza sin dangerouslySetInnerHTML sin sanitizar (ver docs/security-scope.md)",
         "Tests: componente (estructura del reporte renderizada correctamente a partir de datos de ejemplo, estado vacío para no-completado); e2e (servidor de contrato) abre el reporte de un escaneo completado y ejercita la exportación"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 8,
@@ -125,7 +125,7 @@
         "docker build completa sin error y docker run sirve la SPA correctamente (verificación manual documentada)",
         "docs/architecture.md se actualiza con una nota breve de despliegue (imagen, qué incluye y qué no)"
       ],
-      "status": "pending"
+      "status": "done"
     }
   ]
 }
