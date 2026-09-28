@@ -82,6 +82,39 @@ export type ScanOutcomeEvent =
   | { status: "failed"; correlation_id: string; reason: string };
 
 /**
+ * Credencial de red de un usuario (`GET`/`POST /api/network-credentials`,
+ * feature `network_credentials_manager`, id 9). Contrato confirmado en el
+ * repo hermano `gateway` (`gateway/src/usuarios_client.rs::NetworkCredential`,
+ * feature `network_credentials_proxy`, done): deliberadamente **no** incluye
+ * `ssh_credentials_ref` — ni en `list` ni en `create` — porque el Gateway
+ * nunca la devuelve (ver `docs/security-scope.md`).
+ */
+export interface NetworkCredential {
+  id: string;
+  user_id: string;
+  target_pattern: string;
+  network_user: string;
+  has_sudo: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Cuerpo de `POST /api/network-credentials`. A diferencia de
+ * `NetworkCredential`, sí incluye `ssh_credentials_ref` — una credencial SSH
+ * real que el usuario provee para que el Gateway la reenvíe a
+ * `ms-usuarios` — porque es lo que el usuario debe proveer para registrar la
+ * entrada; ese campo nunca vuelve en una respuesta (ver
+ * `docs/security-scope.md`: `front` nunca la persiste ni la vuelve a leer).
+ */
+export interface CreateNetworkCredentialInput {
+  target_pattern: string;
+  network_user: string;
+  ssh_credentials_ref: string;
+  has_sudo: boolean;
+}
+
+/**
  * Errores tipados de `src/api` (ver `docs/conventions.md`). Nunca se lanza
  * un string suelto: toda función retorna un `ApiResult<T>` (ver abajo) en
  * vez de rechazar la promesa, así ningún llamante puede "olvidar" un

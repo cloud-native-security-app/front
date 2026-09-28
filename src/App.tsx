@@ -21,11 +21,24 @@
  * `HistoryTable` (mismo patrón que `onCancel`, ver
  * `src/features/history/HistoryTableView.tsx`) y `ReportView` solo se
  * monta dentro del mismo `ProtectedRoute` cuando hay una selección.
+ *
+ * `NetworkCredentialsManager` (feature `network_credentials_manager`, id 9)
+ * se monta primero dentro del mismo `ProtectedRoute`, antes que `ScanForm`:
+ * sin al menos una credencial de red configurada para el objetivo,
+ * `POST /api/scans` siempre responde 422 en el Gateway real — hay que poder
+ * configurar una antes de poder escanear con éxito.
+ *
+ * `LogoutButton` (feature `logout_button`, id 10) se monta primero de todo
+ * dentro de `ProtectedRoute`: se autogatea por `useSession().status ===
+ * "authenticated"` (nunca visible en loading/anonymous), así que su
+ * posición exacta dentro del contenido protegido no importa — va primero
+ * simplemente porque es la acción inversa al login, visible de inmediato.
  */
 
 import { useState } from "react";
 
-import { ProtectedRoute, SessionProvider } from "./auth";
+import { LogoutButton, ProtectedRoute, SessionProvider } from "./auth";
+import { NetworkCredentialsManager } from "./features/credentials";
 import { HistoryTable } from "./features/history";
 import { ReportView } from "./features/report";
 import { ScanForm } from "./features/scan";
@@ -40,6 +53,8 @@ export function App() {
       <main>
         <h1>front</h1>
         <ProtectedRoute>
+          <LogoutButton />
+          <NetworkCredentialsManager />
           <ScanForm />
           <HistoryTable onViewReport={setSelectedScanId} />
           {selectedScanId && <ReportView scanId={selectedScanId} />}

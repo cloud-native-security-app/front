@@ -8,6 +8,7 @@
 
 import type {
   MeResponse,
+  NetworkCredential,
   ScanHistoryEntry,
   ScanOutcomeEvent,
   ScanPort,
@@ -74,6 +75,27 @@ export function isScanHistoryEntryArray(
   value: unknown,
 ): value is ScanHistoryEntry[] {
   return Array.isArray(value) && value.every(isScanHistoryEntry);
+}
+
+export function isNetworkCredential(
+  value: unknown,
+): value is NetworkCredential {
+  return (
+    isRecord(value) &&
+    isString(value["id"]) &&
+    isString(value["user_id"]) &&
+    isString(value["target_pattern"]) &&
+    isString(value["network_user"]) &&
+    typeof value["has_sudo"] === "boolean" &&
+    isString(value["created_at"]) &&
+    isString(value["updated_at"])
+  );
+}
+
+export function isNetworkCredentialArray(
+  value: unknown,
+): value is NetworkCredential[] {
+  return Array.isArray(value) && value.every(isNetworkCredential);
 }
 
 const VULNERABILITY_SEVERITIES: readonly VulnerabilitySeverity[] = [

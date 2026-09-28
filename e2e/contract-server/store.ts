@@ -8,7 +8,9 @@
 import { randomUUID } from "node:crypto";
 
 import type {
+  CreateNetworkCredentialInput,
   MeResponse,
+  NetworkCredential,
   ScanOutcomeEvent,
   ScanResult,
   ScanStatus,
@@ -37,15 +39,40 @@ export interface ScanRecord {
   dropConnectionOnce: boolean;
 }
 
+/**
+ * Registro interno de una credencial de red (feature
+ * `network_credentials_manager`, id 9). `ssh_credentials_ref` se guarda
+ * únicamente para que este servidor de contrato pueda existir con forma
+ * completa — nunca se expone en `toNetworkCredential` ni en ninguna
+ * respuesta HTTP, mismo criterio que `gateway`/`ms-usuarios` reales (ver
+ * docs/security-scope.md).
+ */
+export interface NetworkCredentialRecord {
+  id: string;
+  sessionToken: string;
+  userId: string;
+  targetPattern: string;
+  networkUser: string;
+  sshCredentialsRef: string;
+  hasSudo: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface ContractServerStore {
   sessions: Map<string, MeResponse>;
   scans: Map<string, ScanRecord>;
+  networkCredentials: Map<string, NetworkCredentialRecord>;
 }
 
 let syntheticUserCounter = 0;
 
 export function createStore(): ContractServerStore {
-  return { sessions: new Map(), scans: new Map() };
+  return {
+    sessions: new Map(),
+    scans: new Map(),
+    networkCredentials: new Map(),
+  };
 }
 
 /**
@@ -189,4 +216,76 @@ export function applyEventToRecord(
   } else {
     record.status = "FALLIDO";
   }
+}
+
+/** Nunca incluye `sshCredentialsRef` — mismo contrato que expone `gateway` real (ver `src/api/types.ts::NetworkCredential`). */
+export function toNetworkCredential(
+  record: NetworkCredentialRecord,
+): NetworkCredential {
+  return {
+    id: record.id,
+    user_id: record.userId,
+    target_pattern: record.targetPattern,
+    network_user: record.networkUser,
+    has_sudo: record.hasSudo,
+    created_at: record.createdAt,
+    updated_at: record.updatedAt,
+  };
+}
+
+export function createNetworkCredential(
+  store: ContractServerStore,
+  sessionToken: string,
+  input: CreateNetworkCredentialInput,
+): NetworkCredentialRecord {
+  const id = randomUUID();
+  const now = new Date().toISOString();
+  const record: NetworkCredentialRecord = {
+    id,
+    sessionToken,
+    userId: store.sessions.get(sessionToken)?.sub ?? sessionToken,
+    targetPattern: input.target_pattern,
+    networkUser: input.network_user,
+    sshCredentialsRef: input.ssh_credentials_ref,
+    hasSudo: input.has_sudo,
+    createdAt: now,
+    updatedAt: now,
+  };
+  store.networkCredentials.set(id, record);
+  return record;
+}
+
+export function listNetworkCredentials(
+  store: ContractServerStore,
+  sessionToken: string,
+): NetworkCredentialRecord[] {
+  return [...store.networkCredentials.values()].filter(
+    (record) => record.sessionToken === sessionToken,
+  );
+}
+
+export function findOwnedNetworkCredential(
+  store: ContractServerStore,
+  id: string,
+  sessionToken: string,
+): NetworkCredentialRecord | undefined {
+  const record = store.networkCredentials.get(id);
+  if (!record || record.sessionToken !== sessionToken) {
+    return undefined;
+  }
+  return record;
+}
+
+/** Devuelve `true` si borró la entrada; `false` si no existía o era de otro usuario (el servidor responde `404` en ambos casos, nunca `403`, mismo criterio que `gateway`/`ms-usuarios` reales). */
+export function deleteNetworkCredential(
+  store: ContractServerStore,
+  id: string,
+  sessionToken: string,
+): boolean {
+  const record = findOwnedNetworkCredential(store, id, sessionToken);
+  if (!record) {
+    return false;
+  }
+  store.networkCredentials.delete(id);
+  return true;
 }

@@ -4,7 +4,12 @@
   "rules": {
     "one_feature_at_a_time": true,
     "require_tests_to_close": true,
-    "valid_status": ["pending", "in_progress", "done", "blocked"]
+    "valid_status": [
+      "pending",
+      "in_progress",
+      "done",
+      "blocked"
+    ]
   },
   "features": [
     {
@@ -124,6 +129,59 @@
         "Las imágenes base están fijadas por tag concreto (no latest), idealmente por digest",
         "docker build completa sin error y docker run sirve la SPA correctamente (verificación manual documentada)",
         "docs/architecture.md se actualiza con una nota breve de despliegue (imagen, qué incluye y qué no)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": 9,
+      "name": "network_credentials_manager",
+      "title": "Gestión de credenciales de red (formulario + listado)",
+      "description": "gateway ya expone GET/POST /api/network-credentials y DELETE /api/network-credentials/:id (feature network_credentials_proxy, done), proxeando a user-service. Sin una pantalla para crearlas, ningún usuario puede completar login -> configurar credenciales -> enviar escaneo: hoy POST /api/scans siempre responde 422 (sin credenciales configuradas para ningún objetivo). Esta feature agrega la UI: un formulario para crear una entrada y un listado de las existentes con acción de borrar, montados junto a ScanForm dentro de ProtectedRoute (mismo principio que scan_request_form/scan_history: sin routing nuevo).",
+      "acceptance": [
+        "src/api/httpClient.ts: PerformRequestInit.method se extiende para aceptar también \"DELETE\" (hoy solo admite \"GET\"|\"POST\") — necesario para deleteNetworkCredential",
+        "src/api/networkCredentials.ts (nuevo), mismo estilo que src/api/scans.ts: createNetworkCredential({target_pattern, network_user, ssh_credentials_ref, has_sudo}) -> POST /api/network-credentials; listNetworkCredentials() -> GET /api/network-credentials; deleteNetworkCredential(id) -> DELETE /api/network-credentials/:id. Tipos de respuesta SIN ssh_credentials_ref (el gateway nunca lo devuelve, ver contrato ya cerrado en gateway/src/api.rs y gateway/src/usuarios_client.rs)",
+        "Guards nuevos en src/api/guards.ts para validar en runtime la forma de la respuesta del listado (mismo patrón que isScanHistoryEntryArray)",
+        "src/features/credentials/ (nuevo): formulario controlado (target_pattern, network_user, ssh_credentials_ref como input type=password, checkbox has_sudo) que llama createNetworkCredential, mismo patrón de estado que src/features/scan/ScanForm.tsx (unión discriminada idle/submitting/success/error, describeError mapeando ApiError). Para target_pattern, evaluar si src/features/scan/validateScanTarget.ts (solo IPv4) sirve tal cual como validación de UX o si hace falta ajustarla — no es el control de seguridad real (eso lo hace user-service), así que puede quedar como mejora de UX no bloqueante si no cubre IPv6",
+        "Listado de credenciales (mismo patrón visual/estructura que src/features/history/HistoryTable.tsx): target_pattern, network_user, has_sudo por fila, NUNCA ssh_credentials_ref, con botón de borrar por fila que llama deleteNetworkCredential y refresca el listado",
+        "src/App.tsx: montar el nuevo componente dentro de ProtectedRoute, antes de ScanForm (hay que configurar credenciales antes de poder escanear un objetivo con éxito)",
+        "e2e/contract-server/: extender el store/servidor de contrato falso con los 3 endpoints nuevos, reflejando el mismo contrato que expone gateway (mismo criterio que ya sigue para scans/history)",
+        "Tests de componente (vitest + Testing Library, mismo patrón que ScanForm/HistoryTable existentes) para el formulario y el listado",
+        "Nuevo e2e/network-credentials.spec.ts, mismo patrón que e2e/scan-request-form.spec.ts: crear una credencial, verla en el listado, borrarla, confirmar que desaparece",
+        "./init.sh en verde"
+      ],
+      "status": "done"
+    },
+    {
+      "id": 10,
+      "name": "logout_button",
+      "title": "Botón de cerrar sesión",
+      "description": "El Gateway ya expone POST /auth/logout (feature oidc_login, done, gateway/src/api.rs::logout) que invalida la cookie de sesión (gateway_session) del lado del navegador. front no tiene ninguna forma de invocarlo hoy: un usuario logueado no puede cerrar sesión desde la UI.",
+      "acceptance": [
+        "src/api/auth.ts: nueva función logout() -> Promise<ApiResult<void>> (o equivalente), mismo estilo que getMe(), que hace POST /auth/logout vía performRequest (ya envía credentials: include)",
+        "Nuevo componente (p. ej. src/auth/LogoutButton.tsx o src/features/session/) visible SOLO cuando hay sesión activa (dentro de ProtectedRoute, o gateado por useSession().status === \"authenticated\") — nunca visible en estado loading/anonymous",
+        "Al hacer clic: llama a logout(); en éxito, la app debe terminar mostrando el estado anónimo/pantalla de login sin que el usuario tenga que recargar manualmente — usar una navegación de página completa (window.location.reload() o window.location.href a la raíz), mismo principio ya establecido en ProtectedRoute/LoginButton (nunca manejar la sesión con un fetch + estado de React sin recargar, ver docs/architecture.md capa 2)",
+        "Mientras la petición está en curso, el botón se deshabilita (mismo patrón submitting de ScanForm/NetworkCredentialForm) para evitar doble clic",
+        "Un fallo de red al cerrar sesión muestra un mensaje de error visible (role=\"alert\"), sin dejar al usuario en un estado inconsistente",
+        "Tests de componente (vitest + Testing Library): el botón no aparece sin sesión; con sesión aparece, el clic llama al endpoint correcto y dispara la navegación/recarga esperada",
+        "Nuevo e2e/logout.spec.ts (mismo patrón que auth-session.spec.ts): con sesión activa, clic en cerrar sesión termina mostrando el estado anónimo",
+        "./init.sh en verde"
+      ],
+      "status": "done"
+    },
+    {
+      "id": 11,
+      "name": "basic_styling",
+      "title": "Estilos visuales base de toda la app",
+      "description": "front no tiene ningún CSS (confirmado: 0 archivos .css/.scss, sin librería de estilos en package.json) — se renderiza con el estilo por defecto del navegador, sin espaciado, tipografía ni jerarquía visual. Esta feature agrega una hoja de estilos base coherente para toda la app, sin cambiar comportamiento ni estructura semántica existente.",
+      "acceptance": [
+        "Una hoja de estilos global nueva (p. ej. src/index.css o src/App.css, importada una sola vez desde src/main.tsx), CSS plano — nada de CSS-in-JS con inyección en runtime (styled-components/emotion) ni estilos inline nuevos: la CSP de front (front/nginx.conf.template, style-src self, sin unsafe-inline) debe seguir cumpliéndose tal cual, y un <link>/<style> extraído en build-time por Vite ya la respeta",
+        "No se agrega ninguna dependencia nueva a package.json (nada de Tailwind/UI kits) — CSS plano basta para el alcance de esta feature",
+        "Paleta de colores y espaciado definidos con custom properties (:root { --... }), aplicados de forma consistente: fondo, texto, un color de acento, y colores distintos para mensajes role=\"alert\" (error) vs role=\"status\" (éxito/info) — reutilizar esa distinción semántica ya presente en el markup de ScanForm/NetworkCredentialForm/HistoryTable en vez de agregar clases nuevas para lo mismo",
+        "Tipografía legible (font-family de sistema, tamaños con jerarquía clara para h1/h2/labels/texto), espaciado consistente entre secciones (formularios, listados), inputs/botones/checkbox con estilo coherente entre sí y con un estado :disabled visualmente distinto (varios formularios ya deshabilitan sus controles mientras envían)",
+        "Layout: contenido centrado con un ancho máximo legible en pantallas grandes (el diseño no tiene que ser complejo, pero no debe estirarse a todo el ancho de un monitor), sin romperse en una ventana angosta",
+        "Estados de foco visibles en elementos interactivos (outline o equivalente) — no se elimina el foco por defecto sin reemplazarlo, es una app que se navega con teclado también",
+        "No cambia ningún texto, atributo aria/role, estructura de componentes, ni lógica — es una feature puramente visual. Ningún test existente debería necesitar cambios; si alguno depende accidentalmente de una estructura que hay que tocar, ajústalo sin cambiar lo que verifica",
+        "./init.sh en verde (unit + e2e sin regresiones)"
       ],
       "status": "done"
     }

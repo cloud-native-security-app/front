@@ -401,3 +401,191 @@ porque no se despachó ningún subagente).
 
 **Con esta feature se completan las 8 features de `feature_list.json`.**
 No queda ninguna feature `pending`.
+
+## Sesión 2026-09-24 — Feature 9: network_credentials_manager
+
+- **Feature:** `9 - network_credentials_manager` — Gestión de credenciales
+  de red (formulario + listado).
+- **Agente:** leader → implementer (rol asumido directamente por el agente
+  orquestador, ya que `subagent_type: "implementer"` no está disponible en
+  este entorno) → `reviewer` (subagente independiente, mismo protocolo de
+  `.claude/agents/reviewer.md`).
+- **Resultado:** `done`.
+
+Resumen: se añadió la feature 9, agregada al `feature_list.json` a partir de
+un vacío de producto detectado en el repo hermano `gateway`
+(`network_credentials_proxy`, `done`): sin una pantalla para crear
+credenciales de red, ningún usuario podía completar login → configurar
+credenciales → enviar escaneo (`POST /api/scans` siempre respondía `422`).
+Se implementó `src/api/networkCredentials.ts` (tres funciones:
+`createNetworkCredential`, `listNetworkCredentials`,
+`deleteNetworkCredential`, mismo estilo que `scans.ts`), extendiendo
+`httpClient.ts` para soportar el método `DELETE` (antes solo
+`GET`/`POST`). El tipo `NetworkCredential` se verificó campo a campo contra
+el contrato real ya cerrado en `gateway/src/usuarios_client.rs` (solo
+lectura, otro repo): nunca incluye `ssh_credentials_ref`, mientras que
+`CreateNetworkCredentialInput` (el cuerpo del `POST`) sí la incluye — esa
+credencial SSH real nunca vuelve en ninguna respuesta del Gateway.
+
+Feature de negocio: `src/features/credentials/` con `NetworkCredentialForm`
+(formulario controlado, mismo patrón de estado que `ScanForm`;
+`ssh_credentials_ref` como `type="password"`, se limpia tras éxito, nunca
+se loggea), `NetworkCredentialsListView` (presentacional puro, mismo
+criterio que `HistoryTableView`: nunca renderiza `ssh_credentials_ref`,
+botón de borrar por fila) y `NetworkCredentialsManager` (contenedor: fetch
+al montar + refetch simple tras crear/borrar, mismo patrón que
+`HistoryTable`). Se montó en `App.tsx` dentro del mismo `ProtectedRoute`,
+**antes** de `ScanForm` — sin introducir routing nuevo. Para
+`target_pattern` (acepta IPv4 o IPv6 en el contrato real, pero
+`validateScanTarget` solo reconoce IPv4) se decidió reutilizarlo como hint
+de UX no bloqueante en vez de escribir un segundo validador, opción que el
+propio `acceptance` de la feature permitía explícitamente. El servidor de
+contrato local (`e2e/contract-server/`) se extendió con los 3 endpoints
+nuevos, replicando el mismo criterio de ownership/404 (nunca `403`) que ya
+usan scans.
+
+El `reviewer` ejecutó una verificación independiente completa (`./init.sh`
+en verde: 117/117 tests unitarios/componente, 12/12 specs e2e, build
+limpio) y una revisión cruzada explícita contra
+`gateway/src/api.rs`/`gateway/src/usuarios_client.rs` (solo lectura) para
+confirmar el contrato campo a campo y código de estado a código de estado
+(incluido que `DELETE` responde `404`, nunca `403`, para una entrada ajena
+o inexistente). Verificó explícitamente ausencia de fuga de
+`ssh_credentials_ref` en `localStorage`/`sessionStorage`, consola, y el
+bundle de producción (`dist/assets/*.js`): la única aparición es el nombre
+del campo en la construcción del cuerpo del `POST`, nunca un valor de
+credencial real. Veredicto: `APPROVED`, sin cambios requeridos.
+
+Detalle completo: `progress/impl_network_credentials_manager.md` y
+`progress/review_network_credentials_manager.md`.
+
+**Con esta feature se completan las 9 features de `feature_list.json`.**
+No queda ninguna feature `pending`.
+
+## Sesión 2026-09-24 — Feature 10: logout_button
+
+- **Feature:** `10 - logout_button` — Botón de cerrar sesión.
+- **Agente:** leader → implementer (rol asumido directamente por el agente
+  orquestador, ya que `subagent_type: "implementer"` no está disponible en
+  este entorno) → `reviewer` (subagente independiente, mismo protocolo de
+  `.claude/agents/reviewer.md`).
+- **Resultado:** `done`.
+
+Resumen: el Gateway ya exponía `POST /auth/logout`
+(`gateway/src/api.rs::logout`, feature `oidc_login`, `done`, solo lectura) —
+deliberadamente fuera del middleware de sesión, así que invalida la cookie
+`gateway_session` incluso sin sesión válida/presente y siempre responde
+`204 No Content`. `front` no tenía ninguna forma de invocarlo: un usuario
+logueado no podía cerrar sesión desde la UI.
+
+Se agregó `logout(): Promise<ApiResult<void>>` en `src/api/auth.ts` (mismo
+estilo que `getMe()`: mapea fallo de red a `network`, `status===204` a
+éxito, cualquier otro status vía `mapCommonErrorStatus`), exportada desde
+`src/api/index.ts`. `src/auth/LogoutButton.tsx` (nuevo) se autogatea con
+`useSession().status === "authenticated"` (nunca visible en
+`loading`/`anonymous`, sin depender de dónde se monte), usa una unión
+discriminada `idle/submitting/error` (mismo patrón que
+`ScanForm`/`NetworkCredentialForm`) para deshabilitar el botón mientras la
+petición está en curso y mostrar un `role="alert"` en caso de fallo de red,
+y en éxito navega con `window.location.href = "/"` — una recarga completa
+de página, nunca `fetch` + estado de React puro, mismo principio ya
+establecido en `LoginButton`/`ProtectedRoute`: tras la recarga
+`SessionProvider` vuelve a llamar `getMe()` (que ahora responde `401`) y
+`ProtectedRoute` redirige a login por su cuenta, sin lógica adicional en
+`LogoutButton`. Se montó en `src/App.tsx` como primer hijo dentro de
+`ProtectedRoute`. El servidor de contrato (`e2e/contract-server/server.ts`)
+se extendió con `POST /auth/logout` replicando el mismo criterio del
+Gateway real: fuera de `requireSessionToken`, borra la sesión del store si
+el token era válido y siempre responde `204` limpiando la cookie.
+
+Tests: `tests/api/auth.test.ts` (describe `logout`, contra el servidor de
+contrato real: invalida la sesión y `getMe()` responde `unauthorized`
+después; responde `ok` incluso sin sesión previa, igual que el Gateway
+real). `tests/auth/LogoutButton.test.tsx` (nuevo, componente): no se
+renderiza en `loading`/`anonymous`; con sesión, el clic llama a
+`POST /auth/logout` (verificado con un spy de `fetch`) y navega a `/` en
+éxito; se deshabilita mientras la petición está en curso (servidor
+`node:http` con demora artificial de 50 ms); un fallo de red muestra el
+error explícito sin navegar (servidor `node:http` cerrado tras `listen`,
+mismo criterio que `tests/api/errorMapping.test.ts`) — nunca `vi.mock` de
+`src/api`. `e2e/logout.spec.ts` (nuevo): flujo completo contra `App.tsx`
+real (`webServer` de Playwright), sesión sintética real, clic real en el
+botón, e intercepción de `**/auth/login` con `page.route` (mismo criterio
+que el primer test de `e2e/auth-session.spec.ts`, ya que ni el Gateway real
+ni el servidor de contrato pueden completar el handshake OIDC con Google
+real en este entorno) para verificar que el navegador termina mostrando el
+estado anónimo.
+
+El `reviewer` ejecutó una verificación independiente completa (`./init.sh`
+en verde: 124/124 tests unitarios/de componente, 13/13 specs e2e, build sin
+errores), confirmó bullet a bullet cada criterio de `acceptance` contra el
+código real, revisó `git status` para confirmar que solo se tocaron los
+archivos declarados, y verificó explícitamente ausencia de
+`localStorage`/`sessionStorage` y de cualquier manejo/inspección de la
+cookie de sesión en todo el árbol tocado. Veredicto: `APPROVED`, sin
+cambios requeridos.
+
+Detalle completo: `progress/review_logout_button.md`.
+
+**Con esta feature se completan las 10 features de `feature_list.json`.**
+No queda ninguna feature `pending`.
+
+## Sesión 2026-09-24 — Feature 11: basic_styling
+
+- **Feature:** `11 - basic_styling` — Estilos visuales base de toda la app.
+- `front` no tenía ningún CSS (0 archivos `.css`/`.scss`, sin librería de
+  estilos en `package.json`): se renderizaba con el estilo por defecto del
+  navegador. Feature puramente visual, sin cambiar comportamiento ni
+  estructura semántica existente.
+- Se creó `src/index.css` (CSS plano, sin CSS-in-JS ni estilos inline
+  nuevos — la CSP de `front/nginx.conf.template`, `style-src 'self'` sin
+  `unsafe-inline`, se sigue cumpliendo tal cual porque Vite extrae el
+  archivo a un `<link rel="stylesheet">` en build) e importado una sola vez
+  desde `src/main.tsx` (`import "./index.css";`). No se agregó ninguna
+  dependencia nueva a `package.json`.
+- Paleta sobria definida con custom properties en `:root`: fondo/superficie/
+  texto neutros, un único color de acento para botones/acciones (todos los
+  `<button>` de la app, coherentes entre sí), y colores reservados
+  exclusivamente para `[role="alert"]` (rojo) y `[role="status"]` (verde) —
+  reutilizando esa distinción semántica ya presente en el markup de
+  `ScanForm`/`NetworkCredentialForm`/`NetworkCredentialsListView`/
+  `HistoryTableView`/`ReportView`/`ReportDetails`/`ProtectedRoute`/
+  `LogoutButton`, sin agregar ninguna clase nueva.
+- Todo el estilo se aplicó con selectores de elemento/atributo (`form`,
+  `table`, `th`/`td`, `button`, `input[type=...]`, `label`,
+  `label:has(input[type="checkbox"])` para alinear el checkbox de
+  `NetworkCredentialForm` en línea, `[role="alert"]`, `[role="status"]`,
+  `:focus-visible`, `:disabled`) — **ningún componente de `src/features`,
+  `src/auth` ni `src/App.tsx` fue tocado**: cero cambios de texto,
+  atributos aria/role, estructura JSX o lógica. Tipografía con jerarquía
+  (h1/h2/h3/label/p), espaciado consistente entre formularios/tablas/
+  secciones, `form`/`table` como "tarjetas" visuales (mismo fondo/borde/
+  radio, sin anidar doble borde cuando una `section` envuelve un
+  formulario o tabla), estado `:disabled` visualmente distinto en inputs y
+  botones, foco visible con `:focus-visible` sin eliminar el foco por
+  defecto sin reemplazo, layout centrado (`#root` con `max-width: 960px`) y
+  una media query de ventana angosta (`max-width: 640px`) que da scroll
+  horizontal propio a las tablas en vez de desbordar la página.
+- No se tocó `front/nginx.conf.template`: la CSP ya declarada
+  (`style-src 'self'`, sin `unsafe-inline`) es compatible sin cambios.
+- Ningún test unitario/de componente ni e2e necesitó ajustes (era el
+  criterio explícito del `acceptance`): `./init.sh` en verde — prettier
+  --check, eslint sin warnings, `tsc --noEmit` sin errores, 124/124 tests
+  unitarios/de componente (vitest), `npm run build` sin errores, 13/13
+  specs e2e (Playwright, Chromium real — incluye
+  `e2e/network-credentials.spec.ts`, que ejercita el checkbox estilizado
+  con `:has()`, confirmando empíricamente que el selector no rompe nada en
+  Chromium).
+
+El `reviewer` ejecutó una verificación independiente completa (`./init.sh`
+en verde), confirmó bullet a bullet cada criterio de `acceptance` de la
+feature 11 contra `src/index.css`/`src/main.tsx` reales, verificó por
+`git diff`/comparación de `mtime` que ningún componente existente fue
+modificado, confirmó ausencia de dependencias nuevas y de estilos inline/
+CSS-in-JS en todo `src/`, y revisó la compatibilidad de la CSP en
+`nginx.conf.template`. Veredicto: `APPROVED`, sin cambios requeridos.
+
+Detalle completo: `progress/review_basic_styling.md`.
+
+**Con esta feature se completan las 11 features de `feature_list.json`.**
+No queda ninguna feature `pending`.

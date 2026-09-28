@@ -9,6 +9,8 @@
  *   id 6), ver `./history`.
  * - `features/report` — visualización/exportación de reporte (feature
  *   `report_view`, id 7), ver `./report`.
+ * - `features/credentials` — gestión de credenciales de red (feature
+ *   `network_credentials_manager`, id 9), ver `./credentials`.
  */
 
 export {};

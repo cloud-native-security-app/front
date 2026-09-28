@@ -8,5 +8,6 @@ export { SessionProvider } from "./SessionProvider";
 export { useSession } from "./useSession";
 export { ProtectedRoute } from "./ProtectedRoute";
 export { LoginButton } from "./LoginButton";
+export { LogoutButton } from "./LogoutButton";
 export { SessionContext } from "./sessionContext";
 export type { SessionState, SessionStatus } from "./sessionTypes";
