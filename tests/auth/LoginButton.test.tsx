@@ -2,6 +2,11 @@
  * Test de componente de `LoginButton` (feature `auth_session`, criterio
  * 3): al hacer click, navega (asignación de `window.location.href`) a la
  * URL de login del Gateway, y nunca hace un `fetch`.
+ *
+ * Ajuste (feature `home_landing_page`, id 12): `LoginButton` gana props
+ * opcionales `label`/`className` para que `HomePage` lo reutilice como su
+ * CTA con el copy exacto "Iniciar sesión" — se agrega un test que cubre
+ * ese override sin duplicar el resto de la cobertura de navegación.
  */
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -49,5 +54,12 @@ describe("LoginButton", () => {
       configurable: true,
       value: original,
     });
+  });
+
+  it("acepta_un_label_y_una_clase_personalizados_sin_cambiar_la_navegacion", () => {
+    render(<LoginButton label="Iniciar sesión" className="custom-cta" />);
+
+    const button = screen.getByRole("button", { name: "Iniciar sesión" });
+    expect(button).toHaveClass("custom-cta");
   });
 });

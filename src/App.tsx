@@ -21,12 +21,34 @@
  * `HistoryTable` (mismo patrón que `onCancel`, ver
  * `src/features/history/HistoryTableView.tsx`) y `ReportView` solo se
  * monta dentro del mismo `ProtectedRoute` cuando hay una selección.
+ *
+ * `NetworkCredentialsManager` (feature `network_credentials_manager`, id 9)
+ * se monta primero dentro del mismo `ProtectedRoute`, antes que `ScanForm`:
+ * sin al menos una credencial de red configurada para el objetivo,
+ * `POST /api/scans` siempre responde 422 en el Gateway real — hay que poder
+ * configurar una antes de poder escanear con éxito.
+ *
+ * `LogoutButton` (feature `logout_button`, id 10) se monta primero de todo
+ * dentro de `ProtectedRoute`: se autogatea por `useSession().status ===
+ * "authenticated"` (nunca visible en loading/anonymous), así que su
+ * posición exacta dentro del contenido protegido no importa — va primero
+ * simplemente porque es la acción inversa al login, visible de inmediato.
+ *
+ * `HomePage` (feature `home_landing_page`, id 12) es el `anonymousView` de
+ * `ProtectedRoute`: reemplaza el auto-redirect silencioso anterior por
+ * contenido real con un CTA explícito. El `<h1>front</h1>` que antes vivía
+ * fuera de `ProtectedRoute` (visible también para el visitante anónimo) se
+ * mueve DENTRO de los `children` (rama autenticada): `HomePage` ya trae su
+ * propia marca "front" en su diseño, así que un `<h1>front</h1>` sin
+ * estilo por encima de ella quedaría duplicado.
  */
 
 import { useState } from "react";
 
-import { ProtectedRoute, SessionProvider } from "./auth";
+import { LogoutButton, ProtectedRoute, SessionProvider } from "./auth";
+import { NetworkCredentialsManager } from "./features/credentials";
 import { HistoryTable } from "./features/history";
+import { HomePage } from "./features/home";
 import { ReportView } from "./features/report";
 import { ScanForm } from "./features/scan";
 
@@ -38,8 +60,10 @@ export function App() {
   return (
     <SessionProvider>
       <main>
-        <h1>front</h1>
-        <ProtectedRoute>
+        <ProtectedRoute anonymousView={<HomePage />}>
+          <h1>front</h1>
+          <LogoutButton />
+          <NetworkCredentialsManager />
           <ScanForm />
           <HistoryTable onViewReport={setSelectedScanId} />
           {selectedScanId && <ReportView scanId={selectedScanId} />}

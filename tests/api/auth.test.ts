@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { getMe, gatewayBaseUrl, loginRedirectUrl } from "../../src/api";
+import { getMe, gatewayBaseUrl, loginRedirectUrl, logout } from "../../src/api";
 import {
   clearNodeTestSessionCookies,
   loginAsSyntheticUser,
@@ -43,5 +43,36 @@ describe("getMe", () => {
     const result = await getMe();
 
     expect(result).toEqual({ ok: false, error: { kind: "unauthorized" } });
+  });
+});
+
+describe("logout", () => {
+  useContractServer();
+
+  beforeEach(() => {
+    clearNodeTestSessionCookies();
+  });
+
+  it("invalida_la_sesion_activa_y_getMe_devuelve_unauthorized_despues", async () => {
+    await loginAsSyntheticUser({
+      email: "logout-user@example.test",
+      name: "Analista Logout",
+    });
+
+    const result = await logout();
+
+    expect(result).toEqual({ ok: true, value: undefined });
+
+    const afterLogout = await getMe();
+    expect(afterLogout).toEqual({
+      ok: false,
+      error: { kind: "unauthorized" },
+    });
+  });
+
+  it("responde_ok_incluso_sin_sesion_activa_mismo_criterio_que_el_gateway_real", async () => {
+    const result = await logout();
+
+    expect(result).toEqual({ ok: true, value: undefined });
   });
 });

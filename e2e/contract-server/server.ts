@@ -29,13 +29,21 @@ import {
   type ServerResponse,
 } from "node:http";
 
-import type { MeResponse, ScanHistoryEntry } from "../../src/api/types";
+import type {
+  CreateNetworkCredentialInput,
+  MeResponse,
+  ScanHistoryEntry,
+} from "../../src/api/types";
 import {
   applyEventToRecord,
+  createNetworkCredential,
   createScan,
   createStore,
   createSyntheticSession,
+  deleteNetworkCredential,
   findOwnedScan,
+  listNetworkCredentials,
+  toNetworkCredential,
   type ContractServerStore,
   type ScanRecord,
 } from "./store.ts";
@@ -130,6 +138,32 @@ function handleTestCreateSession(
     );
     writeJson(res, 200, profile);
   });
+}
+
+/**
+ * `POST /auth/logout` (feature `logout_button`, id 10). Igual que el
+ * Gateway real (`gateway/src/api.rs::logout`), queda fuera de
+ * `requireSessionToken` a propósito: debe poder invocarse incluso sin una
+ * sesión válida/presente, sin responder `401` antes de poder borrar la
+ * cookie del navegador. Siempre responde `204` y limpia la cookie
+ * `gateway_session` (`Max-Age=0`), borrando además la sesión del store si el
+ * token todavía era válido.
+ */
+function handleLogout(
+  store: ContractServerStore,
+  req: IncomingMessage,
+  res: ServerResponse,
+): void {
+  const token = readSessionToken(req);
+  if (token) {
+    store.sessions.delete(token);
+  }
+  res.setHeader(
+    "Set-Cookie",
+    `${SESSION_COOKIE_NAME}=; HttpOnly; Path=/; SameSite=Strict; Max-Age=0`,
+  );
+  res.writeHead(204);
+  res.end();
 }
 
 function handleGetMe(
@@ -232,6 +266,89 @@ function handleCancelScan(
   res.end();
 }
 
+function handleListNetworkCredentials(
+  store: ContractServerStore,
+  req: IncomingMessage,
+  res: ServerResponse,
+): void {
+  const token = requireSessionToken(store, req, res);
+  if (!token) {
+    return;
+  }
+  const entries = listNetworkCredentials(store, token).map(toNetworkCredential);
+  writeJson(res, 200, entries);
+}
+
+function isCreateNetworkCredentialInput(
+  value: unknown,
+): value is CreateNetworkCredentialInput {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const record = value as Record<string, unknown>;
+  return (
+    typeof record["target_pattern"] === "string" &&
+    record["target_pattern"].trim().length > 0 &&
+    typeof record["network_user"] === "string" &&
+    record["network_user"].trim().length > 0 &&
+    typeof record["ssh_credentials_ref"] === "string" &&
+    record["ssh_credentials_ref"].length > 0 &&
+    typeof record["has_sudo"] === "boolean"
+  );
+}
+
+async function handleCreateNetworkCredential(
+  store: ContractServerStore,
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const token = requireSessionToken(store, req, res);
+  if (!token) {
+    return;
+  }
+  const bodyText = await readRequestBody(req);
+  let parsedBody: unknown;
+  try {
+    parsedBody = bodyText.length > 0 ? JSON.parse(bodyText) : undefined;
+  } catch {
+    writeText(
+      res,
+      400,
+      "cuerpo inválido: se esperaba JSON con { target_pattern, network_user, ssh_credentials_ref, has_sudo }",
+    );
+    return;
+  }
+  if (!isCreateNetworkCredentialInput(parsedBody)) {
+    writeText(
+      res,
+      400,
+      "cuerpo inválido: se esperaban target_pattern/network_user/ssh_credentials_ref (strings no vacíos) y has_sudo (boolean)",
+    );
+    return;
+  }
+  const record = createNetworkCredential(store, token, parsedBody);
+  writeJson(res, 200, toNetworkCredential(record));
+}
+
+function handleDeleteNetworkCredential(
+  store: ContractServerStore,
+  req: IncomingMessage,
+  res: ServerResponse,
+  id: string,
+): void {
+  const token = requireSessionToken(store, req, res);
+  if (!token) {
+    return;
+  }
+  const deleted = deleteNetworkCredential(store, id, token);
+  if (!deleted) {
+    writeText(res, 404, "credencial de red no encontrada");
+    return;
+  }
+  res.writeHead(204);
+  res.end();
+}
+
 function handleGetReport(
   store: ContractServerStore,
   req: IncomingMessage,
@@ -321,6 +438,7 @@ function handleScanEvents(
 }
 
 const SCAN_SUB_ROUTE = /^\/api\/scans\/([^/]+)\/(cancel|events|report)$/;
+const NETWORK_CREDENTIAL_ID_ROUTE = /^\/api\/network-credentials\/([^/]+)$/;
 
 async function handleRequest(
   store: ContractServerStore,
@@ -353,6 +471,11 @@ async function handleRequest(
     return;
   }
 
+  if (method === "POST" && pathname === "/auth/logout") {
+    handleLogout(store, req, res);
+    return;
+  }
+
   if (method === "GET" && pathname === "/api/me") {
     handleGetMe(store, req, res);
     return;
@@ -365,6 +488,22 @@ async function handleRequest(
 
   if (method === "POST" && pathname === "/api/scans") {
     await handleSubmitScan(store, req, res);
+    return;
+  }
+
+  if (method === "GET" && pathname === "/api/network-credentials") {
+    handleListNetworkCredentials(store, req, res);
+    return;
+  }
+
+  if (method === "POST" && pathname === "/api/network-credentials") {
+    await handleCreateNetworkCredential(store, req, res);
+    return;
+  }
+
+  const networkCredentialIdMatch = NETWORK_CREDENTIAL_ID_ROUTE.exec(pathname);
+  if (networkCredentialIdMatch && method === "DELETE") {
+    handleDeleteNetworkCredential(store, req, res, networkCredentialIdMatch[1]);
     return;
   }
 

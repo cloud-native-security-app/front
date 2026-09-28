@@ -1,0 +1,343 @@
+/**
+ * Hoja de estilos global de `front` (feature `basic_styling`, id 11).
+ *
+ * CSS plano importado una sola vez desde `src/main.tsx` — nada de
+ * CSS-in-JS con inyección en runtime ni estilos inline nuevos: Vite
+ * extrae este archivo a un `<link rel="stylesheet">` en build, y la CSP
+ * de `front` (`nginx.conf.template`, `style-src 'self'`, sin
+ * `unsafe-inline`) lo sirve sin cambios.
+ *
+ * Puramente visual: no define ninguna clase nueva para reemplazar
+ * markup existente. La distinción error/éxito reutiliza `[role="alert"]`
+ * / `[role="status"]`, que ya está presente en `ScanForm`,
+ * `NetworkCredentialForm`, `HistoryTableView`, `NetworkCredentialsListView`,
+ * `ReportView` y `LogoutButton` (ver docs/conventions.md).
+ *
+ * Paleta sobria pensada para una consola de análisis (no un producto de
+ * consumo): fondos neutros, un único color de acento para botones/acciones
+ * primarias, y rojo/verde reservados solo para alert/status.
+ */
+
+:root {
+  color-scheme: light;
+
+  --color-bg: #f3f4f6;
+  --color-surface: #ffffff;
+  --color-border: #d8dce2;
+  --color-text: #1c2230;
+  --color-text-muted: #5b6472;
+
+  --color-accent: #2d5a82;
+  --color-accent-hover: #1d4560;
+  --color-accent-contrast: #ffffff;
+
+  --color-alert-bg: #fdecea;
+  --color-alert-border: #c94a3c;
+  --color-alert-text: #8a2a1e;
+
+  --color-status-bg: #e8f4ee;
+  --color-status-border: #3a8a5c;
+  --color-status-text: #1f5c3a;
+
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
+    sans-serif, "Apple Color Emoji", "Segoe UI Emoji";
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2.5rem;
+
+  --radius: 6px;
+  --content-max-width: 960px;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  font-family: var(--font-sans);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+#root {
+  max-width: var(--content-max-width);
+  margin: 0 auto;
+  padding: var(--space-5) var(--space-4) var(--space-6);
+}
+
+main {
+  display: block;
+}
+
+/* Espaciado consistente entre los bloques de alto nivel del shell
+   (`LogoutButton`, `NetworkCredentialsManager`, `ScanForm`, `HistoryTable`,
+   `ReportView`) sin depender de una clase nueva: son siempre hijos
+   directos de `<main>` (ver `src/App.tsx`). */
+main > * {
+  margin-bottom: var(--space-6);
+}
+
+main > *:last-child {
+  margin-bottom: 0;
+}
+
+h1,
+h2,
+h3 {
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--color-text);
+}
+
+h1 {
+  font-size: 1.75rem;
+  margin: 0 0 var(--space-5);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--color-border);
+}
+
+h2 {
+  font-size: 1.25rem;
+  margin: 0 0 var(--space-4);
+}
+
+h3 {
+  font-size: 1.05rem;
+  margin: var(--space-4) 0 var(--space-2);
+}
+
+p {
+  margin: var(--space-2) 0;
+  color: var(--color-text);
+}
+
+a {
+  color: var(--color-accent);
+}
+
+a:hover,
+a:focus-visible {
+  color: var(--color-accent-hover);
+}
+
+/* `section` agrupa/espacia (p. ej. `NetworkCredentialsManager`,
+   `ReportView`) sin ser en sí misma una tarjeta: la tarjeta visual la dan
+   `form`/`table`, para no anidar dos bordes cuando una sección envuelve un
+   formulario o una tabla. */
+section {
+  padding: 0;
+  margin: 0;
+}
+
+section > *:not(:last-child) {
+  margin-bottom: var(--space-4);
+}
+
+/* Formularios y tablas son las "tarjetas" visuales de la app: mismo fondo,
+   borde y radio en toda la aplicación, estén o no anidados dentro de una
+   `section`. */
+form,
+table {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+form {
+  padding: var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  max-width: 100%;
+}
+
+label {
+  display: block;
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: var(--color-text);
+  margin-bottom: var(--space-1);
+}
+
+/* Label del checkbox (p. ej. "Tiene privilegios sudo" en
+   `NetworkCredentialForm`): envuelve el input y su texto en línea, en vez
+   del bloque vertical de los demás labels de texto/contraseña. */
+label:has(input[type="checkbox"]) {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 400;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="email"] {
+  display: block;
+  width: 100%;
+  font: inherit;
+  color: var(--color-text);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
+}
+
+input[type="text"]:disabled,
+input[type="password"]:disabled,
+input[type="email"]:disabled {
+  background-color: var(--color-bg);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+input[type="checkbox"] {
+  accent-color: var(--color-accent);
+  width: 1rem;
+  height: 1rem;
+}
+
+button {
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-accent-contrast);
+  background-color: var(--color-accent);
+  border: 1px solid var(--color-accent);
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-4);
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+button:hover:not(:disabled) {
+  background-color: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+}
+
+button:disabled {
+  background-color: var(--color-border);
+  border-color: var(--color-border);
+  color: var(--color-text-muted);
+  cursor: not-allowed;
+}
+
+/* Estados de foco visibles (navegación por teclado) sin quitar el foco por
+   defecto del navegador: `:focus-visible` solo añade un anillo adicional,
+   nunca reemplaza `:focus` de forma que un navegador sin soporte se quede
+   sin indicador. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+input[type="text"]:focus-visible,
+input[type="password"]:focus-visible,
+input[type="email"]:focus-visible {
+  outline: none;
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(45, 90, 130, 0.25);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+caption {
+  caption-side: top;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.95rem;
+  color: var(--color-text-muted);
+  padding: var(--space-3) var(--space-4) var(--space-2);
+}
+
+th,
+td {
+  text-align: left;
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: top;
+}
+
+thead th {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  color: var(--color-text-muted);
+  background-color: var(--color-bg);
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+td button {
+  align-self: auto;
+}
+
+td p[role="alert"] {
+  margin-top: var(--space-2);
+}
+
+ul {
+  margin: var(--space-2) 0;
+  padding-left: 1.25rem;
+}
+
+li {
+  margin-bottom: var(--space-2);
+}
+
+/* Distinción semántica error/éxito (acceptance de la feature
+   `basic_styling`): reutiliza `[role="alert"]`/`[role="status"]` ya
+   presentes en el markup, sin clases nuevas. */
+[role="alert"],
+[role="status"] {
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.9rem;
+}
+
+[role="alert"] {
+  background-color: var(--color-alert-bg);
+  border-color: var(--color-alert-border);
+  color: var(--color-alert-text);
+}
+
+[role="status"] {
+  background-color: var(--color-status-bg);
+  border-color: var(--color-status-border);
+  color: var(--color-status-text);
+}
+
+/* Ventanas angostas: los formularios/botones ya son fluidos (`width: 100%`
+   en inputs, `flex-direction: column` en forms); las tablas ganan scroll
+   horizontal propio en vez de desbordar la página. */
+@media (max-width: 640px) {
+  #root {
+    padding: var(--space-4) var(--space-3) var(--space-5);
+  }
+
+  table {
+    display: block;
+    overflow-x: auto;
+  }
+}

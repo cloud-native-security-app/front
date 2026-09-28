@@ -3,7 +3,7 @@
 > Este archivo se vacía al cerrar cada sesión y se mueve a `history.md`.
 > Mientras trabajas, **mantenlo actualizado en tiempo real**, no al final.
 
-- **Feature en curso:** _ninguna — las 8 features de `feature_list.json`
+- **Feature en curso:** _ninguna — las 13 features de `feature_list.json`
   están `done`_
 - **Inicio:** _pendiente_
 - **Agente:** _pendiente_

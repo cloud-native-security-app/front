@@ -46,3 +46,32 @@ export async function getMe(): Promise<ApiResult<MeResponse>> {
   }
   return { ok: true, value: parsed.value };
 }
+
+/**
+ * Cierra la sesión activa (`POST /auth/logout`, feature `logout_button`,
+ * id 10). Igual que el Gateway real (`gateway/src/api.rs::logout`), esta
+ * ruta queda deliberadamente fuera del middleware de sesión: invalida la
+ * cookie `gateway_session` del lado del navegador incluso si la sesión ya
+ * está ausente/expirada, y siempre responde `204 No Content` sin cuerpo —
+ * `front` nunca lee ni gestiona esa cookie directamente (ver
+ * docs/security-scope.md).
+ *
+ * Puede fallar con `ApiError`: `network` (Gateway inalcanzable),
+ * `unexpected` (cualquier status distinto de 204). El llamante es
+ * responsable de navegar con una redirección completa de página tras un
+ * resultado exitoso (ver `src/auth/LogoutButton.tsx`) — este módulo nunca
+ * toca `window.location`.
+ */
+export async function logout(): Promise<ApiResult<void>> {
+  const result = await performRequest("/auth/logout", { method: "POST" });
+  if ("networkError" in result) {
+    return { ok: false, error: { kind: "network" } };
+  }
+  if (result.status === 204) {
+    return { ok: true, value: undefined };
+  }
+  return {
+    ok: false,
+    error: mapCommonErrorStatus(result.status, result.bodyText),
+  };
+}

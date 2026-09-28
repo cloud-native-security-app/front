@@ -1,0 +1,280 @@
+/**
+ * Estilos de `HomePage` (feature `home_landing_page`, id 12). CSS plano,
+ * scoped bajo `.home-page` a propósito: esta paleta/tipografía es propia de
+ * la página de inicio del visitante anónimo y NUNCA debe filtrarse a la app
+ * autenticada (`src/index.css`, feature `basic_styling`, paleta clara ya
+ * aprobada) ni al revés — dos temas visuales conviven en el mismo bundle
+ * sin chocar porque cada selector de este archivo cuelga de `.home-page`.
+ *
+ * Acento cian (`--home-accent`) reservado a tres lugares, a propósito (ver
+ * feature_list.json): el CTA, el punto "en vivo" del panel, y el hover de
+ * un enlace — en ningún otro elemento.
+ */
+
+.home-page {
+  --home-bg: #0b1220;
+  --home-surface: #131b2c;
+  --home-border: #232e45;
+  --home-text: #e7ecf3;
+  --home-text-muted: #8996ac;
+  --home-accent: #38bdf8;
+
+  /* `#root` (src/index.css, feature `basic_styling`) centra su contenido
+     con un ancho máximo y padding pensados para la app autenticada. El
+     contenido de esta página se libera de ese ancho máximo con la técnica
+     estándar de "full-bleed" (ancho 100vw + márgenes horizontales negativos
+     relativos al viewport), para poder alinearse de verdad contra el borde
+     izquierdo real del navegador. */
+  position: relative;
+  isolation: isolate;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  min-height: 100vh;
+  padding: 3rem 1.5rem 2.5rem;
+  color: var(--home-text);
+  font-family:
+    "Space Grotesk",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;
+}
+
+/* El fondo oscuro se pinta con una capa fija a viewport completo, no con el
+   propio `background-color`/`margin` de `.home-page`: `#root` ya define
+   `main > *:last-child { margin-bottom: 0 }` (feature `basic_styling`) con
+   más especificidad que un margen negativo puesto aquí, así que cancelar su
+   padding vertical por margen sería frágil (y, si se lograra, dependería de
+   sus valores exactos, que cambian en su propio `@media`). Una capa
+   `position: fixed` cubre siempre el viewport completo sin importar el
+   padding/scroll del contenedor — nunca queda un borde claro visible
+   alrededor del fondo oscuro. */
+.home-page::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-color: var(--home-bg);
+}
+
+.home-page a {
+  color: inherit;
+}
+
+.home-page a:hover {
+  color: var(--home-accent);
+}
+
+.home-page__shell {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2.5rem;
+  align-items: start;
+  max-width: 68rem;
+}
+
+@media (min-width: 60rem) {
+  .home-page__shell {
+    grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+    gap: 4rem;
+  }
+
+  /* La asimetría del layout la da el panel: no se alinea con la parte
+     superior del bloque de texto, se ofrece un poco más abajo, nunca
+     centrado. */
+  .home-page__panel {
+    margin-top: 3rem;
+  }
+}
+
+.home-page__intro {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1.25rem;
+  max-width: 42rem;
+}
+
+.home-page__brand {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--home-text-muted);
+}
+
+.home-page__headline {
+  margin: 0;
+  font-weight: 700;
+  font-size: clamp(2rem, 1.35rem + 2.6vw, 3.25rem);
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: var(--home-text);
+  max-width: 20ch;
+}
+
+.home-page__lede {
+  margin: 0;
+  font-size: 1.125rem;
+  line-height: 1.6;
+  color: var(--home-text-muted);
+  max-width: 42ch;
+}
+
+.home-page__cta {
+  font: inherit;
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--home-bg);
+  background-color: var(--home-accent);
+  border: 1px solid var(--home-accent);
+  border-radius: 3px;
+  padding: 0.7rem 1.5rem;
+  cursor: pointer;
+}
+
+.home-page__cta:hover {
+  background-color: #7dd4fb;
+  border-color: #7dd4fb;
+}
+
+.home-page__capabilities {
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  max-width: 42ch;
+}
+
+.home-page__capabilities li {
+  margin: 0;
+  font-size: 0.975rem;
+  line-height: 1.55;
+  color: var(--home-text-muted);
+}
+
+.home-page__panel {
+  background-color: var(--home-surface);
+  border: 1px solid var(--home-border);
+  border-radius: 4px;
+  padding: 1.25rem 1.5rem 1.5rem;
+  max-width: 30rem;
+}
+
+.home-page__panel-label {
+  margin: 0 0 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-weight: 500;
+  font-size: 0.85rem;
+  color: var(--home-text-muted);
+}
+
+.home-page__panel-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background-color: var(--home-accent);
+  flex: none;
+}
+
+.home-page__panel-lines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: var(--home-text);
+}
+
+/* Único momento de movimiento de esta página (ver skill `frontend-design`):
+   el panel revela sus líneas en secuencia y hace loop lento. Cada línea usa
+   el mismo ciclo de 8s con un `animation-delay` negativo distinto — un
+   truco estándar de CSS para desfasar una animación infinita de forma
+   estable en cada vuelta del loop, sin JavaScript ni reinicios visibles. */
+.home-page__panel-line {
+  opacity: 0;
+  animation: home-page-line-cycle 8s ease-in-out infinite;
+}
+
+.home-page__panel-line:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.home-page__panel-line:nth-child(2) {
+  animation-delay: -1.6s;
+}
+
+.home-page__panel-line:nth-child(3) {
+  animation-delay: -3.2s;
+}
+
+.home-page__panel-line:nth-child(4) {
+  animation-delay: -4.8s;
+}
+
+.home-page__panel-line:nth-child(5) {
+  animation-delay: -6.4s;
+}
+
+@keyframes home-page-line-cycle {
+  0% {
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  55% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* `prefers-reduced-motion`: el contenido nunca queda oculto detrás de una
+   animación que no corre — se muestra el estado final (todas las líneas
+   visibles) directamente. */
+@media (prefers-reduced-motion: reduce) {
+  .home-page__panel-line {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+.home-page__footer {
+  margin: 0;
+  max-width: 68rem;
+  font-size: 0.85rem;
+  color: var(--home-text-muted);
+}
+
+/* Foco visible en el CTA y en cualquier enlace (nunca `outline: none` sin
+   reemplazo, ver docs/security-scope.md / criterios de accesibilidad de la
+   feature). */
+.home-page a:focus-visible,
+.home-page__cta:focus-visible {
+  outline: 3px solid var(--home-accent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .home-page {
+    padding: 2rem 1.25rem 2rem;
+  }
+}

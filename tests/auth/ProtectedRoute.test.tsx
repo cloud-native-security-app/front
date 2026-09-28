@@ -1,8 +1,16 @@
 /**
  * Tests de componente de `ProtectedRoute` (feature `auth_session`,
  * criterio 2): nunca renderiza el contenido protegido mientras la sesión
- * está `loading` o `anonymous`, y en `anonymous` navega (asignación de
- * `window.location.href`, nunca `fetch`) a la URL de login del Gateway.
+ * está `loading` o `anonymous`.
+ *
+ * Ajuste (feature `home_landing_page`, id 12): el caso `anonymous` ya no
+ * navega automáticamente al Gateway (`window.location.href`) — en vez de
+ * eso, `ProtectedRoute` renderiza el nodo `anonymousView` que le pasa quien
+ * lo usa (ver `src/App.tsx`, que le pasa `HomePage`). Aquí se usa un stub
+ * simple (`<p>vista anónima de prueba</p>`) en vez del `HomePage` real,
+ * para mantener este test desacoplado de una feature distinta (ver
+ * `tests/features/home/HomePage.test.tsx` para los tests propios de
+ * `HomePage`).
  *
  * Inyecta un `SessionState` arbitrario vía `SessionContext` en vez de
  * pasar por el servidor de contrato: el comportamiento de `getMe()` ya se
@@ -10,59 +18,25 @@
  * guard a cada estado posible.
  */
 import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, beforeAll, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
-import { configureGatewayBaseUrl, gatewayBaseUrl } from "../../src/api";
 import { ProtectedRoute, SessionContext } from "../../src/auth";
 import type { SessionState } from "../../src/auth";
+
+const ANONYMOUS_VIEW_STUB = <p>vista anónima de prueba</p>;
 
 function renderProtected(session: SessionState) {
   return render(
     <SessionContext.Provider value={session}>
-      <ProtectedRoute>
+      <ProtectedRoute anonymousView={ANONYMOUS_VIEW_STUB}>
         <p>Contenido secreto</p>
       </ProtectedRoute>
     </SessionContext.Provider>,
   );
 }
 
-/** Reemplaza `window.location` por un doble que registra asignaciones a `href` en vez de navegar de verdad (jsdom no implementa navegación real). */
-function stubWindowLocation(): {
-  assignedHrefs: string[];
-  restore: () => void;
-} {
-  const original = window.location;
-  const assignedHrefs: string[] = [];
-  Object.defineProperty(window, "location", {
-    configurable: true,
-    value: {
-      ...original,
-      set href(value: string) {
-        assignedHrefs.push(value);
-      },
-      get href() {
-        return original.href;
-      },
-    },
-  });
-  return {
-    assignedHrefs,
-    restore: () => {
-      Object.defineProperty(window, "location", {
-        configurable: true,
-        value: original,
-      });
-    },
-  };
-}
-
 describe("ProtectedRoute", () => {
-  beforeAll(() => {
-    configureGatewayBaseUrl("http://gateway.contract-test.local");
-  });
-
   afterEach(() => {
-    configureGatewayBaseUrl("http://gateway.contract-test.local");
     cleanup();
   });
 
@@ -73,15 +47,11 @@ describe("ProtectedRoute", () => {
     expect(screen.getByRole("status")).toBeInTheDocument();
   });
 
-  it("no_renderiza_contenido_protegido_y_navega_a_login_si_la_sesion_es_anonima", () => {
-    const location = stubWindowLocation();
-
+  it("no_renderiza_contenido_protegido_y_renderiza_anonymousView_si_la_sesion_es_anonima", () => {
     renderProtected({ status: "anonymous", user: undefined });
 
     expect(screen.queryByText("Contenido secreto")).not.toBeInTheDocument();
-    expect(location.assignedHrefs).toEqual([`${gatewayBaseUrl()}/auth/login`]);
-
-    location.restore();
+    expect(screen.getByText("vista anónima de prueba")).toBeInTheDocument();
   });
 
   it("renderiza_el_contenido_protegido_si_la_sesion_esta_autenticada", () => {

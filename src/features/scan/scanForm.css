@@ -1,0 +1,172 @@
+/**
+ * Estilos de la "consola de escaneo" de `ScanForm` (feature
+ * `scan_console_redesign`, id 13): extiende la identidad visual
+ * "Signals & Traces" de `src/features/home/home.css` (feature
+ * `home_landing_page`, id 12) a este componente ya autenticado. Los valores
+ * hex de paleta (`--scan-bg`/`--scan-surface`/`--scan-border`/`--scan-text`/
+ * `--scan-text-muted`/`--scan-accent`) son LITERALMENTE los mismos que
+ * `--home-bg`/`--home-surface`/`--home-border`/`--home-text`/
+ * `--home-text-muted`/`--home-accent` de `home.css` — si alguno cambia ahí,
+ * debe actualizarse aquí también. No hay una fuente compartida a propósito
+ * (cada tema vive scoped bajo su propia clase raíz, ver el comentario de
+ * cabecera de `home.css`), así que la sincronización es manual y explícita.
+ *
+ * Scoped bajo `.scan-console`, nunca en `:root` ni en `src/index.css`: el
+ * resto del dashboard autenticado (`NetworkCredentialsManager`,
+ * `HistoryTable`, `ReportView`, `LogoutButton`) sigue con la paleta clara
+ * de `basic_styling` (feature 11) sin cambios. Este panel es, a propósito,
+ * una isla oscura de consola/terminal dentro de un dashboard claro — el
+ * borde y la sombra existen para que la diferencia se lea como una
+ * decisión de diseño, no como un error visual, sin intentar mimetizarse
+ * con sus vecinos.
+ *
+ * Selectores del `<input>` con `input[…].scan-console__input[type="text"]`
+ * (en vez de solo `.scan-console__input`): las reglas equivalentes de
+ * `src/index.css` (`input[type="text"]`, `input[type="text"]:disabled`,
+ * `input[type="text"]:focus-visible`) ya combinan un selector de tipo con
+ * uno de atributo, lo que les da más especificidad que una sola clase.
+ * Igualar esa forma (tipo + atributo + clase) es la única manera de ganar
+ * la cascada de forma determinista, sin depender del orden de imports.
+ */
+
+.scan-console {
+  --scan-bg: #0b1220;
+  --scan-surface: #131b2c;
+  --scan-border: #232e45;
+  --scan-text: #e7ecf3;
+  --scan-text-muted: #8996ac;
+  --scan-accent: #38bdf8;
+
+  /* Recalibrados para fondo oscuro: los `--color-alert-*`/`--color-status-*`
+     de `src/index.css` están calibrados para una superficie clara
+     (`#ffffff`) y quedarían casi ilegibles sobre `--scan-surface`
+     (`#131b2c`). Mismo rol semántico (rojo = alerta, verde = éxito), con
+     luminosidad recalculada para superar 7:1 de contraste de texto sobre
+     `--scan-surface` (ver progress/impl_scan_console_redesign.md para el
+     cálculo). */
+  --scan-alert-bg: #3a1518;
+  --scan-alert-border: #f87171;
+  --scan-alert-text: #fecaca;
+
+  --scan-status-bg: #0f2e28;
+  --scan-status-border: #34d399;
+  --scan-status-text: #a7f3d0;
+
+  background-color: var(--scan-bg);
+  border: 1px solid var(--scan-border);
+  border-radius: 4px;
+  padding: 1.5rem;
+  box-shadow: 0 18px 40px -28px rgba(0, 0, 0, 0.7);
+  color: var(--scan-text);
+  font-family:
+    "Space Grotesk",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+}
+
+.scan-console__heading {
+  margin: 0 0 1rem;
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: var(--scan-text);
+}
+
+.scan-console__form {
+  background-color: var(--scan-surface);
+  border: 1px solid var(--scan-border);
+  border-radius: 4px;
+}
+
+.scan-console__label {
+  color: var(--scan-text);
+}
+
+input.scan-console__input[type="text"] {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+  background-color: var(--scan-bg);
+  color: var(--scan-text);
+  border: 1px solid var(--scan-border);
+  border-radius: 4px;
+}
+
+input.scan-console__input[type="text"]::placeholder {
+  color: var(--scan-text-muted);
+}
+
+input.scan-console__input[type="text"]:disabled {
+  background-color: var(--scan-surface);
+  color: var(--scan-text-muted);
+  cursor: not-allowed;
+}
+
+/* Único reemplazo de `outline: none` de todo este archivo, con reemplazo
+   inmediato (mismo tratamiento que `.home-page a:focus-visible` /
+   `.home-page__cta:focus-visible`): nunca se deja un `<input>`/`<button>`
+   sin indicador de foco visible por teclado. */
+input.scan-console__input[type="text"]:focus-visible {
+  outline: 3px solid var(--scan-accent);
+  outline-offset: 2px;
+  border-color: var(--scan-accent);
+  box-shadow: none;
+}
+
+.scan-console__submit {
+  color: var(--scan-bg);
+  background-color: var(--scan-accent);
+  border: 1px solid var(--scan-accent);
+}
+
+.scan-console__submit:hover:not(:disabled) {
+  background-color: #7dd4fb;
+  border-color: #7dd4fb;
+}
+
+.scan-console__submit:disabled {
+  background-color: var(--scan-border);
+  border-color: var(--scan-border);
+  color: var(--scan-text-muted);
+  cursor: not-allowed;
+}
+
+.scan-console__submit:focus-visible {
+  outline: 3px solid var(--scan-accent);
+  outline-offset: 2px;
+}
+
+/* Alert/status: mismos roles semánticos que el resto de la app
+   (`role="alert"`/`role="status"`, ver `src/index.css`), sin clases nuevas
+   para esa distinción — solo se recalibran los colores para la superficie
+   oscura mediante un selector de atributo scoped bajo `.scan-console`. */
+.scan-console [role="alert"] {
+  background-color: var(--scan-alert-bg);
+  border-color: var(--scan-alert-border);
+  color: var(--scan-alert-text);
+}
+
+.scan-console [role="status"] {
+  background-color: var(--scan-status-bg);
+  border-color: var(--scan-status-border);
+  color: var(--scan-status-text);
+}
+
+/* Dato técnico: el valor tecleado (`.scan-console__input`, ya cubierto
+   arriba), el scanId devuelto y la línea "Estado: … (…)" comparten esta
+   clase para IBM Plex Mono. */
+.scan-console__mono {
+  font-family: "IBM Plex Mono", ui-monospace, monospace;
+}
+
+/* Punto "en vivo": mismo patrón visual que `.home-page__panel-dot`
+   (mismo tamaño, mismo `--scan-accent`/`--home-accent`), mostrado solo
+   cuando `scanEvents.connectionStatus === "open"`. */
+.scan-console__live-dot {
+  display: inline-block;
+  width: 0.5rem;
+  height: 0.5rem;
+  margin-right: 0.5rem;
+  border-radius: 50%;
+  background-color: var(--scan-accent);
+  vertical-align: middle;
+}

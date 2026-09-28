@@ -4,7 +4,12 @@
   "rules": {
     "one_feature_at_a_time": true,
     "require_tests_to_close": true,
-    "valid_status": ["pending", "in_progress", "done", "blocked"]
+    "valid_status": [
+      "pending",
+      "in_progress",
+      "done",
+      "blocked"
+    ]
   },
   "features": [
     {
@@ -124,6 +129,99 @@
         "Las imágenes base están fijadas por tag concreto (no latest), idealmente por digest",
         "docker build completa sin error y docker run sirve la SPA correctamente (verificación manual documentada)",
         "docs/architecture.md se actualiza con una nota breve de despliegue (imagen, qué incluye y qué no)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": 9,
+      "name": "network_credentials_manager",
+      "title": "Gestión de credenciales de red (formulario + listado)",
+      "description": "gateway ya expone GET/POST /api/network-credentials y DELETE /api/network-credentials/:id (feature network_credentials_proxy, done), proxeando a user-service. Sin una pantalla para crearlas, ningún usuario puede completar login -> configurar credenciales -> enviar escaneo: hoy POST /api/scans siempre responde 422 (sin credenciales configuradas para ningún objetivo). Esta feature agrega la UI: un formulario para crear una entrada y un listado de las existentes con acción de borrar, montados junto a ScanForm dentro de ProtectedRoute (mismo principio que scan_request_form/scan_history: sin routing nuevo).",
+      "acceptance": [
+        "src/api/httpClient.ts: PerformRequestInit.method se extiende para aceptar también \"DELETE\" (hoy solo admite \"GET\"|\"POST\") — necesario para deleteNetworkCredential",
+        "src/api/networkCredentials.ts (nuevo), mismo estilo que src/api/scans.ts: createNetworkCredential({target_pattern, network_user, ssh_credentials_ref, has_sudo}) -> POST /api/network-credentials; listNetworkCredentials() -> GET /api/network-credentials; deleteNetworkCredential(id) -> DELETE /api/network-credentials/:id. Tipos de respuesta SIN ssh_credentials_ref (el gateway nunca lo devuelve, ver contrato ya cerrado en gateway/src/api.rs y gateway/src/usuarios_client.rs)",
+        "Guards nuevos en src/api/guards.ts para validar en runtime la forma de la respuesta del listado (mismo patrón que isScanHistoryEntryArray)",
+        "src/features/credentials/ (nuevo): formulario controlado (target_pattern, network_user, ssh_credentials_ref como input type=password, checkbox has_sudo) que llama createNetworkCredential, mismo patrón de estado que src/features/scan/ScanForm.tsx (unión discriminada idle/submitting/success/error, describeError mapeando ApiError). Para target_pattern, evaluar si src/features/scan/validateScanTarget.ts (solo IPv4) sirve tal cual como validación de UX o si hace falta ajustarla — no es el control de seguridad real (eso lo hace user-service), así que puede quedar como mejora de UX no bloqueante si no cubre IPv6",
+        "Listado de credenciales (mismo patrón visual/estructura que src/features/history/HistoryTable.tsx): target_pattern, network_user, has_sudo por fila, NUNCA ssh_credentials_ref, con botón de borrar por fila que llama deleteNetworkCredential y refresca el listado",
+        "src/App.tsx: montar el nuevo componente dentro de ProtectedRoute, antes de ScanForm (hay que configurar credenciales antes de poder escanear un objetivo con éxito)",
+        "e2e/contract-server/: extender el store/servidor de contrato falso con los 3 endpoints nuevos, reflejando el mismo contrato que expone gateway (mismo criterio que ya sigue para scans/history)",
+        "Tests de componente (vitest + Testing Library, mismo patrón que ScanForm/HistoryTable existentes) para el formulario y el listado",
+        "Nuevo e2e/network-credentials.spec.ts, mismo patrón que e2e/scan-request-form.spec.ts: crear una credencial, verla en el listado, borrarla, confirmar que desaparece",
+        "./init.sh en verde"
+      ],
+      "status": "done"
+    },
+    {
+      "id": 10,
+      "name": "logout_button",
+      "title": "Botón de cerrar sesión",
+      "description": "El Gateway ya expone POST /auth/logout (feature oidc_login, done, gateway/src/api.rs::logout) que invalida la cookie de sesión (gateway_session) del lado del navegador. front no tiene ninguna forma de invocarlo hoy: un usuario logueado no puede cerrar sesión desde la UI.",
+      "acceptance": [
+        "src/api/auth.ts: nueva función logout() -> Promise<ApiResult<void>> (o equivalente), mismo estilo que getMe(), que hace POST /auth/logout vía performRequest (ya envía credentials: include)",
+        "Nuevo componente (p. ej. src/auth/LogoutButton.tsx o src/features/session/) visible SOLO cuando hay sesión activa (dentro de ProtectedRoute, o gateado por useSession().status === \"authenticated\") — nunca visible en estado loading/anonymous",
+        "Al hacer clic: llama a logout(); en éxito, la app debe terminar mostrando el estado anónimo/pantalla de login sin que el usuario tenga que recargar manualmente — usar una navegación de página completa (window.location.reload() o window.location.href a la raíz), mismo principio ya establecido en ProtectedRoute/LoginButton (nunca manejar la sesión con un fetch + estado de React sin recargar, ver docs/architecture.md capa 2)",
+        "Mientras la petición está en curso, el botón se deshabilita (mismo patrón submitting de ScanForm/NetworkCredentialForm) para evitar doble clic",
+        "Un fallo de red al cerrar sesión muestra un mensaje de error visible (role=\"alert\"), sin dejar al usuario en un estado inconsistente",
+        "Tests de componente (vitest + Testing Library): el botón no aparece sin sesión; con sesión aparece, el clic llama al endpoint correcto y dispara la navegación/recarga esperada",
+        "Nuevo e2e/logout.spec.ts (mismo patrón que auth-session.spec.ts): con sesión activa, clic en cerrar sesión termina mostrando el estado anónimo",
+        "./init.sh en verde"
+      ],
+      "status": "done"
+    },
+    {
+      "id": 11,
+      "name": "basic_styling",
+      "title": "Estilos visuales base de toda la app",
+      "description": "front no tiene ningún CSS (confirmado: 0 archivos .css/.scss, sin librería de estilos en package.json) — se renderiza con el estilo por defecto del navegador, sin espaciado, tipografía ni jerarquía visual. Esta feature agrega una hoja de estilos base coherente para toda la app, sin cambiar comportamiento ni estructura semántica existente.",
+      "acceptance": [
+        "Una hoja de estilos global nueva (p. ej. src/index.css o src/App.css, importada una sola vez desde src/main.tsx), CSS plano — nada de CSS-in-JS con inyección en runtime (styled-components/emotion) ni estilos inline nuevos: la CSP de front (front/nginx.conf.template, style-src self, sin unsafe-inline) debe seguir cumpliéndose tal cual, y un <link>/<style> extraído en build-time por Vite ya la respeta",
+        "No se agrega ninguna dependencia nueva a package.json (nada de Tailwind/UI kits) — CSS plano basta para el alcance de esta feature",
+        "Paleta de colores y espaciado definidos con custom properties (:root { --... }), aplicados de forma consistente: fondo, texto, un color de acento, y colores distintos para mensajes role=\"alert\" (error) vs role=\"status\" (éxito/info) — reutilizar esa distinción semántica ya presente en el markup de ScanForm/NetworkCredentialForm/HistoryTable en vez de agregar clases nuevas para lo mismo",
+        "Tipografía legible (font-family de sistema, tamaños con jerarquía clara para h1/h2/labels/texto), espaciado consistente entre secciones (formularios, listados), inputs/botones/checkbox con estilo coherente entre sí y con un estado :disabled visualmente distinto (varios formularios ya deshabilitan sus controles mientras envían)",
+        "Layout: contenido centrado con un ancho máximo legible en pantallas grandes (el diseño no tiene que ser complejo, pero no debe estirarse a todo el ancho de un monitor), sin romperse en una ventana angosta",
+        "Estados de foco visibles en elementos interactivos (outline o equivalente) — no se elimina el foco por defecto sin reemplazarlo, es una app que se navega con teclado también",
+        "No cambia ningún texto, atributo aria/role, estructura de componentes, ni lógica — es una feature puramente visual. Ningún test existente debería necesitar cambios; si alguno depende accidentalmente de una estructura que hay que tocar, ajústalo sin cambiar lo que verifica",
+        "./init.sh en verde (unit + e2e sin regresiones)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": 12,
+      "name": "home_landing_page",
+      "title": "Página de inicio para el visitante anónimo",
+      "description": "Hoy un visitante sin sesión no ve ningún contenido: ProtectedRoute lo redirige de inmediato (window.location.href) sin mostrar nada, y LoginButton (ya construido en auth_session) nunca se monta en ningún lado. Esta feature reemplaza ese rebote silencioso por una página de inicio real, con dirección visual propia ('Signals & Traces', confirmada con el usuario vía skill frontend-design), que monta LoginButton como su CTA principal. Dirección de diseño (no reinterpretar, ya acordada): consola técnica oscura inspirada en lecturas de red — fondo azul-pizarra casi negro, un único acento cian preciso, tipografía Space Grotesk (titulares/cuerpo) + IBM Plex Mono (panel técnico), layout asimétrico alineado a la izquierda (nunca centrado), un solo momento de movimiento (revelado del panel de escaneo en vivo, looping, respeta prefers-reduced-motion), sin eyebrows en mayúsculas, sin numeración 01/02/03, sin '→' decorativo salvo en el propio CTA si cabe con naturalidad.",
+      "acceptance": [
+        "Nuevo src/features/home/HomePage.tsx (+ home.css scoped bajo una clase raíz p. ej. .home-page, + index.ts barrel): NO toca ni extiende las custom properties globales de src/index.css (paleta clara de la app autenticada, feature basic_styling) — paleta propia definida localmente (--home-bg #0B1220, --home-surface #131B2C, --home-border #232E45, --home-text #E7ECF3, --home-text-muted #8996AC, --home-accent #38BDF8, usado ÚNICAMENTE en el CTA, el punto 'en vivo' del panel, y hover de enlaces)",
+        "Tipografía: Space Grotesk para titular/cuerpo, IBM Plex Mono solo para el panel de escaneo en vivo y tokens técnicos (IP, puerto, scanId). Self-hosted vía paquete(s) npm tipo @fontsource (archivos de fuente + CSS, cero JS en runtime, cero llamada a un dominio de terceros) — dependencia nueva justificada explícitamente en el informe (docs/security-scope.md), nunca Google Fonts/CDN externo",
+        "nginx.conf.template ya tiene 'font-src self' añadido por el leader — confirmar que las fuentes self-hosted cargan sin violar la CSP (sin warnings de CSP en consola del navegador durante la verificación e2e/manual)",
+        "Copy ya redactado, usar literalmente (voz del analista, no marketing): titular 'Analiza infraestructura antes de que alguien más lo haga.', lede 'front encola un escaneo, sigue su estado en tiempo real y termina en un hallazgo verificable — sin paneles que adivinar.', CTA 'Iniciar sesión', label del panel 'Escaneo en vivo', tres líneas de capacidad en prosa (no tarjetas): 'Encolar — un objetivo, IP o rango, validado antes de enviarse.', 'Verificar — estado en tiempo real, sin recargar la página.', 'Reportar — hallazgos con severidad, listos para exportar.', pie 'front habla únicamente con el Gateway de la plataforma.'",
+        "El panel 'Escaneo en vivo' es contenido decorativo simulado (no una llamada real a submitScan/getScanHistory) que revela líneas tipo 'IP → puerto/tcp estado servicio' en secuencia y hace loop lento; bajo prefers-reduced-motion muestra el estado final sin animar — documentar esto explícitamente como contenido de ejemplo, no un dato real",
+        "src/auth/ProtectedRoute.tsx: se le añade una prop obligatoria (p. ej. anonymousView: ReactNode) que se renderiza en el caso status === 'anonymous' EN VEZ DEL useEffect+window.location.href actual (se elimina el auto-redirect y el import de loginRedirectUrl de este archivo — src/auth no debe importar de src/features/home, ver capas de docs/architecture.md); el caso 'loading' no cambia",
+        "src/App.tsx: pasa anonymousView={<HomePage />} a ProtectedRoute; el <h1>front</h1> existente se mueve DENTRO de los children (autenticado) de ProtectedRoute en vez de vivir fuera — evita que un h1 'front' sin estilo aparezca duplicado por encima de HomePage para el visitante anónimo",
+        "LoginButton (ya existente, src/auth/LoginButton.tsx) se reutiliza tal cual como CTA de HomePage — no se reimplementa la navegación de login",
+        "Ajuste explícito y documentado a tests ya existentes de features 'done' (auth_session/scaffolding/scan_request_form), consecuencia directa y necesaria del cambio de comportamiento, no scope creep: tests/auth/ProtectedRoute.test.tsx (el caso anónimo ahora verifica que se renderiza anonymousView, no una asignación a window.location.href — usar un stub simple como anonymousView en este test, no el HomePage real, para mantenerlo desacoplado), tests/App.test.tsx y e2e/auth-session.spec.ts (el caso 'usuario sin sesión' ahora verifica que aparece la página de inicio con el CTA 'Iniciar sesión' visible y que un clic navega a la URL de login del Gateway — en vez de una redirección automática; renombrar el test si el nombre ya no describe lo que verifica)",
+        "Tests nuevos: componente de HomePage (headline/CTA/panel/capacidades presentes; con prefers-reduced-motion no depende de animación para mostrar el contenido); e2e (servidor de contrato) que visita '/' sin sesión, ve la página de inicio, hace clic en 'Iniciar sesión' y confirma que navega hacia la URL de login del Gateway",
+        "Sin dangerouslySetInnerHTML, sin console.log de depuración, sin any/@ts-ignore sin justificar, foco visible en CTA/enlaces (:focus-visible, nunca outline:none sin reemplazo)",
+        "./init.sh en verde (unit + e2e sin regresiones en las features 1-11)"
+      ],
+      "status": "done"
+    },
+    {
+      "id": 13,
+      "name": "scan_console_redesign",
+      "title": "Rediseño visual del formulario de escaneo (\"consola de escaneo\")",
+      "description": "Alcance confirmado con el usuario: SOLO ScanForm (input + envío + estado en tiempo real vía useScanEvents), no el resto de la consola autenticada (NetworkCredentialsManager/HistoryTable/ReportView/LogoutButton siguen con la paleta clara de basic_styling, sin cambios). Dirección visual confirmada: extender 'Signals & Traces' (la identidad de home_landing_page, id 12) a este componente — mismos valores exactos de paleta/tipografía que src/features/home/home.css, nunca redefinidos con hex ligeramente distintos. El resultado es, a propósito, un panel oscuro tipo consola/terminal incrustado en un dashboard claro (patrón reconocible en herramientas técnicas) — no un intento de mimetizarse con sus vecinos: bordes/elevación claros para que la diferencia se lea como decisión, no como error visual.",
+      "acceptance": [
+        "Cero cambios de lógica/comportamiento: validateScanTarget.ts, useScanEvents.ts, submitScan/src/api, la unión discriminada SubmitState y describeSubmitError no se tocan. Solo cambian markup (clases nuevas, posible <h2> de sección) y CSS. tests/features/scan/ScanForm.test.tsx sigue verificando lo mismo (ajustes de selector permitidos si cambia la estructura del DOM, nunca de lo que se verifica)",
+        "Nuevo src/features/scan/scanForm.css (o co-ubicado), scoped bajo una clase raíz propia (p. ej. .scan-console) — reutiliza LITERALMENTE los mismos valores hex que src/features/home/home.css (#0b1220 fondo, #131b2c superficie, #232e45 borde, #e7ecf3 texto, #8996ac texto secundario, #38bdf8 acento), definidos localmente (nunca editando home.css ni src/index.css) con un comentario cruzando la referencia para mantenerlos sincronizados si alguno cambia a futuro",
+        "Tipografía: Space Grotesk para el heading/label del panel, IBM Plex Mono para todo lo técnico (el valor tecleado en el input de IP/rango, el scanId mostrado, la línea de estado 'Estado: ... (...)'). Ambas fuentes YA son dependencias del proyecto (@fontsource/space-grotesk, @fontsource/ibm-plex-mono, feature home_landing_page) — no se añade ninguna dependencia nueva; verificar que el número de archivos de fuente en dist/ tras el build no aumenta (mismo archivo, no una copia duplicada)",
+        "Colores de alert/status recalibrados para el fondo oscuro (nunca reutilizar los valores de --color-alert-*/--color-status-* de src/index.css tal cual — esos están calibrados para fondo claro y no tendrían contraste legible sobre #131b2c): definir --scan-alert-bg/border/text y --scan-status-bg/border/text propios dentro de .scan-console, con contraste suficiente sobre la superficie oscura. Mismos roles semánticos (role=\"alert\"/role=\"status\") que el resto de la app, sin clases nuevas para esa distinción",
+        "El acento cian se usa con la misma disciplina que en home_landing_page: el botón de envío, el punto 'en vivo' de la línea de estado cuando connectionStatus === 'open', y :focus-visible (outline) — no decorativamente en otros lugares",
+        "Estados visuales claros y distintos: vacío/idle, entrada inválida (inline, alert recalibrado), enviando (afordance de carga, controles deshabilitados con estilo :disabled distinto), éxito (scanId en monoespaciada + línea de estado tipo consola), error (alert recalibrado) — ninguno deja el panel en un estado ambiguo",
+        "Puede añadirse un <h2> de sección con copy real (no genérico tipo 'Formulario') para consistencia con NetworkCredentialsManager (ya tiene 'Credenciales de red') — opcional pero recomendado, criterio del implementer, el reviewer verifica que el texto elegido sea específico y no una etiqueta decorativa",
+        "No se toca NetworkCredentialsManager.tsx, HistoryTable*.tsx, ReportView.tsx/ReportDetails.tsx, LogoutButton.tsx, src/index.css, ni src/features/home/home.css — confirmar con git diff --stat",
+        "Foco visible (:focus-visible) en input/botón con el mismo tratamiento que home.css (outline cian, nunca outline:none sin reemplazo)",
+        "./init.sh en verde, unit + e2e sin regresiones en las 12 features previas; ningún test nuevo de infraestructura necesario más allá de ajustar selectores si la estructura del DOM cambió"
       ],
       "status": "done"
     }

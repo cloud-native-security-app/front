@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   isMeResponse,
+  isNetworkCredential,
+  isNetworkCredentialArray,
   isScanHistoryEntryArray,
   isScanOutcomeEvent,
   isScanResult,
@@ -80,6 +82,36 @@ describe("isScanOutcomeEvent", () => {
     expect(
       isScanOutcomeEvent({ status: "completed", correlation_id: "1" }),
     ).toBe(false);
+  });
+});
+
+describe("isNetworkCredential", () => {
+  const VALID = {
+    id: "cred-1",
+    user_id: "user-1",
+    target_pattern: "10.0.0.1",
+    network_user: "root",
+    has_sudo: false,
+    created_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-01-01T00:00:00Z",
+  };
+
+  it("acepta_un_shape_valido_sin_ssh_credentials_ref", () => {
+    expect(isNetworkCredential(VALID)).toBe(true);
+  });
+
+  it("rechaza_un_shape_con_has_sudo_no_booleano_o_incompleto", () => {
+    expect(isNetworkCredential({ ...VALID, has_sudo: "no" })).toBe(false);
+    expect(isNetworkCredential({ id: "cred-1" })).toBe(false);
+    expect(isNetworkCredential(null)).toBe(false);
+  });
+
+  it("acepta_incluso_si_trae_ssh_credentials_ref_de_mas_pero_igual_nunca_se_usa", () => {
+    // El Gateway real nunca lo incluye; este guard solo exige que los
+    // campos requeridos estén presentes, un campo extra no lo invalida.
+    expect(
+      isNetworkCredentialArray([{ ...VALID, ssh_credentials_ref: "x" }]),
+    ).toBe(true);
   });
 });
 

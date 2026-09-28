@@ -23,7 +23,7 @@ export interface NetworkError {
 }
 
 interface PerformRequestInit {
-  method?: "GET" | "POST";
+  method?: "GET" | "POST" | "DELETE";
   jsonBody?: unknown;
 }
 

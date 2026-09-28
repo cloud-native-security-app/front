@@ -6,11 +6,24 @@
  * el `scanId` devuelto. Una vez encolado, `useScanEvents` (feature
  * `realtime_status`, RF-07/RF-08) refleja el estado del escaneo en tiempo
  * real sin que el usuario recargue la página.
+ *
+ * Presentación visual "Signals & Traces" (feature `scan_console_redesign`,
+ * id 13): extiende la identidad de `HomePage` (`src/features/home/home.css`)
+ * a este componente, vía `./scanForm.css` (paleta/tokens propios, scoped
+ * bajo `.scan-console`, nunca editando `home.css` ni `src/index.css`). Cero
+ * cambios de comportamiento respecto a la versión anterior: solo cambian
+ * clases y un `<h2>` de sección nuevo.
  */
 
+// Mismos subsets ya usados por `HomePage` (feature `home_landing_page`):
+// reimportar el mismo archivo exacto de `@fontsource` no duplica peso en el
+// bundle final, Vite lo dedupea a un único asset.
+import "@fontsource/space-grotesk/latin-500.css";
+import "@fontsource/ibm-plex-mono/latin-400.css";
 import { useState, type FormEvent } from "react";
 
 import { submitScan, type ApiError, type ConnectionStatus } from "../../api";
+import "./scanForm.css";
 import { useScanEvents } from "./useScanEvents";
 import { validateScanTarget } from "./validateScanTarget";
 
@@ -73,38 +86,59 @@ export function ScanForm() {
   }
 
   return (
-    <form onSubmit={(event) => void handleSubmit(event)}>
-      <label htmlFor="scan-target">IP o rango a escanear</label>
-      <input
-        id="scan-target"
-        name="scan-target"
-        type="text"
-        value={target}
-        placeholder="192.168.1.0/24"
-        disabled={isSubmitting}
-        onChange={(event) => {
-          setTarget(event.target.value);
-          setSubmitState({ status: "idle" });
-        }}
-      />
-      {!validation.valid && target.trim().length > 0 && (
-        <p role="alert">{validation.message}</p>
-      )}
-      <button type="submit" disabled={!canSubmit}>
-        {isSubmitting ? "Encolando…" : "Escanear"}
-      </button>
-      {submitState.status === "success" && (
-        <p role="status">Escaneo encolado. ID: {submitState.scanId}</p>
-      )}
-      {scanId && (
-        <p role="status">
-          Estado: {scanEvents.status} (
-          {CONNECTION_STATUS_LABEL[scanEvents.connectionStatus]})
-        </p>
-      )}
-      {submitState.status === "error" && (
-        <p role="alert">{submitState.message}</p>
-      )}
-    </form>
+    <section className="scan-console" aria-label="Nueva solicitud de escaneo">
+      <h2 className="scan-console__heading">Nueva solicitud de escaneo</h2>
+      <form
+        className="scan-console__form"
+        onSubmit={(event) => void handleSubmit(event)}
+      >
+        <label className="scan-console__label" htmlFor="scan-target">
+          IP o rango a escanear
+        </label>
+        <input
+          id="scan-target"
+          name="scan-target"
+          type="text"
+          className="scan-console__input"
+          value={target}
+          placeholder="192.168.1.0/24"
+          disabled={isSubmitting}
+          onChange={(event) => {
+            setTarget(event.target.value);
+            setSubmitState({ status: "idle" });
+          }}
+        />
+        {!validation.valid && target.trim().length > 0 && (
+          <p role="alert">{validation.message}</p>
+        )}
+        <button
+          type="submit"
+          className="scan-console__submit"
+          disabled={!canSubmit}
+        >
+          {isSubmitting ? "Encolando…" : "Escanear"}
+        </button>
+        {submitState.status === "success" && (
+          <p role="status">
+            Escaneo encolado. ID:{" "}
+            <span className="scan-console__mono">{submitState.scanId}</span>
+          </p>
+        )}
+        {scanId && (
+          <p role="status">
+            {scanEvents.connectionStatus === "open" && (
+              <span className="scan-console__live-dot" aria-hidden="true" />
+            )}
+            <span className="scan-console__mono">
+              Estado: {scanEvents.status} (
+              {CONNECTION_STATUS_LABEL[scanEvents.connectionStatus]})
+            </span>
+          </p>
+        )}
+        {submitState.status === "error" && (
+          <p role="alert">{submitState.message}</p>
+        )}
+      </form>
+    </section>
   );
 }
