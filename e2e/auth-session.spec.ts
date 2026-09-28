@@ -99,7 +99,16 @@ test.afterAll(async () => {
   delete process.env[VITE_GATEWAY_BASE_URL_KEY];
 });
 
-test("usuario_sin_sesion_es_redirigido_a_login_al_visitar_una_ruta_protegida", async ({
+// Ajuste (feature `home_landing_page`, id 12): antes, un visitante sin
+// sesión era redirigido de inmediato (`window.location.href`) sin ver
+// contenido — este test verificaba esa asignación. Ahora `ProtectedRoute`
+// renderiza `HomePage` como `anonymousView` (ver `../authHarness/main.tsx`)
+// en vez de rebotar en silencio: el test se renombra para reflejar el
+// comportamiento real y confirma la página de inicio antes del clic en su
+// CTA, no una redirección automática. Sigue usando `page.route` (mismo
+// patrón ya presente en este archivo) para no depender de una red real
+// hacia Google.
+test("usuario_sin_sesion_ve_la_pagina_de_inicio_y_puede_ir_a_login", async ({
   page,
 }) => {
   let loginRequested = false;
@@ -114,9 +123,19 @@ test("usuario_sin_sesion_es_redirigido_a_login_al_visitar_una_ruta_protegida", a
 
   await page.goto(harnessUrl);
 
+  await expect(
+    page.getByRole("heading", {
+      name: "Analiza infraestructura antes de que alguien más lo haga.",
+    }),
+  ).toBeVisible();
+  const cta = page.getByRole("button", { name: "Iniciar sesión" });
+  await expect(cta).toBeVisible();
+  await expect(page.getByText("Contenido protegido")).toHaveCount(0);
+
+  await cta.click();
+
   await page.waitForURL(`${harnessOrigin}/auth/login`);
   expect(loginRequested).toBe(true);
-  await expect(page.getByText("Contenido protegido")).toHaveCount(0);
 });
 
 test("usuario_con_sesion_ve_el_contenido_protegido", async ({

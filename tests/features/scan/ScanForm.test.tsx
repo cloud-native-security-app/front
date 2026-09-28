@@ -97,7 +97,15 @@ describe("ScanForm", () => {
     await userEvent.click(screen.getByRole("button", { name: /escanear/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/escaneo encolado\. id: /i)).toBeInTheDocument();
+      // El `scanId` vive en un `<span>` de fuente monoespaciada aparte
+      // (feature `scan_console_redesign`, id 13): el texto directo del `<p>`
+      // que lo envuelve ya no incluye el espacio final antes del `<span>`
+      // (el normalizador por defecto de Testing Library recorta los
+      // extremos del texto propio del nodo antes de compararlo, ver
+      // progress/impl_scan_console_redesign.md), por eso el matcher ya no
+      // exige ese espacio — el comportamiento verificado (aparece el texto
+      // "Escaneo encolado. ID:" tras un submit exitoso) no cambia.
+      expect(screen.getByText(/escaneo encolado\. id:/i)).toBeInTheDocument();
     });
   });
 

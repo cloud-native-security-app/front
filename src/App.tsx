@@ -33,6 +33,14 @@
  * "authenticated"` (nunca visible en loading/anonymous), así que su
  * posición exacta dentro del contenido protegido no importa — va primero
  * simplemente porque es la acción inversa al login, visible de inmediato.
+ *
+ * `HomePage` (feature `home_landing_page`, id 12) es el `anonymousView` de
+ * `ProtectedRoute`: reemplaza el auto-redirect silencioso anterior por
+ * contenido real con un CTA explícito. El `<h1>front</h1>` que antes vivía
+ * fuera de `ProtectedRoute` (visible también para el visitante anónimo) se
+ * mueve DENTRO de los `children` (rama autenticada): `HomePage` ya trae su
+ * propia marca "front" en su diseño, así que un `<h1>front</h1>` sin
+ * estilo por encima de ella quedaría duplicado.
  */
 
 import { useState } from "react";
@@ -40,6 +48,7 @@ import { useState } from "react";
 import { LogoutButton, ProtectedRoute, SessionProvider } from "./auth";
 import { NetworkCredentialsManager } from "./features/credentials";
 import { HistoryTable } from "./features/history";
+import { HomePage } from "./features/home";
 import { ReportView } from "./features/report";
 import { ScanForm } from "./features/scan";
 
@@ -51,8 +60,8 @@ export function App() {
   return (
     <SessionProvider>
       <main>
-        <h1>front</h1>
-        <ProtectedRoute>
+        <ProtectedRoute anonymousView={<HomePage />}>
+          <h1>front</h1>
           <LogoutButton />
           <NetworkCredentialsManager />
           <ScanForm />

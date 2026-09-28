@@ -6,15 +6,16 @@
  * `e2e/network-credentials.spec.ts`: sesión sintética real antes de
  * navegar, clic real en la UI.
  *
- * `**\/auth/login` se intercepta igual que en el primer test de
- * `e2e/auth-session.spec.ts`: tanto el Gateway real como el servidor de
- * contrato responden ahí con un `302` hacia Google real, que este entorno
- * de test no puede completar (docs/security-scope.md prohíbe usar una
- * cuenta real). El criterio de aceptación ("termina mostrando el estado
- * anónimo") se verifica comprobando que, tras cerrar sesión, el navegador
- * efectivamente navega a esa ruta — que es exactamente lo que
- * `ProtectedRoute` hace en cuanto detecta `status === "anonymous"` (ver
- * `src/auth/ProtectedRoute.tsx`).
+ * Ajuste (feature `home_landing_page`, id 12): antes, `ProtectedRoute`
+ * navegaba automáticamente a `/auth/login` en cuanto detectaba
+ * `status === "anonymous"`, así que este test verificaba "termina
+ * mostrando el estado anónimo" comprobando esa navegación automática. Ahora
+ * `ProtectedRoute` renderiza `HomePage` como `anonymousView` en vez de
+ * redirigir sola — `LogoutButton` sigue navegando a `/` (sin cambios, ver
+ * `src/auth/LogoutButton.tsx`), y es justo ahí, en la propia raíz, donde
+ * ahora se ve el estado anónimo (la página de inicio con su CTA), no en
+ * `/auth/login`. El criterio de aceptación no cambia ("termina mostrando el
+ * estado anónimo"), solo el mecanismo con el que se verifica.
  */
 import { expect, test } from "@playwright/test";
 
@@ -28,16 +29,6 @@ test.beforeEach(async ({ context }) => {
 test("clic_en_cerrar_sesion_termina_mostrando_el_estado_anonimo", async ({
   page,
 }) => {
-  let loginRequested = false;
-  await page.route("**/auth/login", async (route) => {
-    loginRequested = true;
-    await route.fulfill({
-      status: 200,
-      contentType: "text/plain",
-      body: "login stub (servidor de contrato, no Google real)",
-    });
-  });
-
   await page.goto("/");
 
   await expect(page.getByRole("heading", { name: "front" })).toBeVisible();
@@ -46,6 +37,13 @@ test("clic_en_cerrar_sesion_termina_mostrando_el_estado_anonimo", async ({
 
   await logoutButton.click();
 
-  await page.waitForURL("**/auth/login");
-  expect(loginRequested).toBe(true);
+  await page.waitForURL("/");
+  await expect(
+    page.getByRole("heading", {
+      name: "Analiza infraestructura antes de que alguien más lo haga.",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Iniciar sesión" }),
+  ).toBeVisible();
 });

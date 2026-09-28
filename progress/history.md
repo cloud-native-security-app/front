@@ -589,3 +589,111 @@ Detalle completo: `progress/review_basic_styling.md`.
 
 **Con esta feature se completan las 11 features de `feature_list.json`.**
 No queda ninguna feature `pending`.
+
+## Sesión 2026-09-28 — Feature 12: home_landing_page
+
+- **Feature:** `12 - home_landing_page` — Página de inicio para el
+  visitante anónimo.
+- **Agente:** leader (diseño propio vía skill `frontend-design`,
+  confirmado con el usuario) + `implementer` + `reviewer`.
+- **Resultado:** `done`.
+
+Resumen: el usuario pidió una página de inicio y trajo la skill
+`frontend-design`. Investigación previa reveló que un visitante anónimo
+hoy no ve nada — `ProtectedRoute` redirige de inmediato
+(`window.location.href`) antes de renderizar cualquier contenido, y
+`LoginButton` (construido en `auth_session`) nunca se monta en ningún
+lado. Se trató esto como parte necesaria de la feature, no como scope
+creep. Siguiendo el proceso de la skill (plan → revisión contra el brief
+→ construir), el leader propuso 3 direcciones visuales distintas
+(paleta/tipografía/wireframe ASCII cada una, ninguna calcada de los
+clichés que la skill lista: crema+serif+terracota, negro+neón, eyebrows
+en mayúsculas, tarjetas SaaS idénticas) vía `AskUserQuestion`; el usuario
+eligió **"Signals & Traces"** (consola técnica oscura, acento cian único,
+Space Grotesk + IBM Plex Mono, layout asimétrico alineado a la
+izquierda, un solo momento de movimiento).
+
+El leader cerró ese plan como criterios de aceptación concretos en
+`feature_list.json` (copy literal incluido) antes de despachar, y aplicó
+dos fixes de configuración propios (fuera de `src/`/`tests`/`e2e/`):
+`font-src 'self'` en `nginx.conf.template` (las fuentes self-hosted lo
+necesitaban) y `.agents/` en `.prettierignore` (el archivo de la skill no
+es código de la SPA).
+
+El implementer construyó `src/features/home/` con paleta/tipografía
+propias (sin tocar `src/index.css` de `basic_styling`), copy literal, un
+panel "Escaneo en vivo" decorativo que respeta `prefers-reduced-motion`,
+y dos dependencias nuevas justificadas y pre-aprobadas
+(`@fontsource/space-grotesk`, `@fontsource/ibm-plex-mono`, self-hosted,
+cero CDN de terceros). Para eliminar el auto-redirect silencioso,
+`ProtectedRoute` ganó una prop obligatoria `anonymousView` (sin que
+`src/auth` importe de `src/features/*`, respetando las capas) — cambio
+que exigió ajustar deliberadamente tests de 4 features ya `done`
+(`auth_session`, `scaffolding`, `scan_request_form`, `logout_button`),
+cada uno documentado como consecuencia directa y necesaria, nunca
+relajando lo que protegían.
+
+El reviewer prestó atención especial a esos 4 ajustes (confirmó con
+`git diff` que cada uno era mínimo y preservaba la propiedad original) y,
+de forma más notable, **reprodujo la verificación de CSP contra la imagen
+Docker real** (`docker build`+`docker run` de la feature
+`containerization`, visitada con Chromium vía Playwright): confirmó
+`font-src 'self'` en la respuesta real de nginx y cero violaciones de CSP
+al cargar las fuentes self-hosted — la única forma de detectar de verdad
+una CSP rota, ya que los tests contra el servidor de contrato no sirven
+producción real. 128/128 tests unitarios y 14/14 specs e2e verdes.
+
+Detalle completo: `progress/impl_home_landing_page.md` y
+`progress/review_home_landing_page.md` (veredicto: `approved`, sin
+cambios requeridos).
+
+**Con esta feature se completan las 12 features de `feature_list.json`.**
+No queda ninguna feature `pending`.
+
+## Sesión 2026-09-28 — Feature 13: scan_console_redesign
+
+- **Feature:** `13 - scan_console_redesign` — Rediseño visual del
+  formulario de escaneo ("consola de escaneo").
+- **Agente:** leader (diseño propio, extensión de "Signals & Traces") +
+  `implementer` + `reviewer`.
+- **Resultado:** `done`.
+
+Resumen: el usuario pidió mejorar la UI de "la vista de escáner". El
+leader aclaró alcance y dirección con dos preguntas (`AskUserQuestion`)
+antes de escribir la feature: alcance = solo `ScanForm` (no toda la
+consola autenticada), dirección = extender la identidad "Signals &
+Traces" de `home_landing_page` (id 12) a este componente específico, en
+vez de quedarse en la paleta clara de `basic_styling`. (Efecto colateral
+detectado y corregido de paso: el `.env.local` creado en el turno
+anterior para ayudar al usuario con `npm run dev` local rompía un test
+unitario porque Vitest también lo carga — se eliminó antes de arrancar
+esta feature.)
+
+El implementer restyleó `ScanForm` como un panel oscuro tipo consola,
+reutilizando literalmente los mismos valores hex de `home.css`
+(`#0b1220`/`#131b2c`/`#232e45`/`#e7ecf3`/`#8996ac`/`#38bdf8`, scoped bajo
+`.scan-console`, sin tocar `home.css`/`src/index.css`) y las mismas dos
+fuentes ya instaladas (Space Grotesk, IBM Plex Mono — sin dependencia
+nueva). Cero cambios de lógica: `validateScanTarget`, `useScanEvents`,
+`submitScan`, `describeSubmitError` intactos, solo JSX/CSS. Los colores
+de alert/status se recalcularon específicamente para el fondo oscuro
+(nunca reutilizando los de `src/index.css`, calibrados para fondo claro),
+con cálculos de contraste WCAG documentados (~11:1, nivel AAA). El acento
+cian mantiene la misma disciplina que la home page: solo el botón, el
+punto "en vivo", y el foco.
+
+El reviewer recalculó el contraste WCAG de forma independiente
+(coincidió con el implementer), confirmó por `mtime` que los demás
+archivos sin commitear en el árbol pertenecían a la feature previa
+(`home_landing_page`) y no a esta sesión, verificó que el build no
+duplica archivos de fuente, y confirmó que el único ajuste a un test
+existente (un regex sin un espacio final, por el cambio de estructura
+del DOM) sigue verificando exactamente el mismo comportamiento. 128/128
+tests unitarios y 14/14 specs e2e verdes, sin dependencias nuevas.
+
+Detalle completo: `progress/impl_scan_console_redesign.md` y
+`progress/review_scan_console_redesign.md` (veredicto: `approved`, sin
+cambios requeridos).
+
+**Con esta feature se completan las 13 features de `feature_list.json`.**
+No queda ninguna feature `pending`.

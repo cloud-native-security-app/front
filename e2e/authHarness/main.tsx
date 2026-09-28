@@ -6,16 +6,21 @@
  * flujo "ruta protegida" sin modificar `src/App.tsx`/`src/main.tsx` de
  * producción (ver `progress/impl_auth_session.md` para la justificación
  * completa de esta decisión).
+ *
+ * Ajuste (feature `home_landing_page`, id 12): `ProtectedRoute` ahora exige
+ * una prop `anonymousView` — se le pasa el `HomePage` real (no un stub, a
+ * diferencia de `tests/auth/ProtectedRoute.test.tsx`) para poder ejercer en
+ * un navegador real el flujo completo "visitante anónimo ve la página de
+ * inicio y hace clic en su CTA para ir a login", igual que ocurre en
+ * `src/App.tsx`. El `<LoginButton />` que antes se montaba suelto, fuera de
+ * `ProtectedRoute`, se quita: ya no hace falta, el CTA de `HomePage` cubre
+ * ese caso y ningún test de este archivo ejercía ese botón suelto.
  */
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
-import {
-  LoginButton,
-  ProtectedRoute,
-  SessionProvider,
-  useSession,
-} from "../../src/auth";
+import { ProtectedRoute, SessionProvider, useSession } from "../../src/auth";
+import { HomePage } from "../../src/features/home";
 
 /**
  * Entry point de un harness de test (sin HMR real: cada test arranca su
@@ -38,8 +43,7 @@ function ProtectedContent() {
 function Harness() {
   return (
     <SessionProvider>
-      <LoginButton />
-      <ProtectedRoute>
+      <ProtectedRoute anonymousView={<HomePage />}>
         <ProtectedContent />
       </ProtectedRoute>
     </SessionProvider>
