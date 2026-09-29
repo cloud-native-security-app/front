@@ -697,3 +697,26 @@ cambios requeridos).
 
 **Con esta feature se completan las 13 features de `feature_list.json`.**
 No queda ninguna feature `pending`.
+
+---
+
+## 2026-09-29 — Feature 14 `no_store_fetch_cache` (pendiente de revisión del usuario)
+
+- Arreglos de entorno previos: `./init.sh` fallaba por CRLF (`core.autocrlf=true`
+  sin `.gitattributes`) y por falta del Chromium de Playwright. Se añadió
+  `.gitattributes` (`* text=auto eol=lf`, commit `1e4e33b`) y se instaló
+  Chromium solo en esta máquina.
+- Implementer: `cache: "no-store"` en `performRequest`
+  (`src/api/httpClient.ts`), con un comentario sobre el `GET /api/me` con 200
+  cacheado tras el logout. Test nuevo `tests/api/httpClient.test.ts`
+  (GET/POST/DELETE con el servidor de contrato).
+- Reviewer: `approved`, sin cambios requeridos.
+- Verificación final del leader: typecheck, lint, format:check y `npm test`
+  (131/131) en verde en la 1.ª ejecución.
+- Sin commit: el usuario revisa el diff antes. La feature queda `in_progress`
+  hasta entonces.
+- Problema conocido registrado como feature 15 (`pending`): dos tests
+  intermitentes por timeout en `NetworkCredentialForm.test.tsx`. Ya existían
+  antes y no tienen relación con la feature 14.
+- Informes: `progress/impl_no_store_fetch_cache.md`,
+  `progress/review_no_store_fetch_cache.md`.
