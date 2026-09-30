@@ -224,6 +224,32 @@
         "./init.sh en verde, unit + e2e sin regresiones en las 12 features previas; ningún test nuevo de infraestructura necesario más allá de ajustar selectores si la estructura del DOM cambió"
       ],
       "status": "done"
+    },
+    {
+      "id": 14,
+      "name": "no_store_fetch_cache",
+      "title": "Desactivar la caché HTTP del navegador en las llamadas al Gateway",
+      "description": "En src/api/httpClient.ts, performRequest añade cache: \"no-store\" a las opciones de fetch, para que el navegador no reutilice una respuesta cacheada. Motivo: un GET /api/me con 200 cacheado podría hacer parecer activa la sesión después del logout. Cambio de una línea más un comentario breve; no cambia la API de performRequest ni el mapeo de errores.",
+      "acceptance": [
+        "performRequest pasa cache: \"no-store\" a fetch en todas las llamadas (GET/POST/DELETE), con un comentario breve que explique lo del GET /api/me cacheado tras el logout",
+        "No cambia nada más: credentials: \"include\", headers, body, el manejo de networkError, mapCommonErrorStatus y parseJson siguen igual. git diff --stat solo muestra src/api/httpClient.ts y, si se añade, su test",
+        "Un test unitario en tests/api/ verifica que fetch recibe cache: \"no-store\" (siguiendo el patrón de los tests existentes de src/api)",
+        "npm run typecheck, npm run lint, npm run format:check y npm test en verde. Los dos tests intermitentes conocidos de NetworkCredentialForm.test.tsx (ver progress/current.md) no bloquean si fallan solo por timeout y pasan al reejecutar"
+      ],
+      "status": "in_progress"
+    },
+    {
+      "id": 15,
+      "name": "stabilize_network_credential_form_tests",
+      "title": "Estabilizar los tests intermitentes de NetworkCredentialForm",
+      "description": "Dos tests de tests/features/credentials/NetworkCredentialForm.test.tsx fallan de forma intermitente por timeout (5 s por defecto de Vitest) cuando la suite corre en paralelo: deshabilita_el_envio_mientras_falten_campos_requeridos y submit_exitoso_llama_a_onCreated_con_la_credencial_devuelta_y_limpia_el_formulario (este último probablemente arrastrado por el primero). Causa: userEvent.type escribe letra por letra. Pasan siempre con el archivo solo. Ya existía antes de la feature 14 y no tiene relación con ella. Detectado el 2026-09-29 (ver progress/history.md).",
+      "acceptance": [
+        "Los dos tests dejan de depender de la velocidad de la máquina: p. ej. userEvent.setup({ delay: null }), user.paste para valores largos o un timeout explícito justificado. Hay que elegir la opción más simple y explicarla en el informe del implementer",
+        "Los tests siguen verificando exactamente el mismo comportamiento; solo cambia cómo se introducen los valores o el tiempo límite. No se toca src/",
+        "npm test pasa de forma consecutiva al menos 5 veces con la suite completa, y ./init.sh sale en verde",
+        "Se implementa en su propia rama, no en feature/logout"
+      ],
+      "status": "pending"
     }
   ]
 }

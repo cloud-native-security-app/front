@@ -37,6 +37,9 @@ export async function performRequest(
     response = await fetch(`${gatewayBaseUrl()}${path}`, {
       method,
       credentials: "include",
+      // Sin caché HTTP del navegador: un `GET /api/me` con 200 cacheado
+      // haría parecer activa la sesión después del logout.
+      cache: "no-store",
       headers:
         init.jsonBody !== undefined
           ? { "Content-Type": "application/json" }
