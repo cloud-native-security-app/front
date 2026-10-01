@@ -8,6 +8,7 @@ coverage
 # alcance de esta SPA; no se reescribe contenido ajeno a src/tests/e2e.
 .claude/
 .agents/
+.atl/
 AGENTS.md
 CLAUDE.md
 CHECKPOINTS.md

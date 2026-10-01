@@ -236,7 +236,7 @@
         "Un test unitario en tests/api/ verifica que fetch recibe cache: \"no-store\" (siguiendo el patrón de los tests existentes de src/api)",
         "npm run typecheck, npm run lint, npm run format:check y npm test en verde. Los dos tests intermitentes conocidos de NetworkCredentialForm.test.tsx (ver progress/current.md) no bloquean si fallan solo por timeout y pasan al reejecutar"
       ],
-      "status": "in_progress"
+      "status": "done"
     },
     {
       "id": 15,

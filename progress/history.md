@@ -720,3 +720,11 @@ No queda ninguna feature `pending`.
   antes y no tienen relación con la feature 14.
 - Informes: `progress/impl_no_store_fetch_cache.md`,
   `progress/review_no_store_fetch_cache.md`.
+
+## Cierre — Feature 14: no_store_fetch_cache
+
+El código ya estaba commiteado (rama `feature/no_store_fetch_cache`, el
+cambio llegó a `main` vía la fusión de `feature/logout`). Quedaba pendiente
+solo el estado en `feature_list.json` (`in_progress`). Verificado de nuevo
+en esta sesión: `typecheck`, `lint`, `format:check` y `npm test` (131/131)
+en verde. Estado → `done`.
