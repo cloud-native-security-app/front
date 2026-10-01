@@ -282,7 +282,7 @@
         "Verificación visual manual: HistoryTable, NetworkCredentialsManager y ReportView se ven con la paleta oscura cuando están montados dentro del wrapper autenticado, sin perder legibilidad de texto ni de los estados [role=\"alert\"]/[role=\"status\"]",
         "./init.sh (o el equivalente de este repo) pasa en verde; si hay tests de snapshot/visual existentes que asuman la paleta clara en estos componentes, se actualizan explícitamente, nunca se borran sin más"
       ],
-      "status": "pending"
+      "status": "done"
     }
   ]
 }

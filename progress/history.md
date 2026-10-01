@@ -771,3 +771,40 @@ para descartar fragilidad.
 
 Detalle: `progress/impl_history_polling_refresh.md`,
 `progress/review_history_polling_refresh.md` (`approved`).
+
+## Sesión 2026-10-01 — Feature 17: unify_authenticated_theme
+
+- **Feature:** `17 - unify_authenticated_theme`.
+- **Agente:** leader + `implementer` + `reviewer`.
+- **Resultado:** `done`.
+
+Movido el quiebre de tema claro/oscuro al límite real de la app
+(público/claro vs. autenticado/oscuro), en vez de dejarlo a mitad del
+dashboard. Wrapper `.app-shell--authenticated` en `App.tsx` (sin
+reestructurar estado/lógica) redefine las `--color-*` de `src/index.css`
+con los mismos valores oscuros ya calculados en `scanForm.css` (contraste
+WCAG ya verificado en la feature `scan_console_redesign`, no recalculado)
+— como los selectores genéricos de `index.css` ya leen `var(--color-*)`,
+esto reteñe `HistoryTable`/`NetworkCredentialsManager`/`ReportView`/
+`LogoutButton` sin tocar su markup. `scanForm.css` dejó de duplicar su
+propio set `--scan-*` (hereda por cascada real, es descendiente del
+wrapper); `home.css` renombró `--home-*` a `--color-*` pero sigue
+redefiniendo localmente, porque `HomePage` y el wrapper autenticado son
+ramas mutuamente excluyentes de `ProtectedRoute` (nunca coexisten en el
+DOM) — el reviewer confirmó que es un límite técnico real, no una
+resignación prematura, y aceptó la interpretación (compartir vocabulario,
+no lograr herencia imposible).
+
+Ningún test existente necesitó ajuste (nada dependía de colores). 133/133
+unitarios, 14/14 e2e, build sin fuentes duplicadas. Verificación visual
+manual con Playwright (spec temporal, borrado al terminar) confirmó
+`HistoryTable`/`NetworkCredentialsManager`/`ScanForm` oscuros, coherentes
+y legibles.
+
+Detalle: `progress/impl_unify_authenticated_theme.md`,
+`progress/review_unify_authenticated_theme.md` (`approved`).
+
+**Con esta feature se completan las 17 features de `feature_list.json`.**
+No queda ninguna feature `pending` (fuera del hallazgo ya registrado sobre
+timeouts intermitentes de `userEvent` en `ScanForm.test.tsx`/
+`HomePage.test.tsx`, sin feature propia todavía).
