@@ -720,3 +720,91 @@ No queda ninguna feature `pending`.
   antes y no tienen relación con la feature 14.
 - Informes: `progress/impl_no_store_fetch_cache.md`,
   `progress/review_no_store_fetch_cache.md`.
+
+## Cierre — Feature 14: no_store_fetch_cache
+
+El código ya estaba commiteado (rama `feature/no_store_fetch_cache`, el
+cambio llegó a `main` vía la fusión de `feature/logout`). Quedaba pendiente
+solo el estado en `feature_list.json` (`in_progress`). Verificado de nuevo
+en esta sesión: `typecheck`, `lint`, `format:check` y `npm test` (131/131)
+en verde. Estado → `done`.
+
+## Sesión 2026-10-01 — Feature 15: stabilize_network_credential_form_tests
+
+- **Feature:** `15 - stabilize_network_credential_form_tests`.
+- **Agente:** leader + `implementer` + `reviewer`.
+- **Resultado:** `done`.
+
+Causa raíz: `userEvent.type` sin `delay: null` acumula tiempo letra por
+letra y, con la suite en paralelo, supera el timeout de 5s de Vitest.
+Fix: `userEvent.setup({ delay: null })` en los dos tests afectados de
+`tests/features/credentials/NetworkCredentialForm.test.tsx` — mismo
+comportamiento verificado, sin tocar `src/`. 5 corridas consecutivas de
+`npm test` en verde (131/131 cada vez), `./init.sh` completo en verde.
+
+Hallazgo registrado para el futuro (no corregido aquí, fuera de alcance):
+el mismo patrón de timeout aparece en `tests/features/scan/ScanForm.test.tsx`
+y `tests/features/home/HomePage.test.tsx` (otras features ya `done`).
+
+Detalle: `progress/impl_stabilize_network_credential_form_tests.md`,
+`progress/review_stabilize_network_credential_form_tests.md` (`approved`).
+
+## Sesión 2026-10-01 — Feature 16: history_polling_refresh
+
+- **Feature:** `16 - history_polling_refresh`.
+- **Agente:** leader + `implementer` + `reviewer`.
+- **Resultado:** `done`.
+
+`HistoryTable` ahora hace polling (`setInterval`, 7s) de `getScanHistory()`
+mientras quede al menos una entrada `PENDIENTE`/`EN_PROGRESO`; se detiene
+solo al quedar todo terminal y se reactiva si reaparece una entrada no
+terminal. Sin `EventSource`/SSE nuevo; el refetch tras `cancelScan`
+exitoso no cambió. Cubre el caso en que un corte del SSE del Gateway
+dejaba un escaneo ya terminado mostrándose "en progreso" indefinidamente.
+
+Detalle técnico reutilizable: los tests de este componente contra el
+servidor de contrato real necesitan `vi.useFakeTimers({ toFake:
+["setInterval", "clearInterval"] })`, nunca fakear todo — `fetch`/`undici`
+depende de `setTimeout` real y, si se fakea también, la petición HTTP
+nunca resuelve. El reviewer corrió el archivo de test 5 veces aislado
+para descartar fragilidad.
+
+Detalle: `progress/impl_history_polling_refresh.md`,
+`progress/review_history_polling_refresh.md` (`approved`).
+
+## Sesión 2026-10-01 — Feature 17: unify_authenticated_theme
+
+- **Feature:** `17 - unify_authenticated_theme`.
+- **Agente:** leader + `implementer` + `reviewer`.
+- **Resultado:** `done`.
+
+Movido el quiebre de tema claro/oscuro al límite real de la app
+(público/claro vs. autenticado/oscuro), en vez de dejarlo a mitad del
+dashboard. Wrapper `.app-shell--authenticated` en `App.tsx` (sin
+reestructurar estado/lógica) redefine las `--color-*` de `src/index.css`
+con los mismos valores oscuros ya calculados en `scanForm.css` (contraste
+WCAG ya verificado en la feature `scan_console_redesign`, no recalculado)
+— como los selectores genéricos de `index.css` ya leen `var(--color-*)`,
+esto reteñe `HistoryTable`/`NetworkCredentialsManager`/`ReportView`/
+`LogoutButton` sin tocar su markup. `scanForm.css` dejó de duplicar su
+propio set `--scan-*` (hereda por cascada real, es descendiente del
+wrapper); `home.css` renombró `--home-*` a `--color-*` pero sigue
+redefiniendo localmente, porque `HomePage` y el wrapper autenticado son
+ramas mutuamente excluyentes de `ProtectedRoute` (nunca coexisten en el
+DOM) — el reviewer confirmó que es un límite técnico real, no una
+resignación prematura, y aceptó la interpretación (compartir vocabulario,
+no lograr herencia imposible).
+
+Ningún test existente necesitó ajuste (nada dependía de colores). 133/133
+unitarios, 14/14 e2e, build sin fuentes duplicadas. Verificación visual
+manual con Playwright (spec temporal, borrado al terminar) confirmó
+`HistoryTable`/`NetworkCredentialsManager`/`ScanForm` oscuros, coherentes
+y legibles.
+
+Detalle: `progress/impl_unify_authenticated_theme.md`,
+`progress/review_unify_authenticated_theme.md` (`approved`).
+
+**Con esta feature se completan las 17 features de `feature_list.json`.**
+No queda ninguna feature `pending` (fuera del hallazgo ya registrado sobre
+timeouts intermitentes de `userEvent` en `ScanForm.test.tsx`/
+`HomePage.test.tsx`, sin feature propia todavía).

@@ -236,7 +236,7 @@
         "Un test unitario en tests/api/ verifica que fetch recibe cache: \"no-store\" (siguiendo el patrón de los tests existentes de src/api)",
         "npm run typecheck, npm run lint, npm run format:check y npm test en verde. Los dos tests intermitentes conocidos de NetworkCredentialForm.test.tsx (ver progress/current.md) no bloquean si fallan solo por timeout y pasan al reejecutar"
       ],
-      "status": "in_progress"
+      "status": "done"
     },
     {
       "id": 15,
@@ -249,7 +249,40 @@
         "npm test pasa de forma consecutiva al menos 5 veces con la suite completa, y ./init.sh sale en verde",
         "Se implementa en su propia rama, no en feature/logout"
       ],
-      "status": "pending"
+      "status": "done"
+    },
+    {
+      "id": 16,
+      "name": "history_polling_refresh",
+      "title": "Fix: el histórico de escaneos se actualiza solo, sin recargar la página",
+      "description": "HistoryTable (src/features/history/HistoryTable.tsx) carga getScanHistory() UNA sola vez al montar y recién vuelve a pedirlo tras una acción explícita del usuario (cancelar). No hay SSE ni polling en este componente -- decisión de diseño ya documentada para evitar abrir un EventSource por fila. El problema real, confirmado en AWS: si el relay de SSE de gateway tiene cualquier corte (aunque sea breve, ver feature scan_outcome_consumer_reconnect del lado de gateway), o directamente ningún evento en vivo llega a tiempo, un escaneo que ya terminó (completado o fallido) en el backend sigue mostrándose 'en progreso' en front indefinidamente -- el usuario ve que 'cancelar no hace nada' cuando en realidad el escaneo ya había terminado hace rato, y la única forma de enterarse es recargar la página entera a mano. Esto no debería depender de que el transporte en tiempo real nunca falle.",
+      "acceptance": [
+        "HistoryTable hace polling periódico de getScanHistory() (p. ej. cada 5-10 segundos) MIENTRAS haya al menos una entrada en estado no terminal (PENDIENTE o EN_PROGRESO) en la lista cargada",
+        "El polling se detiene solo cuando todas las entradas quedan en estado terminal (COMPLETADO o FALLIDO) -- no sigue pidiendo indefinidamente si no hay nada pendiente",
+        "Si llegan nuevas entradas no terminales en un refetch posterior (p. ej. el usuario envía un escaneo nuevo desde otra parte de la UI mientras la tabla está montada), el polling se reactiva",
+        "El intervalo se limpia correctamente al desmontar el componente (mismo cuidado que ya tiene el useEffect existente con la bandera `active`) -- ningún setState tras desmontar, ningún intervalo huérfano",
+        "No cambia el comportamiento ya existente de refetch inmediato tras un cancelScan exitoso -- el polling es un mecanismo adicional, no un reemplazo",
+        "No se introduce ningún EventSource/SSE nuevo en este componente -- sigue siendo refetch simple de la lista completa, consistente con la decisión de diseño ya documentada aquí",
+        "Tests de componente nuevos (vitest + Testing Library, mismo patrón que los tests existentes de HistoryTable): con entradas no terminales, avanzar el tiempo (fake timers) dispara un refetch adicional; con todas las entradas terminales, avanzar el tiempo NO dispara ningún refetch adicional",
+        "./init.sh (o el equivalente de este repo) pasa en verde"
+      ],
+      "status": "done"
+    },
+    {
+      "id": 17,
+      "name": "unify_authenticated_theme",
+      "title": "Extender el tema oscuro 'Signals & Traces' a todo el dashboard autenticado",
+      "description": "Feedback de diseño (ver conversación): el quiebre visual claro/oscuro/claro entre login, el formulario de escaneo y el resto del dashboard se siente desarmado. Hoy `.scan-console` (src/features/scan/scanForm.css) define su propio set de variables oscuras (--scan-bg/--scan-surface/--scan-border/--scan-text/--scan-text-muted/--scan-accent/--scan-alert-*/--scan-status-*), scoped solo a ese componente, mientras que `HistoryTable`, `NetworkCredentialsManager`, `ReportView` y `LogoutButton` se pintan con los selectores genéricos de elemento de src/index.css (sin clases propias, ver su comentario de cabecera), que leen las variables --color-* de :root (paleta clara). El resultado: el usuario entra a una landing oscura (home.css, feature home_landing_page), ve un formulario de escaneo oscuro (scan_console_redesign), pero el histórico/credenciales/reporte/logout que están justo al lado siguen claros -- la isla oscura no se lee como decisión de diseño, se lee como una pantalla a medio terminar. La solución es mover el quiebre de tema al límite real de la app (público/claro vs. autenticado/oscuro) en vez de dejarlo a mitad del dashboard.",
+      "acceptance": [
+        "Se agrega un wrapper (p. ej. un <div className=\"app-shell--authenticated\"> o equivalente) alrededor de TODO el contenido dentro de ProtectedRoute en src/App.tsx (LogoutButton, NetworkCredentialsManager, ScanForm, HistoryTable, ReportView cuando hay selección) -- no se reestructura el estado ni la lógica existente de App.tsx, solo se envuelve el JSX ya existente",
+        "Ese wrapper redefine, en su propio scope, las variables --color-bg/--color-surface/--color-border/--color-text/--color-text-muted/--color-accent/--color-accent-hover/--color-accent-contrast/--color-alert-*/--color-status-* de src/index.css con los valores oscuros ya calculados y documentados en scanForm.css/home.css (--scan-*/--home-*, que son literalmente los mismos hoy) -- gracias a que todos los selectores de index.css ya leen var(--color-*) de forma genérica (sin clases propias), esto reteñe HistoryTable/NetworkCredentialsManager/ReportView/LogoutButton sin tocar el markup ni los estilos de esos componentes",
+        "scanForm.css y home.css dejan de definir su propio set paralelo de variables (--scan-*/--home-*) y pasan a consumir las mismas --color-* ya redefinidas por el wrapper -- se elimina la duplicación manual documentada en el comentario de cabecera de scanForm.css ('no hay una fuente compartida a propósito... la sincronización es manual')",
+        "La paleta pública (landing/login, fuera de ProtectedRoute autenticado) sigue siendo la oscura de 'Signals & Traces' tal cual está hoy en home.css -- el quiebre de tema pasa a ser login/landing (oscuro) + dashboard autenticado (oscuro, unificado) vs. nada claro visible salvo quizás mensajes puntuales de error/éxito ya recalibrados para fondo oscuro",
+        "Los cálculos de contraste 7:1 ya documentados en progress/impl_scan_console_redesign.md para --scan-alert-*/--scan-status-* sobre --scan-surface se preservan exactamente (son los valores que pasan a ser los --color-alert-*/--color-status-* del wrapper), no se recalculan ni se improvisan nuevos",
+        "Verificación visual manual: HistoryTable, NetworkCredentialsManager y ReportView se ven con la paleta oscura cuando están montados dentro del wrapper autenticado, sin perder legibilidad de texto ni de los estados [role=\"alert\"]/[role=\"status\"]",
+        "./init.sh (o el equivalente de este repo) pasa en verde; si hay tests de snapshot/visual existentes que asuman la paleta clara en estos componentes, se actualizan explícitamente, nunca se borran sin más"
+      ],
+      "status": "done"
     }
   ]
 }

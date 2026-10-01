@@ -16,6 +16,12 @@
  * Paleta sobria pensada para una consola de análisis (no un producto de
  * consumo): fondos neutros, un único color de acento para botones/acciones
  * primarias, y rojo/verde reservados solo para alert/status.
+ *
+ * Las `--color-*` de `:root` son la paleta clara "por defecto", pero ya no
+ * se ven en ningún estado real de la app: el visitante anónimo ve
+ * `.home-page` (oscura, scope propio) y el usuario autenticado ve
+ * `.app-shell--authenticated` (oscura, ver más abajo), que redefine estas
+ * mismas variables antes de que los selectores de este archivo las lean.
  */
 
 :root {
@@ -84,15 +90,82 @@ main {
   display: block;
 }
 
+/**
+ * Tema oscuro "Signals & Traces" del dashboard autenticado (feature
+ * `unify_authenticated_theme`, id 17). Antes de esta feature, solo
+ * `.scan-console` (`ScanForm`, feature `scan_console_redesign`, id 13)
+ * vivía como una isla oscura dentro de un dashboard claro, duplicando a
+ * mano en `--scan-*` los mismos valores que `--home-*`
+ * (`src/features/home/home.css`). Esta clase, aplicada al `<div>` que
+ * envuelve TODO el contenido autenticado (ver `src/App.tsx`), redefine las
+ * mismas `--color-*` que ya leen de forma genérica los selectores de este
+ * archivo (`form`, `table`, `button`, `[role="alert"]`, etc.) — así se
+ * retiñe `HistoryTable`/`NetworkCredentialsManager`/`ReportView`/
+ * `LogoutButton` sin tocar su markup ni sus estilos propios.
+ *
+ * Valores idénticos (literal, sin recalcular) a los que antes vivían en
+ * `--scan-*`/`--home-*`. `src/features/scan/scanForm.css` ya no define su
+ * propio set: al estar `.scan-console` anidado dentro de este wrapper en
+ * el DOM, hereda estas `--color-*` directamente. `src/features/home/
+ * home.css` sigue redefiniéndolas en su propio scope porque `.home-page`
+ * vive FUERA de este wrapper (rama anónima de `ProtectedRoute`, nunca
+ * anidada aquí) — ver el comentario de cabecera de ese archivo.
+ *
+ * `--color-alert-*`/`--color-status-*` recalibrados a ~7:1 de contraste
+ * sobre `--color-surface` (`#131b2c`) — cálculo ya documentado en
+ * `progress/impl_scan_console_redesign.md`, no se recalcula aquí.
+ *
+ * El `::before` (mismo patrón que `.home-page::before`) cubre el viewport
+ * completo para que no quede un borde claro visible alrededor del padding
+ * de `#root`.
+ */
+.app-shell--authenticated {
+  position: relative;
+  isolation: isolate;
+
+  --color-bg: #0b1220;
+  --color-surface: #131b2c;
+  --color-border: #232e45;
+  --color-text: #e7ecf3;
+  --color-text-muted: #8996ac;
+
+  --color-accent: #38bdf8;
+  --color-accent-hover: #7dd4fb;
+  --color-accent-contrast: #0b1220;
+
+  --color-alert-bg: #3a1518;
+  --color-alert-border: #f87171;
+  --color-alert-text: #fecaca;
+
+  --color-status-bg: #0f2e28;
+  --color-status-border: #34d399;
+  --color-status-text: #a7f3d0;
+
+  color: var(--color-text);
+}
+
+.app-shell--authenticated::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-color: var(--color-bg);
+}
+
 /* Espaciado consistente entre los bloques de alto nivel del shell
    (`LogoutButton`, `NetworkCredentialsManager`, `ScanForm`, `HistoryTable`,
-   `ReportView`) sin depender de una clase nueva: son siempre hijos
-   directos de `<main>` (ver `src/App.tsx`). */
-main > * {
+   `ReportView`) sin depender de una clase nueva: eran hijos directos de
+   `<main>` antes de la feature `unify_authenticated_theme`; ahora son
+   hijos directos de `.app-shell--authenticated` (ver `src/App.tsx`), así
+   que el selector se extiende a ese wrapper para preservar exactamente el
+   mismo espaciado. */
+main > *,
+.app-shell--authenticated > * {
   margin-bottom: var(--space-6);
 }
 
-main > *:last-child {
+main > *:last-child,
+.app-shell--authenticated > *:last-child {
   margin-bottom: 0;
 }
 

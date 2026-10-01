@@ -41,6 +41,16 @@
  * mueve DENTRO de los `children` (rama autenticada): `HomePage` ya trae su
  * propia marca "front" en su diseño, así que un `<h1>front</h1>` sin
  * estilo por encima de ella quedaría duplicado.
+ *
+ * `<div className="app-shell--authenticated">` (feature
+ * `unify_authenticated_theme`, id 17) envuelve TODO el contenido existente
+ * de la rama autenticada, sin reestructurar su estado ni su lógica: es
+ * puramente un contenedor que `src/index.css` usa para redefinir, en su
+ * propio scope CSS, las mismas `--color-*` que ya leen de forma genérica
+ * `HistoryTable`/`NetworkCredentialsManager`/`ReportView`/`LogoutButton`
+ * (ver el comentario de ese archivo) — mueve el quiebre de tema claro/
+ * oscuro al límite real de la app (público vs. autenticado) en vez de
+ * dejarlo a mitad del dashboard como hacía `.scan-console` por sí solo.
  */
 
 import { useState } from "react";
@@ -61,12 +71,14 @@ export function App() {
     <SessionProvider>
       <main>
         <ProtectedRoute anonymousView={<HomePage />}>
-          <h1>front</h1>
-          <LogoutButton />
-          <NetworkCredentialsManager />
-          <ScanForm />
-          <HistoryTable onViewReport={setSelectedScanId} />
-          {selectedScanId && <ReportView scanId={selectedScanId} />}
+          <div className="app-shell--authenticated">
+            <h1>front</h1>
+            <LogoutButton />
+            <NetworkCredentialsManager />
+            <ScanForm />
+            <HistoryTable onViewReport={setSelectedScanId} />
+            {selectedScanId && <ReportView scanId={selectedScanId} />}
+          </div>
         </ProtectedRoute>
       </main>
     </SessionProvider>

@@ -30,6 +30,12 @@ describe("NetworkCredentialForm", () => {
   });
 
   it("deshabilita_el_envio_mientras_falten_campos_requeridos", async () => {
+    // userEvent.setup({ delay: null }) evita que estos asserts dependan de
+    // la velocidad de la máquina: por defecto userEvent.type espera un
+    // pequeño delay entre cada letra, lo que puede superar el timeout de
+    // 5 s de Vitest cuando la suite corre en paralelo (ver feature
+    // stabilize_network_credential_form_tests).
+    const user = userEvent.setup({ delay: null });
     await loginAsSyntheticUser();
     render(<NetworkCredentialForm onCreated={vi.fn()} />);
 
@@ -37,7 +43,7 @@ describe("NetworkCredentialForm", () => {
       screen.getByRole("button", { name: /agregar credencial/i }),
     ).toBeDisabled();
 
-    await userEvent.type(
+    await user.type(
       screen.getByLabelText("IP o rango del objetivo"),
       "192.168.1.10",
     );
@@ -45,12 +51,12 @@ describe("NetworkCredentialForm", () => {
       screen.getByRole("button", { name: /agregar credencial/i }),
     ).toBeDisabled();
 
-    await userEvent.type(screen.getByLabelText("Usuario de red"), "root");
+    await user.type(screen.getByLabelText("Usuario de red"), "root");
     expect(
       screen.getByRole("button", { name: /agregar credencial/i }),
     ).toBeDisabled();
 
-    await userEvent.type(
+    await user.type(
       screen.getByLabelText("Credencial SSH"),
       "vault://ssh/lab-key",
     );
@@ -60,20 +66,23 @@ describe("NetworkCredentialForm", () => {
   });
 
   it("submit_exitoso_llama_a_onCreated_con_la_credencial_devuelta_y_limpia_el_formulario", async () => {
+    // Mismo motivo que el test anterior: delay: null quita la dependencia
+    // de la velocidad de la máquina.
+    const user = userEvent.setup({ delay: null });
     await loginAsSyntheticUser();
     const onCreated = vi.fn();
     render(<NetworkCredentialForm onCreated={onCreated} />);
 
-    await userEvent.type(
+    await user.type(
       screen.getByLabelText("IP o rango del objetivo"),
       "192.168.1.10",
     );
-    await userEvent.type(screen.getByLabelText("Usuario de red"), "root");
-    await userEvent.type(
+    await user.type(screen.getByLabelText("Usuario de red"), "root");
+    await user.type(
       screen.getByLabelText("Credencial SSH"),
       "vault://ssh/lab-key",
     );
-    await userEvent.click(
+    await user.click(
       screen.getByRole("button", { name: /agregar credencial/i }),
     );
 
