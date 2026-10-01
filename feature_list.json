@@ -266,7 +266,7 @@
         "Tests de componente nuevos (vitest + Testing Library, mismo patrón que los tests existentes de HistoryTable): con entradas no terminales, avanzar el tiempo (fake timers) dispara un refetch adicional; con todas las entradas terminales, avanzar el tiempo NO dispara ningún refetch adicional",
         "./init.sh (o el equivalente de este repo) pasa en verde"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 17,

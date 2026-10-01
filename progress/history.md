@@ -748,3 +748,26 @@ y `tests/features/home/HomePage.test.tsx` (otras features ya `done`).
 
 Detalle: `progress/impl_stabilize_network_credential_form_tests.md`,
 `progress/review_stabilize_network_credential_form_tests.md` (`approved`).
+
+## Sesión 2026-10-01 — Feature 16: history_polling_refresh
+
+- **Feature:** `16 - history_polling_refresh`.
+- **Agente:** leader + `implementer` + `reviewer`.
+- **Resultado:** `done`.
+
+`HistoryTable` ahora hace polling (`setInterval`, 7s) de `getScanHistory()`
+mientras quede al menos una entrada `PENDIENTE`/`EN_PROGRESO`; se detiene
+solo al quedar todo terminal y se reactiva si reaparece una entrada no
+terminal. Sin `EventSource`/SSE nuevo; el refetch tras `cancelScan`
+exitoso no cambió. Cubre el caso en que un corte del SSE del Gateway
+dejaba un escaneo ya terminado mostrándose "en progreso" indefinidamente.
+
+Detalle técnico reutilizable: los tests de este componente contra el
+servidor de contrato real necesitan `vi.useFakeTimers({ toFake:
+["setInterval", "clearInterval"] })`, nunca fakear todo — `fetch`/`undici`
+depende de `setTimeout` real y, si se fakea también, la petición HTTP
+nunca resuelve. El reviewer corrió el archivo de test 5 veces aislado
+para descartar fragilidad.
+
+Detalle: `progress/impl_history_polling_refresh.md`,
+`progress/review_history_polling_refresh.md` (`approved`).

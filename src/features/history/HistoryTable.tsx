@@ -17,6 +17,16 @@
  * simplemente se reenvía a `HistoryTableView`: la selección de "qué
  * reporte ver" vive como estado levantado en `App.tsx`, no aquí — este
  * componente no conoce `getReport` ni `ReportView`.
+ *
+ * Polling (feature `history_polling_refresh`, id 16): el SSE del Gateway
+ * (feature `realtime_status`) es "mejor esfuerzo", no una garantía — un
+ * corte del relay (ver `scan_outcome_consumer_reconnect` del lado de
+ * `gateway`) puede dejar un escaneo ya terminado en el backend mostrándose
+ * "en progreso" aquí indefinidamente. Para no depender de que el transporte
+ * en tiempo real nunca falle, este componente además hace un refetch
+ * periódico de `getScanHistory()` mientras quede al menos una entrada en
+ * estado no terminal — sigue siendo el mismo "refetch simple" ya elegido
+ * arriba, nunca un `EventSource` nuevo por fila.
  */
 
 import { useEffect, useState } from "react";
@@ -26,6 +36,7 @@ import {
   getScanHistory,
   type ApiError,
   type ScanHistoryEntry,
+  type ScanStatus,
 } from "../../api";
 import { HistoryTableView, type RowCancelState } from "./HistoryTableView";
 
@@ -33,6 +44,18 @@ type HistoryState =
   | { status: "loading" }
   | { status: "error"; message: string }
   | { status: "loaded"; entries: ScanHistoryEntry[] };
+
+/** Cada cuánto se refresca el histórico mientras haya escaneos activos. */
+const HISTORY_POLL_INTERVAL_MS = 7000;
+
+const NON_TERMINAL_STATUSES: ReadonlySet<ScanStatus> = new Set([
+  "PENDIENTE",
+  "EN_PROGRESO",
+]);
+
+function hasNonTerminalEntries(entries: ScanHistoryEntry[]): boolean {
+  return entries.some((entry) => NON_TERMINAL_STATUSES.has(entry.status));
+}
 
 function describeHistoryError(error: ApiError): string {
   switch (error.kind) {
@@ -98,6 +121,32 @@ export function HistoryTable({ onViewReport }: HistoryTableProps) {
       active = false;
     };
   }, []);
+
+  const isPolling =
+    state.status === "loaded" && hasNonTerminalEntries(state.entries);
+
+  useEffect(() => {
+    // Mismo cuidado que el efecto de carga inicial: `active` evita un
+    // `setState` tras el desmontaje, y el `return` limpia el intervalo
+    // tanto al desmontar como cuando `isPolling` pasa a `false` (todas las
+    // entradas quedaron terminales) o vuelve a `true` (reaparece una
+    // entrada no terminal en un refetch posterior).
+    if (!isPolling) {
+      return;
+    }
+    let active = true;
+    const intervalId = setInterval(() => {
+      void getScanHistory().then((result) => {
+        if (active) {
+          setState(toHistoryState(result));
+        }
+      });
+    }, HISTORY_POLL_INTERVAL_MS);
+    return () => {
+      active = false;
+      clearInterval(intervalId);
+    };
+  }, [isPolling]);
 
   async function handleCancel(scanId: string): Promise<void> {
     setRowStates((previous) => ({

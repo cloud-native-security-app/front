@@ -6,3 +6,5 @@ dist-ssr/
 .env.local
 playwright-report/
 test-results/
+
+.atl
