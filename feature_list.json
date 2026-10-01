@@ -249,7 +249,7 @@
         "npm test pasa de forma consecutiva al menos 5 veces con la suite completa, y ./init.sh sale en verde",
         "Se implementa en su propia rama, no en feature/logout"
       ],
-      "status": "pending"
+      "status": "done"
     },
     {
       "id": 16,

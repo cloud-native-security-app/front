@@ -728,3 +728,23 @@ cambio llegó a `main` vía la fusión de `feature/logout`). Quedaba pendiente
 solo el estado en `feature_list.json` (`in_progress`). Verificado de nuevo
 en esta sesión: `typecheck`, `lint`, `format:check` y `npm test` (131/131)
 en verde. Estado → `done`.
+
+## Sesión 2026-10-01 — Feature 15: stabilize_network_credential_form_tests
+
+- **Feature:** `15 - stabilize_network_credential_form_tests`.
+- **Agente:** leader + `implementer` + `reviewer`.
+- **Resultado:** `done`.
+
+Causa raíz: `userEvent.type` sin `delay: null` acumula tiempo letra por
+letra y, con la suite en paralelo, supera el timeout de 5s de Vitest.
+Fix: `userEvent.setup({ delay: null })` en los dos tests afectados de
+`tests/features/credentials/NetworkCredentialForm.test.tsx` — mismo
+comportamiento verificado, sin tocar `src/`. 5 corridas consecutivas de
+`npm test` en verde (131/131 cada vez), `./init.sh` completo en verde.
+
+Hallazgo registrado para el futuro (no corregido aquí, fuera de alcance):
+el mismo patrón de timeout aparece en `tests/features/scan/ScanForm.test.tsx`
+y `tests/features/home/HomePage.test.tsx` (otras features ya `done`).
+
+Detalle: `progress/impl_stabilize_network_credential_form_tests.md`,
+`progress/review_stabilize_network_credential_form_tests.md` (`approved`).

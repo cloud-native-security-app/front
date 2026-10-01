@@ -17,7 +17,7 @@ _Sin sesión activa._
 
 ## Próximo paso
 
-_Hay 3 features `pending` en `feature_list.json`: 15
-(`stabilize_network_credential_form_tests`), y 16/17
-(`history_polling_refresh`, `unify_authenticated_theme`, estas dos aún sin
-commitear)._
+_Quedan `pending`: 16 (`history_polling_refresh`), 17
+(`unify_authenticated_theme`). También: mismo patrón de timeout
+intermitente de userEvent en ScanForm.test.tsx/HomePage.test.tsx (sin
+feature propia todavía)._
