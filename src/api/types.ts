@@ -1,6 +1,6 @@
 /**
  * Tipos del contrato HTTP/SSE del Gateway (wire format), tal como lo
- * documenta `progress/explore_gateway_contract.md` (fuente: repo hermano
+ * documenta `docs/decisions.md` (fuente: repo hermano
  * `gateway`, ya implementado). Ningún tipo de aquí se inventa "razonable":
  * se copia literalmente la forma que el Gateway ya serializa.
  */

@@ -2,10 +2,10 @@
  * Servidor de contrato local: aproximación provisional al Gateway real
  * (que vive en el repo hermano `gateway`, aún no levantable aquí — ver
  * docs/verification.md, Nivel 2). Implementa la misma forma de API que
- * documenta `progress/explore_gateway_contract.md` (mismos endpoints,
+ * documenta `docs/decisions.md` (mismos endpoints,
  * códigos de estado, formato de evento SSE, y errores como texto plano),
  * usando únicamente `node:http` (sin frameworks nuevos, ver
- * `progress/explore_sse_contract_server.md` §4).
+ * `docs/decisions.md`).
  *
  * Además de esos endpoints reales, expone dos rutas que el Gateway real
  * **no tiene**, documentadas explícitamente aquí para no confundirlas con
@@ -91,7 +91,7 @@ function readSessionToken(req: IncomingMessage): string | undefined {
 
 /**
  * Igual que el Gateway real: `401` texto plano genérico si la sesión está
- * ausente o no es válida (ver `progress/explore_gateway_contract.md` §5).
+ * ausente o no es válida (ver `docs/decisions.md`).
  */
 function requireSessionToken(
   store: ContractServerStore,
@@ -393,7 +393,7 @@ function handleScanEvents(
     Connection: "keep-alive",
   });
   // Acelera los reintentos de EventSource en tests (el Gateway real no
-  // manda `retry:` explícito, ver progress/explore_sse_contract_server.md §2.3).
+  // manda `retry:` explícito, ver `docs/decisions.md`).
   res.write("retry: 100\n\n");
 
   let stopped = false;

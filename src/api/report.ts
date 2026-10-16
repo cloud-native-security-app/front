@@ -2,11 +2,10 @@
  * Reporte consolidado de un escaneo (RF-11).
  *
  * ADVERTENCIA — contrato especulativo, NO confirmado en el Gateway real:
- * `progress/explore_gateway_contract.md` confirma que el Gateway real hoy
+ * `docs/decisions.md` confirma que el Gateway real hoy
  * NO expone ningún endpoint de reporte — `GET /api/scans/{id}/report`
  * simplemente no existe todavía (RF-11 depende de `ms-analisis`, que ni
- * siquiera existe como repo). Se decidió (ver `progress/current.md` y
- * `progress/impl_api_client.md`) implementar aquí una PROPUESTA de
+ * siquiera existe como repo). Se decidió (ver `docs/decisions.md`) implementar aquí una PROPUESTA de
  * contrato que reutiliza literalmente el shape de `ScanResult` que el
  * Gateway ya serializa en el evento SSE `completed.result`, para poder
  * construir y testear `src/features/report` (feature futura) contra el
@@ -24,7 +23,7 @@ import type { ApiResult, ScanResult } from "./types";
  * Puede fallar con: `network`, `unauthorized`, `not_found` (scanId ajeno o
  * inexistente), `not_ready` (el scan existe pero todavía no está
  * `COMPLETADO` — tipado explícitamente, sin necesidad de parsear texto,
- * ver `feature_list.json` id 2), `unexpected`.
+ * ver `docs/decisions.md`), `unexpected`.
  */
 export async function getReport(
   scanId: string,

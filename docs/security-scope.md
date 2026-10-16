@@ -71,7 +71,7 @@
 
 ## Si algo no está claro
 
-Si una feature de `feature_list.json` roza alguno de estos límites y no está
+Si una tarea roza alguno de estos límites y no está
 claro cómo proceder, el agente **para y pregunta al usuario** en vez de
 asumir qué está autorizado — igual que cualquier otro bloqueo, se documenta
-en `progress/current.md`.
+en el plan de la tarea (`odd/tasks/`).

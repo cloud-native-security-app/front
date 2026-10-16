@@ -15,7 +15,7 @@
  * dinámica (el puerto efímero del servidor de contrato) que solo se conoce
  * en tiempo de test. Levantar un segundo servidor aquí, en vez de tocar la
  * config compartida, evita romper el smoke test de esa otra feature (ver
- * `progress/impl_auth_session.md` para la decisión completa de por qué
+ * `docs/decisions.md` para la decisión completa de por qué
  * `src/App.tsx`/`src/main.tsx` de producción no se integran todavía con
  * `src/auth`).
  *

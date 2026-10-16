@@ -52,7 +52,7 @@ test("abrir_el_reporte_de_un_escaneo_completado_muestra_su_estructura_y_permite_
   await expect(
     page.getByRole("heading", { name: /vulnerabilidades/i }),
   ).toBeVisible();
-  // Nunca JSON crudo como presentación final (feature_list.json, id 7, criterio 1).
+  // Nunca JSON crudo como presentación final (`docs/decisions.md`).
   await expect(page.locator("pre")).toHaveCount(0);
 
   const [download] = await Promise.all([

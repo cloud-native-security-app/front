@@ -4,7 +4,7 @@
  * prueba ni un mock) detrás de un servidor Vite programático con proxy
  * hacia el servidor de contrato — permite ejercer en un navegador real el
  * flujo "ruta protegida" sin modificar `src/App.tsx`/`src/main.tsx` de
- * producción (ver `progress/impl_auth_session.md` para la justificación
+ * producción (ver `docs/decisions.md` para la justificación
  * completa de esta decisión).
  *
  * Ajuste (feature `home_landing_page`, id 12): `ProtectedRoute` ahora exige

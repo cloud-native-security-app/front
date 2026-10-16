@@ -113,7 +113,7 @@ main {
  *
  * `--color-alert-*`/`--color-status-*` recalibrados a ~7:1 de contraste
  * sobre `--color-surface` (`#131b2c`) — cálculo ya documentado en
- * `progress/impl_scan_console_redesign.md`, no se recalcula aquí.
+ * `docs/decisions.md`, no se recalcula aquí.
  *
  * El `::before` (mismo patrón que `.home-page::before`) cubre el viewport
  * completo para que no quede un borde claro visible alrededor del padding
