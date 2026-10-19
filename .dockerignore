@@ -11,9 +11,8 @@ node_modules/
 dist/
 .git/
 .gitignore
-.claude/
-progress/
 docs/
+odd/
 tests/
 e2e/
 playwright-report/

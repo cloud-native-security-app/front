@@ -61,6 +61,6 @@ test("visitante_sin_sesion_ve_la_pagina_de_inicio_y_el_cta_navega_a_login", asyn
   // preview` (sin la CSP de nginx), así que esta aserción cubre errores de
   // carga en general; la ausencia de violaciones de CSP con las fuentes
   // reales se verifica manualmente contra la imagen de `containerization`
-  // (ver `progress/impl_home_landing_page.md`).
+  // (ver `docs/decisions.md`).
   expect(cspViolations).toEqual([]);
 });

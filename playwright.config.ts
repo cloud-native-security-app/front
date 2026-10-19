@@ -7,10 +7,10 @@
  * `/api`/`/auth`/`/__test__` desde ahí hacia el servidor de contrato, así
  * las llamadas de `src/api` quedan en el mismo origen que la página
  * (evita el problema de cookies/CORS cross-origin al probar sesión real
- * en un navegador, ver progress/impl_scan_request_form.md). El comando de
+ * en un navegador, ver `docs/decisions.md`). El comando de
  * preview reconstruye (`npm run build`) antes de servir, para que el
  * `dist/` servido refleje siempre el código fuente actual y no una build
- * previa ya obsoleta (`init.sh` corre `test:e2e` antes de `build`).
+ * previa ya obsoleta (`npm run verify` corre `test:e2e` antes de `build`).
  */
 import { defineConfig } from "@playwright/test";
 

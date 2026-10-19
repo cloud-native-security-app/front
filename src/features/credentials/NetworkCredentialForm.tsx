@@ -2,7 +2,7 @@
  * Formulario de nueva credencial de red (feature
  * `network_credentials_manager`, id 9): sin al menos una entrada configurada
  * para el objetivo, `POST /api/scans` siempre responde 422 en el Gateway
- * real (ver `feature_list.json`). Mismo patrón de estado que
+ * real (ver `docs/decisions.md`). Mismo patrón de estado que
  * `src/features/scan/ScanForm.tsx` (unión discriminada
  * idle/submitting/success/error, `describeCreateError` mapeando `ApiError`).
  *

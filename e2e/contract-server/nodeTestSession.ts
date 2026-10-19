@@ -6,14 +6,14 @@
  * `tests/setup.ts` y specs de `e2e/`.
  *
  * Dos gotchas verificados en este entorno (ver
- * `progress/explore_sse_contract_server.md` §3.3 y hallazgos propios de la
+ * `docs/decisions.md` y hallazgos propios de la
  * feature `api_client`):
  *
  * 1. Ni jsdom ni el `fetch`/`EventSource` nativos de Node implementan
  *    `EventSource` — se usa el polyfill de la librería `undici` (ya
  *    presente como dependencia transitiva del stack de build/test; se
  *    añade explícita a `devDependencies` para no depender de una
- *    dependencia fantasma — ver `progress/impl_api_client.md`).
+ *    dependencia fantasma — ver `docs/decisions.md`).
  * 2. El `fetch` nativo de Node (y el `EventSource` de `undici`) **no**
  *    mantienen un cookie jar entre llamadas — incluso con
  *    `credentials: "include"`, un `Set-Cookie` de una respuesta nunca se

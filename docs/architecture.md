@@ -80,7 +80,7 @@ Browser (front) ──HTTPS──▶ Gateway ──▶ Identity Provider (Google
    autenticación.
 
 No introducir capas adicionales hasta que haya una razón concreta
-documentada en `feature_list.json`.
+documentada en `docs/decisions.md`.
 
 ## Manejo de errores
 
@@ -128,8 +128,7 @@ raíz del repo): multi-stage, mismo patrón que `gateway`/`user-service`/
   estilos/scripts inline) y `connect-src` (limitado exactamente al Gateway
   configurado en build) — coherente con "front solo habla con el Gateway"
   de este documento y con `docs/security-scope.md`.
-- `.dockerignore` excluye `node_modules/`, `dist/`, `.git/`, `.claude/`,
-  `progress/`, `docs/`, `tests/`, `e2e/` del contexto de build — el build de
+- `.dockerignore` excluye `node_modules/`, `dist/`, `.git/`, `docs/`, `tests/`, `e2e/` del contexto de build — el build de
   producción no los necesita, solo `npm run test`/`npm run test:e2e` los
   usan.
 

@@ -33,7 +33,7 @@ export interface ScanEventsSubscription {
  * distingue "el servidor terminó a propósito" de "se cortó la conexión" —
  * sin este cierre explícito seguiría reintentando indefinidamente contra
  * un stream que ya no tiene más eventos (ver
- * `progress/explore_gateway_contract.md` §2: "el stream se cierra tras un
+ * `docs/decisions.md`: "el stream se cierra tras un
  * evento terminal").
  *
  * Un mensaje que no matchea `ScanOutcomeEvent` se ignora silenciosamente

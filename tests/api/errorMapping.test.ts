@@ -6,7 +6,7 @@
  * fetch a nivel de módulo"), en vez del servidor de contrato completo,
  * porque estos dos casos son intencionalmente ajenos al contrato real del
  * Gateway (nadie responde JSON malformado a propósito) — están permitidos
- * explícitamente por `feature_list.json` id 2: "...contra el servidor de
+ * explícitamente por el criterio de aceptación de la feature `api_client`: "...contra el servidor de
  * contrato o un servidor HTTP de test en memoria".
  */
 

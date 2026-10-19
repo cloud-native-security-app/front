@@ -6,7 +6,7 @@
  * respuesta" (fallo de red) para que cada función mapee status codes a su
  * propio `ApiError` sin asumir nunca `await res.json()` en el camino de
  * error — el Gateway real responde texto plano en sus errores
- * (`progress/explore_gateway_contract.md` §5), nunca un envelope JSON.
+ * (`docs/decisions.md`), nunca un envelope JSON.
  */
 
 import { gatewayBaseUrl } from "./config";
@@ -62,14 +62,14 @@ export async function performRequest(
  * todos los endpoints protegidos del Gateway. Cada función de `src/api`
  * puede interceptar un status particular (p. ej. 409) antes de caer aquí,
  * porque su significado varía por endpoint (no hay un envelope uniforme,
- * ver `progress/explore_gateway_contract.md` §5) — el status code es la
+ * ver `docs/decisions.md`) — el status code es la
  * señal principal, el body de texto plano es secundario/informativo.
  *
  * Un 401/403 aquí también dispara `notifyUnauthorized()` (ver
  * `./unauthorized.ts`) — es el único punto común a todas las funciones que
  * usan este mapeo, así `src/auth` puede reaccionar a un 401/403 ocurrido en
  * cualquier llamada, no solo en `getMe()` al montar (ver
- * `feature_list.json`, feature `auth_session`).
+ * `docs/decisions.md`).
  */
 export function mapCommonErrorStatus(
   status: number,

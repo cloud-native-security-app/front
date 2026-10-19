@@ -3,7 +3,7 @@
  * capa 2: "src/auth"). Llama a `getMe()` una sola vez al montar (RF-01) y
  * se suscribe a `onUnauthorized` de `src/api` para limpiar el estado en
  * memoria ante un 401/403 ocurrido en **cualquier** llamada posterior de
- * `src/api` — no solo la de montaje (ver `feature_list.json`, feature
+ * `src/api` — no solo la de montaje (ver `docs/decisions.md`, feature
  * `auth_session`, criterio 4).
  *
  * Nunca lee, escribe ni loggea ningún token/cookie/credencial (ver

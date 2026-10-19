@@ -18,7 +18,7 @@
  * el nombre compartido `--color-*` en vez de uno paralelo).
  *
  * Acento cian (`--color-accent`) reservado a tres lugares, a propósito
- * (ver feature_list.json): el CTA, el punto "en vivo" del panel, y el
+ * (ver `docs/decisions.md`): el CTA, el punto "en vivo" del panel, y el
  * hover de un enlace — en ningún otro elemento.
  */
 

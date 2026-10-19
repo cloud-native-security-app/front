@@ -33,7 +33,7 @@ export interface ScanRecord {
    * conexión se corta abruptamente (`res.destroy()`, no `res.end()`) justo
    * después del primer evento emitido en esa conexión — simula un corte de
    * red real para poder testear la reconexión automática de
-   * `EventSource` (ver `progress/explore_sse_contract_server.md` §2.2).
+   * `EventSource` (ver `docs/decisions.md`).
    * Se consume una sola vez.
    */
   dropConnectionOnce: boolean;
@@ -202,7 +202,7 @@ export function findOwnedScan(
   return record;
 }
 
-/** Aplica el efecto de un evento del guion sobre el estado REST del scan (ver `progress/explore_gateway_contract.md`: histórico y SSE son vocabularios distintos, pero en este servidor de contrato se mantienen sincronizados). */
+/** Aplica el efecto de un evento del guion sobre el estado REST del scan (ver `docs/decisions.md`: histórico y SSE son vocabularios distintos, pero en este servidor de contrato se mantienen sincronizados). */
 export function applyEventToRecord(
   record: ScanRecord,
   event: ScanOutcomeEvent,

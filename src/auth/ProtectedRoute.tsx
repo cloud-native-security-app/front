@@ -11,7 +11,7 @@
  *
  * No depende de ninguna librería de enrutado: es un guard simple por
  * composición (envuelve el contenido a proteger), suficiente para esta
- * feature (ver `feature_list.json`, `auth_session` — no se justificó
+ * feature (ver `docs/decisions.md`, `auth_session` — no se justificó
  * añadir `react-router` u otra dependencia de routing todavía).
  */
 

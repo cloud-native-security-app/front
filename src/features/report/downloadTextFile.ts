@@ -2,7 +2,7 @@
  * Dispara la descarga de un archivo de texto generado en cliente (RF-11,
  * criterio 3): crea un `Blob`, un `<a download>` temporal apuntando a un
  * `URL.createObjectURL`, lo "clickea" mediante programación y libera el
- * object URL — sin dependencias nuevas (ver `feature_list.json`, id 7).
+ * object URL — sin dependencias nuevas (ver `docs/decisions.md`).
  * Efecto de lado puro DOM, deliberadamente separado de
  * `buildReportExport` (que sí es puro y testeable sin `jsdom`).
  */

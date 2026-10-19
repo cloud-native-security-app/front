@@ -4,15 +4,10 @@ playwright-report
 test-results
 coverage
 
-# Harness del proyecto (agentes, docs de proceso) — formato fuera del
+# Skills de agentes y docs de proceso (ODD) — formato fuera del
 # alcance de esta SPA; no se reescribe contenido ajeno a src/tests/e2e.
-.claude/
 .agents/
+odd/
 .atl/
-AGENTS.md
-CLAUDE.md
-CHECKPOINTS.md
 README.md
 docs/
-progress/
-feature_list.json
