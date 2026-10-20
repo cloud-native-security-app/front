@@ -1,0 +1,65 @@
+/**
+ * Test de componente de `LoginButton` (feature `auth_session`, criterio
+ * 3): al hacer click, navega (asignación de `window.location.href`) a la
+ * URL de login del Gateway, y nunca hace un `fetch`.
+ *
+ * Ajuste (feature `home_landing_page`, id 12): `LoginButton` gana props
+ * opcionales `label`/`className` para que `HomePage` lo reutilice como su
+ * CTA con el copy exacto "Iniciar sesión" — se agrega un test que cubre
+ * ese override sin duplicar el resto de la cobertura de navegación.
+ */
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
+
+import { configureGatewayBaseUrl, gatewayBaseUrl } from "../../src/api";
+import { LoginButton } from "../../src/auth";
+
+describe("LoginButton", () => {
+  beforeAll(() => {
+    configureGatewayBaseUrl("http://gateway.contract-test.local");
+  });
+
+  afterEach(() => {
+    configureGatewayBaseUrl("http://gateway.contract-test.local");
+  });
+
+  it("navega_a_la_url_de_login_del_gateway_al_hacer_click_sin_usar_fetch", async () => {
+    const original = window.location;
+    const assignedHrefs: string[] = [];
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: {
+        ...original,
+        set href(value: string) {
+          assignedHrefs.push(value);
+        },
+        get href() {
+          return original.href;
+        },
+      },
+    });
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+
+    render(<LoginButton />);
+    await userEvent.click(
+      screen.getByRole("button", { name: /iniciar sesión/i }),
+    );
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(assignedHrefs).toEqual([`${gatewayBaseUrl()}/auth/login`]);
+
+    fetchSpy.mockRestore();
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: original,
+    });
+  });
+
+  it("acepta_un_label_y_una_clase_personalizados_sin_cambiar_la_navegacion", () => {
+    render(<LoginButton label="Iniciar sesión" className="custom-cta" />);
+
+    const button = screen.getByRole("button", { name: "Iniciar sesión" });
+    expect(button).toHaveClass("custom-cta");
+  });
+});

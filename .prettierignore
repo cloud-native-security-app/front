@@ -1,0 +1,13 @@
+dist
+node_modules
+playwright-report
+test-results
+coverage
+
+# Skills de agentes y docs de proceso (ODD) — formato fuera del
+# alcance de esta SPA; no se reescribe contenido ajeno a src/tests/e2e.
+.agents/
+odd/
+.atl/
+README.md
+docs/

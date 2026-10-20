@@ -51,7 +51,7 @@ npx playwright test
 ```
 - Requiere `npx playwright install` (navegadores) al menos una vez por
   entorno. Si el entorno no tiene navegadores instalados, se documenta como
-  bloqueo en `progress/current.md` — no se reemplaza por más mocks de
+  bloqueo en el plan de la tarea (`odd/tasks/`) — no se reemplaza por más mocks de
   `vitest`.
 
 ### Nivel 3 — Build de producción (obligatorio)
@@ -73,13 +73,13 @@ Un `npm run build` roto (errores de tipos, imports inválidos) es motivo de
 - ❌ Mockear `src/api` en un test e2e en vez de usar el servidor de
   contrato real.
 - ❌ Silenciar un error de `eslint`/`tsc` con un comentario sin explicación.
-- ❌ Marcar la feature como `done` sin pasar `./init.sh`.
+- ❌ Dar una tarea por terminada sin pasar `npm run verify`.
 
 ## Verificación final antes de cerrar
 
 ```bash
-./init.sh           # debe terminar con [OK] Entorno listo
+npm run verify     # format:check, lint, typecheck, test, build, test:e2e
 ```
 
-Si `./init.sh` está rojo, **no** marques nada como `done`. Anota el bloqueo
-en `progress/current.md` y pon `"status": "blocked"` en `feature_list.json`.
+Si `npm run verify` está rojo, **no** des la tarea por terminada. Anota el bloqueo
+en el plan de la tarea (`odd/tasks/`).
