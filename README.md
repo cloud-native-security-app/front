@@ -62,8 +62,58 @@ requieren `npx playwright install` al menos una vez por entorno.
 La imagen se construye con el `Dockerfile` (multi-stage, nginx no-root).
 `VITE_GATEWAY_BASE_URL` es un build-arg obligatorio: se incrusta en el bundle
 y también parametriza `connect-src` de la CSP. Ver
-[`docs/architecture.md`](docs/architecture.md). El pipeline de CI/CD está
-planificado en [`odd/tasks/ci-cd-deploy.md`](odd/tasks/ci-cd-deploy.md).
+[`docs/architecture.md`](docs/architecture.md). El pipeline de CI/CD se
+describe en la sección siguiente.
+
+## CI/CD
+
+### En cada pull request y push a `develop` (`.github/workflows/ci.yml`)
+
+- **verify**: Node 22 (el mismo del builder del `Dockerfile`), `npm ci`,
+  Chromium de Playwright y `npm run verify` (format:check, lint, typecheck,
+  vitest, build y e2e). Los e2e son autocontenidos (servidor de contrato +
+  `vite preview`), no necesitan backend. Si falla, se sube el reporte de
+  Playwright como artefacto.
+- **docker-build**: `docker build` sin push, con
+  `VITE_GATEWAY_BASE_URL=https://gateway.ci.invalid:8080` (valor de relleno).
+
+### En push a `main` (`.github/workflows/deploy.yml`)
+
+Construye la imagen, la publica en ECR como `security-app/front:<sha>` (y
+`:latest`) y despliega en el servicio ECS `front` del cluster
+`security-app-cluster-v2`. Terraform (repo `infra`) es la única fuente de
+verdad de la task definition: CI solo descarga la task definition vigente del
+servicio, cambia la imagen del contenedor `front` por `<sha>`, registra la
+nueva revisión y espera la estabilidad del servicio. Nada de esto se versiona
+en este repo.
+
+`VITE_GATEWAY_BASE_URL` se incrusta en el bundle y en la CSP de nginx, por lo
+que depende del ALB. No hay variable manual: tras autenticarse en AWS, el
+workflow lee el DNS del ALB `security-app-alb`
+(`aws elbv2 describe-load-balancers`) y construye con
+`https://<dns>:8080` (el mismo valor que el output de Terraform
+`gateway_public_url`). Si no puede resolverlo, el deploy falla con un error
+claro. Si el ALB se recrea (cambia su DNS), vuelve a lanzar el deploy para
+reconstruir la imagen con la URL nueva.
+
+Requisitos en GitHub (Learner Lab no tiene OIDC; los fija
+`scripts/refresh-gh-secrets.sh` del repo `infra`):
+
+| Nombre | Tipo | Quién lo define |
+|--------|------|-----------------|
+| `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN` | secrets del repo | `infra` `scripts/refresh-gh-secrets.sh` |
+| `AWS_REGION` | variable del repo | `infra` `scripts/refresh-gh-secrets.sh` |
+
+Las credenciales de Learner Lab caducan: si el deploy falla al autenticarse,
+ejecuta `scripts/refresh-gh-secrets.sh` en `infra` y vuelve a lanzar el workflow.
+
+### Redeploy manual y rollback
+
+- Redeploy: pestaña Actions, workflow **Deploy**, **Run workflow**
+  (`workflow_dispatch`).
+- Rollback: lanza **Run workflow** eligiendo la ref (rama o tag) de un commit
+  anterior, que reconstruye y despliega esa imagen; o, sin reconstruir,
+  `aws ecs update-service --cluster security-app-cluster-v2 --service front --task-definition <familia>:<revisión anterior>`.
 
 ## Desarrollo asistido por IA
 
