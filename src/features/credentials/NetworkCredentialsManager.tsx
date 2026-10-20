@@ -90,9 +90,23 @@ export function NetworkCredentialsManager() {
     };
   }, []);
 
+  /** Drops stale row errors; rows still deleting are kept untouched. */
+  function clearRowErrors(): void {
+    setRowStates((previous) =>
+      Object.fromEntries(
+        Object.entries(previous).filter(
+          ([, rowState]) => rowState.status !== "error",
+        ),
+      ),
+    );
+  }
+
   async function refresh(): Promise<void> {
     const result = await listNetworkCredentials();
     setState(toListState(result));
+    if (result.ok) {
+      clearRowErrors();
+    }
   }
 
   async function handleDelete(id: string): Promise<void> {
@@ -100,14 +114,33 @@ export function NetworkCredentialsManager() {
       ...previous,
       [id]: { status: "deleting" },
     }));
-    const result = await deleteNetworkCredential(id);
-    if (result.ok) {
-      setRowStates((previous) => ({ ...previous, [id]: { status: "idle" } }));
-      await refresh();
-    } else {
+    try {
+      const result = await deleteNetworkCredential(id);
+      if (result.ok) {
+        setRowStates((previous) => ({
+          ...previous,
+          [id]: { status: "idle" },
+        }));
+        clearRowErrors();
+        await refresh();
+      } else {
+        setRowStates((previous) => ({
+          ...previous,
+          [id]: {
+            status: "error",
+            message: describeDeleteError(result.error),
+          },
+        }));
+      }
+    } catch {
+      // Defensive: the API layer never rejects, but a row must never stay
+      // on "Borrando…" if something unexpected throws.
       setRowStates((previous) => ({
         ...previous,
-        [id]: { status: "error", message: describeDeleteError(result.error) },
+        [id]: {
+          status: "error",
+          message: describeDeleteError({ kind: "network" }),
+        },
       }));
     }
   }

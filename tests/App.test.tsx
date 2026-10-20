@@ -14,7 +14,7 @@
  * verifica ahora.
  */
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { App } from "../src/App";
 import {
@@ -63,5 +63,28 @@ describe("App", () => {
       ).toBeInTheDocument();
     });
     expect(screen.getByRole("heading", { name: "front" })).toBeInTheDocument();
+  });
+});
+
+describe("App error boundary (REH-01)", () => {
+  it("shows_the_fallback_instead_of_a_blank_page_when_the_shell_throws", async () => {
+    vi.resetModules();
+    vi.doMock("../src/features/home", () => ({
+      HomePage: () => {
+        throw new Error("render roto");
+      },
+    }));
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    const { App: BrokenApp } = await import("../src/App");
+
+    render(<BrokenApp />);
+
+    expect(await screen.findByText("Algo salió mal.")).toBeInTheDocument();
+    expect(consoleError).toHaveBeenCalled();
+    vi.doUnmock("../src/features/home");
+    vi.restoreAllMocks();
+    cleanup();
   });
 });
