@@ -15,7 +15,11 @@ import { useEffect, useState, type ReactNode } from "react";
 
 import { getMe, onUnauthorized } from "../api";
 import { SessionContext } from "./sessionContext";
-import { ANONYMOUS_SESSION, LOADING_SESSION } from "./sessionTypes";
+import {
+  ANONYMOUS_SESSION,
+  EXPIRED_SESSION,
+  LOADING_SESSION,
+} from "./sessionTypes";
 import type { SessionState } from "./sessionTypes";
 
 export function SessionProvider({ children }: { children: ReactNode }) {
@@ -30,7 +34,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     // en el mismo `ANONYMOUS_SESSION`, de forma idempotente.
     const unsubscribe = onUnauthorized(() => {
       if (active) {
-        setSession(ANONYMOUS_SESSION);
+        // Only a session that was actually authenticated "expired"; a 401
+        // while loading/anonymous (first visit) must not show the notice.
+        setSession((previous) =>
+          previous.status === "authenticated"
+            ? EXPIRED_SESSION
+            : previous.status === "loading"
+              ? ANONYMOUS_SESSION
+              : previous,
+        );
       }
     });
 

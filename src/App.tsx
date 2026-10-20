@@ -55,7 +55,13 @@
 
 import { useState } from "react";
 
-import { LogoutButton, ProtectedRoute, SessionProvider } from "./auth";
+import {
+  LogoutButton,
+  ProtectedRoute,
+  SessionExpiredNotice,
+  SessionProvider,
+} from "./auth";
+import { ErrorBoundary } from "./components";
 import { NetworkCredentialsManager } from "./features/credentials";
 import { HistoryTable } from "./features/history";
 import { HomePage } from "./features/home";
@@ -70,16 +76,25 @@ export function App() {
   return (
     <SessionProvider>
       <main>
-        <ProtectedRoute anonymousView={<HomePage />}>
-          <div className="app-shell--authenticated">
-            <h1>front</h1>
-            <LogoutButton />
-            <NetworkCredentialsManager />
-            <ScanForm />
-            <HistoryTable onViewReport={setSelectedScanId} />
-            {selectedScanId && <ReportView scanId={selectedScanId} />}
-          </div>
-        </ProtectedRoute>
+        <ErrorBoundary>
+          <ProtectedRoute
+            anonymousView={
+              <>
+                <SessionExpiredNotice />
+                <HomePage />
+              </>
+            }
+          >
+            <div className="app-shell--authenticated">
+              <h1>front</h1>
+              <LogoutButton />
+              <NetworkCredentialsManager />
+              <ScanForm />
+              <HistoryTable onViewReport={setSelectedScanId} />
+              {selectedScanId && <ReportView scanId={selectedScanId} />}
+            </div>
+          </ProtectedRoute>
+        </ErrorBoundary>
       </main>
     </SessionProvider>
   );

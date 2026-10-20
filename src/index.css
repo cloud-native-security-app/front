@@ -414,3 +414,26 @@ li {
     overflow-x: auto;
   }
 }
+
+/* Session-expired notice (feature `resilient-error-handling`): the landing
+   page is a full-bleed layer, so the notice is pinned above it. */
+.session-expired-notice {
+  position: fixed;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  max-width: calc(100vw - 2rem);
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-alert-border);
+  border-radius: 0.5rem;
+  background: var(--color-alert-bg);
+  color: var(--color-alert-text);
+}
+
+.session-expired-notice p {
+  margin: 0;
+}
