@@ -96,10 +96,10 @@ export function NetworkCredentialsListView({
           const rowState = rowStates[entry.id] ?? { status: "idle" as const };
           return (
             <tr key={entry.id}>
-              <td>{entry.target_pattern}</td>
-              <td>{entry.network_user}</td>
-              <td>{entry.has_sudo ? "Sí" : "No"}</td>
-              <td>
+              <td data-label="Objetivo">{entry.target_pattern}</td>
+              <td data-label="Usuario de red">{entry.network_user}</td>
+              <td data-label="Sudo">{entry.has_sudo ? "Sí" : "No"}</td>
+              <td data-label="Acción" className="cell--actions">
                 {confirmingId === entry.id ? (
                   <div
                     role="group"

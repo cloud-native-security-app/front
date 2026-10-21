@@ -76,8 +76,8 @@ export function HistoryTableView({
 
           return (
             <tr key={rowKey}>
-              <td>{entry.target}</td>
-              <td>
+              <td data-label="Objetivo">{entry.target}</td>
+              <td data-label="Estado">
                 <ScanStatusBadge status={entry.status} />
                 {(entry.status === "FALLIDO" || entry.status === "CANCELADO") &&
                   entry.failure_reason && (
@@ -86,8 +86,10 @@ export function HistoryTableView({
                     </p>
                   )}
               </td>
-              <td>{formatRequestedAt(entry.requested_at)}</td>
-              <td>
+              <td data-label="Solicitado">
+                {formatRequestedAt(entry.requested_at)}
+              </td>
+              <td data-label="Acción" className="cell--actions">
                 {isCancellableEntry(entry) && scanId && (
                   <>
                     <button

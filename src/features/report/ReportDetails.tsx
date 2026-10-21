@@ -234,12 +234,18 @@ export function ReportDetails({
           <tbody>
             {report.ports.map((port) => (
               <tr key={`${port.protocol}-${port.port}`}>
-                <td>{port.port}</td>
-                <td>{port.protocol}</td>
-                <td>{port.state}</td>
-                <td>{port.service ?? "—"}</td>
-                <td>{port.version ?? "—"}</td>
-                <td>{port.cpes.length > 0 ? port.cpes.join(", ") : "—"}</td>
+                <td data-label="Puerto" className="cell--card-title">
+                  {port.port}
+                </td>
+                <td data-label="Protocolo" className="cell--card-title-suffix">
+                  {port.protocol}
+                </td>
+                <td data-label="Estado">{port.state}</td>
+                <td data-label="Servicio">{port.service ?? "—"}</td>
+                <td data-label="Versión">{port.version ?? "—"}</td>
+                <td data-label="CPE">
+                  {port.cpes.length > 0 ? port.cpes.join(", ") : "—"}
+                </td>
               </tr>
             ))}
           </tbody>
