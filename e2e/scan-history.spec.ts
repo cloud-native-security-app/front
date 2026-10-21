@@ -57,7 +57,7 @@ test("un_escaneo_completado_no_muestra_accion_de_cancelar_en_el_historico", asyn
 
   await page.getByLabel("IP a escanear").fill("172.16.41.5");
   await page.getByRole("button", { name: "Escanear" }).click();
-  await expect(page.getByText(/escaneo encolado\. id: /i)).toBeVisible();
+  await expect(page.getByText(/escaneo en cola/i)).toBeVisible();
 
   // El escaneo encolado vía el formulario sí abre una suscripción SSE
   // (`useScanEvents`) y llega a `COMPLETADO` en el guion del servidor de

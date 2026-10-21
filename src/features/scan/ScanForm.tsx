@@ -24,6 +24,7 @@ import { useState, type FormEvent } from "react";
 
 import { submitScan, type ApiError } from "../../api";
 import {
+  SCAN_QUEUED_MESSAGE,
   SESSION_EXPIRED_MESSAGE,
   networkErrorMessage,
   unexpectedErrorMessage,
@@ -96,37 +97,38 @@ export function ScanForm() {
         className="scan-console__form"
         onSubmit={(event) => void handleSubmit(event)}
       >
-        <label className="scan-console__label" htmlFor="scan-target">
-          IP a escanear
-        </label>
-        <input
-          id="scan-target"
-          name="scan-target"
-          type="text"
-          className="scan-console__input"
-          value={target}
-          placeholder="192.168.1.10"
-          disabled={isSubmitting}
-          onChange={(event) => {
-            setTarget(event.target.value);
-            setSubmitState({ status: "idle" });
-          }}
-        />
+        <div className="scan-console__row">
+          <div className="scan-console__field">
+            <label className="scan-console__label" htmlFor="scan-target">
+              IP a escanear
+            </label>
+            <input
+              id="scan-target"
+              name="scan-target"
+              type="text"
+              className="scan-console__input"
+              value={target}
+              placeholder="192.168.1.10"
+              disabled={isSubmitting}
+              onChange={(event) => {
+                setTarget(event.target.value);
+                setSubmitState({ status: "idle" });
+              }}
+            />
+          </div>
+          <button
+            type="submit"
+            className="scan-console__submit"
+            disabled={!canSubmit}
+          >
+            {isSubmitting ? "Encolando…" : "Escanear"}
+          </button>
+        </div>
         {!validation.valid && target.trim().length > 0 && (
           <p role="alert">{validation.message}</p>
         )}
-        <button
-          type="submit"
-          className="scan-console__submit"
-          disabled={!canSubmit}
-        >
-          {isSubmitting ? "Encolando…" : "Escanear"}
-        </button>
         {submitState.status === "success" && (
-          <p role="status">
-            Escaneo encolado. ID:{" "}
-            <span className="scan-console__mono">{submitState.scanId}</span>
-          </p>
+          <p role="status">{SCAN_QUEUED_MESSAGE}</p>
         )}
         {scanId && (
           <p role="status">

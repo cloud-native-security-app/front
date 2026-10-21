@@ -59,7 +59,7 @@ describe("NetworkCredentialsManager", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText(/todavía no hay credenciales/i),
+        screen.getByText(/todavía no tienes objetivos/i),
       ).toBeInTheDocument();
     });
 
@@ -81,10 +81,50 @@ describe("NetworkCredentialsManager", () => {
     await userEvent.click(
       screen.getByRole("button", { name: "Borrar credencial de 10.2.0.9" }),
     );
+    expect(screen.getByText("10.2.0.9")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Sí, borrar" }));
 
     await waitFor(() => {
       expect(screen.queryByText("10.2.0.9")).not.toBeInTheDocument();
     });
+  });
+
+  it("guardar_una_credencial_muestra_un_aviso_de_exito_descartable", async () => {
+    await loginAsSyntheticUser();
+    render(<NetworkCredentialsManager />);
+    await waitFor(() => {
+      expect(screen.getByText(/todavía no tienes objetivos/i)).toBeVisible();
+    });
+
+    await fillAndSubmit("10.2.0.7", "root", "vault://ssh/lab-key");
+
+    const notice = (await screen.findByText("Credencial guardada.")).closest(
+      "[role]",
+    );
+    expect(notice).toHaveAttribute("role", "status");
+    expect(notice).not.toHaveAttribute("data-tone", "neutral");
+
+    await userEvent.click(screen.getByRole("button", { name: "Cerrar aviso" }));
+    expect(screen.queryByText("Credencial guardada.")).not.toBeInTheDocument();
+  });
+
+  it("cancelar_la_confirmacion_conserva_la_credencial_sin_llamar_a_la_api", async () => {
+    await loginAsSyntheticUser();
+    render(<NetworkCredentialsManager />);
+    await fillAndSubmit("10.2.0.8", "root", "vault://ssh/lab-key");
+    await screen.findByText("10.2.0.8");
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Borrar credencial de 10.2.0.8" }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+
+    expect(
+      fetchSpy.mock.calls.some(([, init]) => init?.method === "DELETE"),
+    ).toBe(false);
+    expect(screen.getByText("10.2.0.8")).toBeInTheDocument();
+    fetchSpy.mockRestore();
   });
 });
 
@@ -134,6 +174,7 @@ describe("NetworkCredentialsManager row errors (REH-04)", () => {
     await userEvent.click(
       screen.getByRole("button", { name: "Borrar credencial de 10.3.0.1" }),
     );
+    await userEvent.click(screen.getByRole("button", { name: "Sí, borrar" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       /No pudimos conectar con el servidor/,
@@ -166,12 +207,14 @@ describe("NetworkCredentialsManager row errors (REH-04)", () => {
     await userEvent.click(
       screen.getByRole("button", { name: "Borrar credencial de 10.3.0.2" }),
     );
+    await userEvent.click(screen.getByRole("button", { name: "Sí, borrar" }));
     expect(await screen.findByRole("alert")).toBeInTheDocument();
 
     fetchSpy.mockImplementation(realFetch);
     await userEvent.click(
       screen.getByRole("button", { name: "Borrar credencial de 10.3.0.3" }),
     );
+    await userEvent.click(screen.getByRole("button", { name: "Sí, borrar" }));
 
     await waitFor(() => {
       expect(screen.queryByText("10.3.0.3")).not.toBeInTheDocument();

@@ -104,16 +104,24 @@ describe("ScanForm", () => {
     await userEvent.click(screen.getByRole("button", { name: /escanear/i }));
 
     await waitFor(() => {
-      // El `scanId` vive en un `<span>` de fuente monoespaciada aparte
-      // (feature `scan_console_redesign`, id 13): el texto directo del `<p>`
-      // que lo envuelve ya no incluye el espacio final antes del `<span>`
-      // (el normalizador por defecto de Testing Library recorta los
-      // extremos del texto propio del nodo antes de compararlo, ver
-      // `docs/decisions.md`), por eso el matcher ya no
-      // exige ese espacio — el comportamiento verificado (aparece el texto
-      // "Escaneo encolado. ID:" tras un submit exitoso) no cambia.
-      expect(screen.getByText(/escaneo encolado\. id:/i)).toBeInTheDocument();
+      // LAF-03: the notice no longer exposes the raw scan id.
+      expect(screen.getByText(/escaneo en cola/i)).toBeInTheDocument();
     });
+  });
+
+  it("el_aviso_de_exito_no_expone_el_uuid_y_conserva_el_tono_de_exito", async () => {
+    await loginAsSyntheticUser();
+    render(<ScanForm />);
+
+    await userEvent.type(
+      screen.getByLabelText("IP a escanear"),
+      "192.168.1.10",
+    );
+    await userEvent.click(screen.getByRole("button", { name: /escanear/i }));
+
+    const notice = await screen.findByText(/escaneo en cola/i);
+    expect(notice).not.toHaveAttribute("data-tone", "neutral");
+    expect(notice.textContent).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-/i);
   });
 
   it("submit_fallido_muestra_el_error_explicito", async () => {
@@ -162,7 +170,7 @@ describe("ScanForm", () => {
     await userEvent.click(screen.getByRole("button", { name: /escanear/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/escaneo encolado\. id:/i)).toBeInTheDocument();
+      expect(screen.getByText(/escaneo en cola/i)).toBeInTheDocument();
     });
     const scanCall = fetchSpy.mock.calls.find(([input]) =>
       String(input).endsWith("/api/scans"),

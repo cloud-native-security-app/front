@@ -23,3 +23,18 @@ export function unexpectedErrorMessage(purpose?: string): string {
   const context = purpose ? ` ${purpose}` : "";
   return `Ocurrió un error inesperado${context}. Inténtalo más tarde.`;
 }
+
+/** Empty and success copy for the authenticated dashboard (feature `layout-and-forms`). */
+export const EMPTY_CREDENTIALS_MESSAGE =
+  "Todavía no tienes objetivos. Agrega el primero con el formulario de arriba.";
+
+export const EMPTY_HISTORY_MESSAGE =
+  "Todavía no hay escaneos. Lanza el primero desde «Nueva solicitud de escaneo».";
+
+export const CREDENTIAL_SAVED_MESSAGE = "Credencial guardada.";
+
+export const SCAN_QUEUED_MESSAGE = "Escaneo en cola.";
+
+export function confirmDeleteCredentialMessage(target: string): string {
+  return `¿Borrar la credencial de ${target}?`;
+}

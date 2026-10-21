@@ -17,6 +17,7 @@
  * routing nuevo para esto).
  */
 
+import { EMPTY_HISTORY_MESSAGE } from "../../copy";
 import type { ScanHistoryEntry } from "../../api";
 import { ScanStatusBadge } from "../scan/ScanStatusBadge";
 import { isCancellableEntry } from "./isCancellableEntry";
@@ -46,7 +47,11 @@ export function HistoryTableView({
   onViewReport,
 }: HistoryTableViewProps) {
   if (entries.length === 0) {
-    return <p role="status">Todavía no hay escaneos en tu histórico.</p>;
+    return (
+      <p role="status" data-tone="neutral">
+        {EMPTY_HISTORY_MESSAGE}
+      </p>
+    );
   }
 
   return (
