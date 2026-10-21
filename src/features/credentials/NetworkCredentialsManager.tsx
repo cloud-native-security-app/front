@@ -24,6 +24,7 @@ import {
 } from "../../api";
 import {
   CREDENTIAL_SAVED_MESSAGE,
+  SECTION_TARGETS,
   SESSION_EXPIRED_MESSAGE,
   networkErrorMessage,
   unexpectedErrorMessage,
@@ -155,7 +156,9 @@ export function NetworkCredentialsManager() {
 
   return (
     <section aria-label="Credenciales de red">
-      <h2>Credenciales de red</h2>
+      <h2 tabIndex={-1} data-section-heading>
+        {SECTION_TARGETS}
+      </h2>
       <NetworkCredentialForm
         onCreated={() => {
           setSavedNotice(true);

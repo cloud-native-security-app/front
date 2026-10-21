@@ -19,7 +19,7 @@ test.beforeEach(async ({ context }) => {
 test("crear_una_credencial_verla_en_el_listado_y_borrarla", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/objetivos");
 
   await expect(
     page.getByRole("heading", { name: "Security Scan App" }),

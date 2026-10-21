@@ -29,7 +29,7 @@ export const EMPTY_CREDENTIALS_MESSAGE =
   "Todavía no tienes objetivos. Agrega el primero con el formulario de arriba.";
 
 export const EMPTY_HISTORY_MESSAGE =
-  "Todavía no hay escaneos. Lanza el primero desde «Nueva solicitud de escaneo».";
+  "Todavía no hay escaneos. Lanza el primero desde «Escanear».";
 
 export const CREDENTIAL_SAVED_MESSAGE = "Credencial guardada.";
 
@@ -37,4 +37,32 @@ export const SCAN_QUEUED_MESSAGE = "Escaneo en cola.";
 
 export function confirmDeleteCredentialMessage(target: string): string {
   return `¿Borrar la credencial de ${target}?`;
+}
+
+/** Section names (feature `sectioned-navigation`): nav links and h2 headings. */
+export const NAV_LABEL = "Secciones";
+export const SECTION_SCAN = "Escanear";
+export const SECTION_HISTORY = "Historial";
+export const SECTION_TARGETS = "Objetivos";
+
+export const LOGOUT_LABEL = "Cerrar sesión";
+
+/** Scan form: the target is picked from the saved targets, never typed. */
+export const SCAN_TARGET_LABEL = "Objetivo a escanear";
+export const SCAN_TARGET_PLACEHOLDER = "Selecciona un objetivo";
+export const SCAN_TARGETS_LOADING_MESSAGE = "Cargando objetivos…";
+export const NO_SCAN_TARGETS_MESSAGE =
+  "Agrega un objetivo para poder escanear.";
+
+export function targetsLoadErrorMessage(
+  kind: "network" | "unauthorized" | "other",
+): string {
+  switch (kind) {
+    case "network":
+      return networkErrorMessage("para cargar los objetivos");
+    case "unauthorized":
+      return SESSION_EXPIRED_MESSAGE;
+    case "other":
+      return unexpectedErrorMessage("al cargar los objetivos");
+  }
 }

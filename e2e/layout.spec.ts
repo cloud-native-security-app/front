@@ -6,6 +6,8 @@
  */
 import { expect, test } from "@playwright/test";
 
+import { seedTarget } from "./seedTarget";
+
 test("landing_is_horizontally_centered_at_1440", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/");
@@ -45,11 +47,9 @@ test.describe("authenticated dashboard", () => {
       .evaluate((el) => (el as HTMLElement).getBoundingClientRect().top);
   }
 
-  test("credential_form_shares_one_row_at_1440_and_scan_form_is_one_line", async ({
-    page,
-  }) => {
+  test("credential_form_shares_one_row_at_1440", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
-    await page.goto("/");
+    await page.goto("/objetivos");
     await expect(page.getByLabel("IP del objetivo")).toBeVisible();
     const tops = [
       await top(page, "IP del objetivo"),
@@ -62,36 +62,64 @@ test.describe("authenticated dashboard", () => {
       .getByRole("button", { name: "Agregar credencial" })
       .evaluate((el) => el.getBoundingClientRect().top);
     expect(Math.abs(buttonTop - tops[0]!)).toBeLessThanOrEqual(12);
+    await page.screenshot({
+      path: "test-results/objetivos-1440.png",
+      fullPage: true,
+    });
+  });
+
+  test("scan_form_is_one_line_at_1440_and_sections_are_captured", async ({
+    page,
+    context,
+  }) => {
+    await seedTarget(context, "172.16.60.1");
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto("/escanear");
+    const select = page.getByLabel("Objetivo a escanear");
+    await expect(select).toBeVisible();
 
     const centerY = (locator: import("@playwright/test").Locator) =>
       locator.evaluate((el) => {
         const r = el.getBoundingClientRect();
         return r.top + r.height / 2;
       });
-    const inputCenter = await centerY(page.getByLabel("IP a escanear"));
+    const selectCenter = await centerY(select);
     const buttonCenter = await centerY(
       page.getByRole("button", { name: "Escanear", exact: true }),
     );
-    expect(Math.abs(buttonCenter - inputCenter)).toBeLessThanOrEqual(6);
+    expect(Math.abs(buttonCenter - selectCenter)).toBeLessThanOrEqual(6);
     await page.screenshot({
-      path: "test-results/dashboard-1440.png",
+      path: "test-results/escanear-1440.png",
+      fullPage: true,
+    });
+
+    await page.goto("/historial");
+    await expect(
+      page.getByRole("heading", { level: 2, name: "Historial" }),
+    ).toBeVisible();
+    await page.screenshot({
+      path: "test-results/historial-1440.png",
       fullPage: true,
     });
   });
 
   test("credential_and_scan_forms_stack_at_390", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.goto("/");
+    await page.goto("/objetivos");
     await expect(page.getByLabel("IP del objetivo")).toBeVisible();
     const ip = await top(page, "IP del objetivo");
     const user = await top(page, "Usuario de red");
     const secret = await top(page, "Credencial SSH");
     expect(user).toBeGreaterThan(ip + 20);
     expect(secret).toBeGreaterThan(user + 20);
-    const overflow = await page.evaluate(
-      () => document.documentElement.scrollWidth - window.innerWidth,
-    );
-    expect(overflow).toBeLessThanOrEqual(0);
+    for (const path of ["/objetivos", "/escanear", "/historial"]) {
+      await page.goto(path);
+      await expect(page.getByRole("banner")).toBeVisible();
+      const overflow = await page.evaluate(
+        () => document.documentElement.scrollWidth - window.innerWidth,
+      );
+      expect(overflow).toBeLessThanOrEqual(0);
+    }
     await page.screenshot({
       path: "test-results/dashboard-390.png",
       fullPage: true,

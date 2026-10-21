@@ -27,6 +27,16 @@
  * periódico de `getScanHistory()` mientras quede al menos una entrada en
  * estado no terminal — sigue siendo el mismo "refetch simple" ya elegido
  * arriba, nunca un `EventSource` nuevo por fila.
+ *
+ * Refresco inmediato (feature `sectioned-navigation`, SNV-03): cuando el
+ * escaneo en vivo que sigue `ScanActivityProvider` llega a un estado
+ * terminal (`finishedScanId`), se vuelve a pedir el histórico de inmediato
+ * en vez de esperar al siguiente tick del polling. Sin proveedor montado
+ * (tests de componente aislados) el valor es siempre `undefined`.
+ *
+ * Los motivos de fallo y el estado "Cancelado" NO se muestran: el
+ * `ScanHistoryEntry` del Gateway no los incluye (ver
+ * `odd/tasks/sectioned-navigation.md`, seguimientos entre repos).
  */
 
 import { useEffect, useState } from "react";
@@ -43,6 +53,7 @@ import {
   networkErrorMessage,
   unexpectedErrorMessage,
 } from "../../copy";
+import { useFinishedScanId } from "../scan";
 import { HistoryTableView, type RowCancelState } from "./HistoryTableView";
 
 type HistoryState =
@@ -109,6 +120,7 @@ export function HistoryTable({ onViewReport }: HistoryTableProps) {
   const [rowStates, setRowStates] = useState<Record<string, RowCancelState>>(
     {},
   );
+  const finishedScanId = useFinishedScanId();
 
   useEffect(() => {
     // Patrón oficial de `useEffect` con una petición async (mismo que
@@ -125,7 +137,7 @@ export function HistoryTable({ onViewReport }: HistoryTableProps) {
     return () => {
       active = false;
     };
-  }, []);
+  }, [finishedScanId]);
 
   const isPolling =
     state.status === "loaded" && hasNonTerminalEntries(state.entries);

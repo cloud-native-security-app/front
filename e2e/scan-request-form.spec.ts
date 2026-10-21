@@ -9,6 +9,8 @@
  */
 import { expect, test } from "@playwright/test";
 
+import { seedTarget } from "./seedTarget";
+
 test.beforeEach(async ({ context }) => {
   const response = await context.request.post("/__test__/session", {
     data: { email: "scan-form-e2e@example.test", name: "Analista E2E" },
@@ -16,14 +18,18 @@ test.beforeEach(async ({ context }) => {
   expect(response.ok()).toBe(true);
 });
 
-test("ingresar_una_ip_valida_y_ver_el_scanId_en_pantalla", async ({ page }) => {
+test("elegir_un_objetivo_guardado_y_ver_el_aviso_de_escaneo_en_cola", async ({
+  page,
+  context,
+}) => {
+  await seedTarget(context, "172.16.10.5");
   await page.goto("/");
 
   await expect(
     page.getByRole("heading", { name: "Security Scan App" }),
   ).toBeVisible();
 
-  await page.getByLabel("IP a escanear").fill("172.16.10.5");
+  await page.getByLabel("Objetivo a escanear").selectOption("172.16.10.5");
   await page.getByRole("button", { name: "Escanear" }).click();
 
   await expect(page.getByText(/escaneo en cola/i)).toBeVisible();
@@ -31,11 +37,13 @@ test("ingresar_una_ip_valida_y_ver_el_scanId_en_pantalla", async ({ page }) => {
 
 test("un_objetivo_sin_credencial_explica_que_hay_que_agregar_una", async ({
   page,
+  context,
 }) => {
+  await seedTarget(context, "203.0.113.99");
   await page.goto("/");
 
   // 203.0.113.99 es el objetivo "sin credencial" del servidor de contrato (422).
-  await page.getByLabel("IP a escanear").fill("203.0.113.99");
+  await page.getByLabel("Objetivo a escanear").selectOption("203.0.113.99");
   await page.getByRole("button", { name: "Escanear" }).click();
 
   const alert = page.getByRole("alert");

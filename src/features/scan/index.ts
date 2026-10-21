@@ -8,3 +8,6 @@ export { scanOutcomeEventToStatus, useScanEvents } from "./useScanEvents";
 export type { ScanEventsState } from "./useScanEvents";
 export { validateScanTarget } from "./validateScanTarget";
 export type { TargetValidation } from "./validateScanTarget";
+export { ScanActivityProvider } from "./ScanActivityProvider";
+export { useFinishedScanId, useScanActivity } from "./scanActivityContext";
+export type { ScanActivity } from "./scanActivityContext";

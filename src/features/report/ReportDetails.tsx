@@ -14,6 +14,8 @@
  * `docs/security-scope.md`).
  */
 
+import { useEffect, useRef } from "react";
+
 import type { ScanResult } from "../../api";
 
 export interface ReportDetailsProps {
@@ -32,9 +34,19 @@ export function ReportDetails({
   report,
   onExport,
 }: ReportDetailsProps) {
+  const headingRef = useRef<HTMLHeadingElement>(null);
+
+  // Opening a report moves focus to its heading (feature
+  // `sectioned-navigation`, SNV-04).
+  useEffect(() => {
+    headingRef.current?.focus();
+  }, []);
+
   return (
     <section aria-label={`Reporte del escaneo ${scanId}`}>
-      <h2>Reporte de {report.host}</h2>
+      <h2 ref={headingRef} tabIndex={-1}>
+        Reporte de {report.host}
+      </h2>
       <p>Escaneado: {formatScannedAt(report.scanned_at)}</p>
       <button type="button" onClick={onExport}>
         Exportar reporte (JSON)

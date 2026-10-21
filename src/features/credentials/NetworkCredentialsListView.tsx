@@ -13,9 +13,14 @@
  * el id en confirmación es estado puramente visual, así que vive aquí y no
  * en el contenedor. El foco pasa a "Cancelar" (acción segura) al abrirla y
  * vuelve al botón "Borrar" al cancelar o con Escape.
+ *
+ * Tras confirmar un borrado (feature `sectioned-navigation`, SNV-04), cuando
+ * la fila desaparece el foco pasa al botón "Borrar" de la fila siguiente (o
+ * la anterior si era la última) o, sin filas, al mensaje de estado vacío. Si
+ * el borrado falla, el foco no se mueve.
  */
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { NetworkCredential } from "../../api";
 import {
@@ -41,6 +46,25 @@ export function NetworkCredentialsListView({
 }: NetworkCredentialsListViewProps) {
   const [confirmingId, setConfirmingId] = useState<string | undefined>();
   const deleteButtons = useRef<Record<string, HTMLButtonElement | null>>({});
+  const emptyMessage = useRef<HTMLParagraphElement | null>(null);
+  /** Row deleted by the user, waiting for it to leave `entries`. */
+  const pendingDelete = useRef<{ id: string; index: number } | undefined>(
+    undefined,
+  );
+
+  useEffect(() => {
+    const pending = pendingDelete.current;
+    if (!pending || entries.some((entry) => entry.id === pending.id)) {
+      return;
+    }
+    pendingDelete.current = undefined;
+    const next = entries[Math.min(pending.index, entries.length - 1)];
+    if (next) {
+      deleteButtons.current[next.id]?.focus();
+    } else {
+      emptyMessage.current?.focus();
+    }
+  }, [entries]);
 
   function cancelConfirmation(id: string): void {
     setConfirmingId(undefined);
@@ -50,7 +74,7 @@ export function NetworkCredentialsListView({
 
   if (entries.length === 0) {
     return (
-      <p role="status" data-tone="neutral">
+      <p role="status" data-tone="neutral" tabIndex={-1} ref={emptyMessage}>
         {EMPTY_CREDENTIALS_MESSAGE}
       </p>
     );
@@ -94,6 +118,10 @@ export function NetworkCredentialsListView({
                       type="button"
                       onClick={() => {
                         setConfirmingId(undefined);
+                        pendingDelete.current = {
+                          id: entry.id,
+                          index: entries.indexOf(entry),
+                        };
                         onDelete(entry.id);
                       }}
                     >

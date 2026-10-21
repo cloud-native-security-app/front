@@ -53,6 +53,7 @@ export function LogoutButton() {
     <div>
       <button
         type="button"
+        className="button--secondary"
         disabled={state.status === "submitting"}
         onClick={() => void handleClick()}
       >

@@ -208,7 +208,7 @@ describe("HistoryTableView", () => {
 
     const empty = screen.getByRole("status");
     expect(empty).toHaveTextContent(
-      "Todavía no hay escaneos. Lanza el primero desde «Nueva solicitud de escaneo».",
+      "Todavía no hay escaneos. Lanza el primero desde «Escanear».",
     );
     expect(empty).toHaveAttribute("data-tone", "neutral");
   });
