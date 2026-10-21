@@ -16,6 +16,7 @@
 import { useState } from "react";
 
 import { logout, type ApiError } from "../api";
+import { networkErrorMessage, unexpectedErrorMessage } from "../copy";
 import { useSession } from "./useSession";
 
 type LogoutState =
@@ -25,9 +26,9 @@ type LogoutState =
 
 function describeLogoutError(error: ApiError): string {
   if (error.kind === "network") {
-    return "No se pudo contactar al Gateway para cerrar sesión. Verifica tu conexión e inténtalo de nuevo.";
+    return networkErrorMessage("para cerrar sesión");
   }
-  return "Ocurrió un error inesperado al cerrar sesión. Inténtalo más tarde.";
+  return unexpectedErrorMessage("al cerrar sesión");
 }
 
 export function LogoutButton() {

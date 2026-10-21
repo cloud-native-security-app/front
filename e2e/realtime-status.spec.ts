@@ -36,7 +36,7 @@ test("un_escaneo_exitoso_llega_al_estado_completado_sin_recargar_la_pagina", asy
 }) => {
   await page.goto("/");
 
-  await page.getByLabel("IP o rango a escanear").fill("172.16.20.5");
+  await page.getByLabel("IP a escanear").fill("172.16.20.5");
   await page.getByRole("button", { name: "Escanear" }).click();
 
   await expect(page.getByText(/escaneo encolado\. id: /i)).toBeVisible();
@@ -55,5 +55,6 @@ test("un_escaneo_exitoso_llega_al_estado_completado_sin_recargar_la_pagina", asy
   // que sí es exclusivo de un navegador real: que la UI llega al estado
   // terminal correcto sin recargar la página.
   const statusLine = page.getByText(/^Estado: /);
-  await expect(statusLine).toContainText("COMPLETADO");
+  await expect(statusLine).toContainText("Completado");
+  await expect(statusLine).not.toContainText(/desconectado|sin conexión/);
 });

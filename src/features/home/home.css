@@ -269,13 +269,6 @@
   }
 }
 
-.home-page__footer {
-  margin: 0;
-  max-width: 68rem;
-  font-size: 0.85rem;
-  color: var(--color-text-muted);
-}
-
 /* Foco visible en el CTA y en cualquier enlace (nunca `outline: none` sin
    reemplazo, ver docs/security-scope.md / criterios de accesibilidad de la
    feature). */

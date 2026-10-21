@@ -38,6 +38,11 @@ import {
   type ScanHistoryEntry,
   type ScanStatus,
 } from "../../api";
+import {
+  SESSION_EXPIRED_MESSAGE,
+  networkErrorMessage,
+  unexpectedErrorMessage,
+} from "../../copy";
 import { HistoryTableView, type RowCancelState } from "./HistoryTableView";
 
 type HistoryState =
@@ -60,30 +65,30 @@ function hasNonTerminalEntries(entries: ScanHistoryEntry[]): boolean {
 function describeHistoryError(error: ApiError): string {
   switch (error.kind) {
     case "network":
-      return "No se pudo contactar al Gateway para cargar el histórico. Verifica tu conexión e inténtalo de nuevo.";
+      return networkErrorMessage("para cargar el histórico");
     case "unauthorized":
-      return "Tu sesión ya no es válida. Inicia sesión nuevamente.";
+      return SESSION_EXPIRED_MESSAGE;
     case "unexpected":
-      return `Ocurrió un error inesperado (código ${error.status}) al cargar el histórico.`;
+      return unexpectedErrorMessage("al cargar el histórico");
     default:
-      return "Ocurrió un error inesperado al cargar el histórico.";
+      return unexpectedErrorMessage("al cargar el histórico");
   }
 }
 
 function describeCancelError(error: ApiError): string {
   switch (error.kind) {
     case "network":
-      return "No se pudo contactar al Gateway para cancelar el escaneo. Verifica tu conexión e inténtalo de nuevo.";
+      return networkErrorMessage("para cancelar el escaneo");
     case "unauthorized":
-      return "Tu sesión ya no es válida. Inicia sesión nuevamente.";
+      return SESSION_EXPIRED_MESSAGE;
     case "not_found":
       return "El escaneo ya no existe o no pertenece a tu sesión.";
     case "conflict":
       return "El escaneo ya no se puede cancelar: probablemente ya terminó.";
     case "unexpected":
-      return `Ocurrió un error inesperado (código ${error.status}) al cancelar el escaneo.`;
+      return unexpectedErrorMessage("al cancelar el escaneo");
     default:
-      return "Ocurrió un error inesperado al cancelar el escaneo.";
+      return unexpectedErrorMessage("al cancelar el escaneo");
   }
 }
 

@@ -18,6 +18,7 @@
  */
 
 import type { ScanHistoryEntry } from "../../api";
+import { ScanStatusBadge } from "../scan/ScanStatusBadge";
 import { isCancellableEntry } from "./isCancellableEntry";
 import { isReportViewableEntry } from "./isReportViewableEntry";
 
@@ -71,7 +72,9 @@ export function HistoryTableView({
           return (
             <tr key={rowKey}>
               <td>{entry.target}</td>
-              <td>{entry.status}</td>
+              <td>
+                <ScanStatusBadge status={entry.status} />
+              </td>
               <td>{formatRequestedAt(entry.requested_at)}</td>
               <td>
                 {isCancellableEntry(entry) && scanId && (

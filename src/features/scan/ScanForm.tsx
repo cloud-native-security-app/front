@@ -1,6 +1,6 @@
 /**
  * Formulario de nueva solicitud de escaneo (RF-02/RF-03/RF-04): valida el
- * formato de IP/rango en el cliente (`validateScanTarget`, UX, no el
+ * formato de una única IP en el cliente (`validateScanTarget`, UX, no el
  * control de seguridad real — ver docs/security-scope.md) y, si es válido,
  * encola el escaneo vía `submitScan` de `src/api`, mostrando de inmediato
  * el `scanId` devuelto. Una vez encolado, `useScanEvents` (feature
@@ -22,17 +22,17 @@ import "@fontsource/space-grotesk/latin-500.css";
 import "@fontsource/ibm-plex-mono/latin-400.css";
 import { useState, type FormEvent } from "react";
 
-import { submitScan, type ApiError, type ConnectionStatus } from "../../api";
+import { submitScan, type ApiError } from "../../api";
+import {
+  SESSION_EXPIRED_MESSAGE,
+  networkErrorMessage,
+  unexpectedErrorMessage,
+} from "../../copy";
 import "./scanForm.css";
+import { ScanStatusBadge } from "./ScanStatusBadge";
+import { CONNECTION_STATUS_LABEL, isTerminalScanStatus } from "./scanStatus";
 import { useScanEvents } from "./useScanEvents";
 import { validateScanTarget } from "./validateScanTarget";
-
-const CONNECTION_STATUS_LABEL: Record<ConnectionStatus, string> = {
-  connecting: "conectando",
-  open: "en vivo",
-  reconnecting: "reconectando",
-  closed: "desconectado",
-};
 
 type SubmitState =
   | { status: "idle" }
@@ -43,15 +43,19 @@ type SubmitState =
 function describeSubmitError(error: ApiError): string {
   switch (error.kind) {
     case "network":
-      return "No se pudo contactar al Gateway. Verifica tu conexión e inténtalo de nuevo.";
+      return networkErrorMessage();
     case "unauthorized":
-      return "Tu sesión ya no es válida. Inicia sesión nuevamente.";
+      return SESSION_EXPIRED_MESSAGE;
     case "validation":
-      return `El Gateway rechazó el objetivo: ${error.message}`;
+      return "El servidor no aceptó esa IP. Revísala e inténtalo de nuevo.";
     case "unexpected":
-      return `Ocurrió un error inesperado (código ${error.status}). Inténtalo más tarde.`;
+      // 422: no hay credencial de red configurada para el objetivo.
+      if (error.status === 422) {
+        return "Primero agrega una credencial de red para esa IP.";
+      }
+      return unexpectedErrorMessage("al encolar el escaneo");
     default:
-      return "Ocurrió un error inesperado al encolar el escaneo.";
+      return unexpectedErrorMessage("al encolar el escaneo");
   }
 }
 
@@ -74,7 +78,7 @@ export function ScanForm() {
       return;
     }
     setSubmitState({ status: "submitting" });
-    const result = await submitScan(target.trim());
+    const result = await submitScan(validation.target);
     if (result.ok) {
       setSubmitState({ status: "success", scanId: result.value.scanId });
     } else {
@@ -93,7 +97,7 @@ export function ScanForm() {
         onSubmit={(event) => void handleSubmit(event)}
       >
         <label className="scan-console__label" htmlFor="scan-target">
-          IP o rango a escanear
+          IP a escanear
         </label>
         <input
           id="scan-target"
@@ -101,7 +105,7 @@ export function ScanForm() {
           type="text"
           className="scan-console__input"
           value={target}
-          placeholder="192.168.1.0/24"
+          placeholder="192.168.1.10"
           disabled={isSubmitting}
           onChange={(event) => {
             setTarget(event.target.value);
@@ -130,8 +134,9 @@ export function ScanForm() {
               <span className="scan-console__live-dot" aria-hidden="true" />
             )}
             <span className="scan-console__mono">
-              Estado: {scanEvents.status} (
-              {CONNECTION_STATUS_LABEL[scanEvents.connectionStatus]})
+              Estado: <ScanStatusBadge status={scanEvents.status} />
+              {!isTerminalScanStatus(scanEvents.status) &&
+                ` (${CONNECTION_STATUS_LABEL[scanEvents.connectionStatus]})`}
             </span>
           </p>
         )}

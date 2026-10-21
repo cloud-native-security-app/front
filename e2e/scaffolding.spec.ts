@@ -31,5 +31,7 @@ test.beforeEach(async ({ context }) => {
 test("app_shell_mounts_and_renders_placeholder", async ({ page }) => {
   await page.goto("/");
 
-  await expect(page.getByRole("heading", { name: "front" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Security Scan App" }),
+  ).toBeVisible();
 });

@@ -29,10 +29,7 @@ describe("NetworkCredentialsManager", () => {
   });
 
   async function fillAndSubmit(target: string, user: string, ref: string) {
-    await userEvent.type(
-      screen.getByLabelText("IP o rango del objetivo"),
-      target,
-    );
+    await userEvent.type(screen.getByLabelText("IP del objetivo"), target);
     await userEvent.type(screen.getByLabelText("Usuario de red"), user);
     await userEvent.type(screen.getByLabelText("Credencial SSH"), ref);
     await userEvent.click(
@@ -104,10 +101,7 @@ describe("NetworkCredentialsManager row errors (REH-04)", () => {
   });
 
   async function addCredential(target: string) {
-    await userEvent.type(
-      screen.getByLabelText("IP o rango del objetivo"),
-      target,
-    );
+    await userEvent.type(screen.getByLabelText("IP del objetivo"), target);
     await userEvent.type(screen.getByLabelText("Usuario de red"), "root");
     await userEvent.type(
       screen.getByLabelText("Credencial SSH"),
@@ -142,7 +136,7 @@ describe("NetworkCredentialsManager row errors (REH-04)", () => {
     );
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      /No se pudo contactar/,
+      /No pudimos conectar con el servidor/,
     );
     expect(
       screen.getByRole("button", { name: "Borrar credencial de 10.3.0.1" }),

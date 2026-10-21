@@ -193,7 +193,7 @@ describe("LogoutButton", () => {
 
       await waitFor(() => {
         expect(screen.getByRole("alert")).toHaveTextContent(
-          /no se pudo contactar al gateway/i,
+          /no pudimos conectar con el servidor/i,
         );
       });
       expect(location.assignedHrefs).toEqual([]);

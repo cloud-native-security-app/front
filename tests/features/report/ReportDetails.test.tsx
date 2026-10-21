@@ -122,4 +122,20 @@ describe("ReportDetails", () => {
       screen.getByText(/no se detectaron vulnerabilidades/i),
     ).toBeInTheDocument();
   });
+
+  it("explica_cpe_y_script_nse_con_ayuda_accesible", () => {
+    render(
+      <ReportDetails scanId="scan-1" report={REPORT} onExport={vi.fn()} />,
+    );
+
+    expect(screen.getByText("CPE")).toHaveAttribute(
+      "title",
+      expect.stringMatching(/identificador/i),
+    );
+    expect(screen.getByText("Script NSE")).toHaveAttribute(
+      "title",
+      expect.stringMatching(/nmap/i),
+    );
+    expect(screen.queryByText("CPEs")).not.toBeInTheDocument();
+  });
 });

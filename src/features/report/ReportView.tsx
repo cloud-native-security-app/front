@@ -20,6 +20,12 @@
 import { useEffect, useState } from "react";
 
 import { getReport, type ApiError, type ScanResult } from "../../api";
+import {
+  SESSION_EXPIRED_MESSAGE,
+  networkErrorMessage,
+  unexpectedErrorMessage,
+} from "../../copy";
+import { SCAN_STATUS_LABEL } from "../scan/scanStatus";
 import { buildReportExport } from "./buildReportExport";
 import { downloadTextFile } from "./downloadTextFile";
 import { ReportDetails } from "./ReportDetails";
@@ -33,15 +39,15 @@ type ReportState =
 function describeReportError(error: ApiError): string {
   switch (error.kind) {
     case "network":
-      return "No se pudo contactar al Gateway para obtener el reporte. Verifica tu conexión e inténtalo de nuevo.";
+      return networkErrorMessage("para obtener el reporte");
     case "unauthorized":
-      return "Tu sesión ya no es válida. Inicia sesión nuevamente.";
+      return SESSION_EXPIRED_MESSAGE;
     case "not_found":
       return "El reporte no existe o no pertenece a tu sesión.";
     case "unexpected":
-      return `Ocurrió un error inesperado (código ${error.status}) al obtener el reporte.`;
+      return unexpectedErrorMessage("al obtener el reporte");
     default:
-      return "Ocurrió un error inesperado al obtener el reporte.";
+      return unexpectedErrorMessage("al obtener el reporte");
   }
 }
 
@@ -93,7 +99,7 @@ export function ReportView({ scanId }: ReportViewProps) {
     return (
       <p role="status">
         El escaneo todavía no ha terminado. El reporte estará disponible cuando
-        su estado sea COMPLETADO.
+        su estado sea {SCAN_STATUS_LABEL.COMPLETADO}.
       </p>
     );
   }

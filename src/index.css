@@ -437,3 +437,39 @@ li {
 .session-expired-notice p {
   margin: 0;
 }
+
+/* Insignia de estado de escaneo (`ScanStatusBadge`, feature
+   `user-facing-copy`): mismos tokens de color que los avisos, sin paleta
+   nueva. El estado se distingue también por el texto, nunca solo por color. */
+.status-badge {
+  display: inline-block;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  color: var(--color-text);
+}
+
+.status-badge[data-status="EN_PROGRESO"] {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.status-badge[data-status="COMPLETADO"] {
+  background-color: var(--color-status-bg);
+  border-color: var(--color-status-border);
+  color: var(--color-status-text);
+}
+
+.status-badge[data-status="FALLIDO"] {
+  background-color: var(--color-alert-bg);
+  border-color: var(--color-alert-border);
+  color: var(--color-alert-text);
+}
+
+/* Texto de ayuda bajo un campo (se enlaza con `aria-describedby`). */
+.field-help {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}

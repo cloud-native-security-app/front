@@ -1,6 +1,6 @@
 /**
  * Punto de montaje de la aplicación (ver docs/architecture.md, capa 8).
- * `SessionProvider` envuelve toda la app; el `<h1>front</h1>` es una
+ * `SessionProvider` envuelve toda la app; el `<h1>` con `PRODUCT_NAME` es una
  * cabecera persistente del shell, montada FUERA de `ProtectedRoute` a
  * propósito: es el smoke test de la feature `scaffolding`
  * (`e2e/scaffolding.spec.ts`) y debe seguir visible sin depender del
@@ -36,10 +36,10 @@
  *
  * `HomePage` (feature `home_landing_page`, id 12) es el `anonymousView` de
  * `ProtectedRoute`: reemplaza el auto-redirect silencioso anterior por
- * contenido real con un CTA explícito. El `<h1>front</h1>` que antes vivía
+ * contenido real con un CTA explícito. El `<h1>` con `PRODUCT_NAME` que antes vivía
  * fuera de `ProtectedRoute` (visible también para el visitante anónimo) se
  * mueve DENTRO de los `children` (rama autenticada): `HomePage` ya trae su
- * propia marca "front" en su diseño, así que un `<h1>front</h1>` sin
+ * propia marca (`PRODUCT_NAME`) en su diseño, así que un `<h1>` con `PRODUCT_NAME` sin
  * estilo por encima de ella quedaría duplicado.
  *
  * `<div className="app-shell--authenticated">` (feature
@@ -62,6 +62,7 @@ import {
   SessionProvider,
 } from "./auth";
 import { ErrorBoundary } from "./components";
+import { PRODUCT_NAME } from "./copy";
 import { NetworkCredentialsManager } from "./features/credentials";
 import { HistoryTable } from "./features/history";
 import { HomePage } from "./features/home";
@@ -86,7 +87,7 @@ export function App() {
             }
           >
             <div className="app-shell--authenticated">
-              <h1>front</h1>
+              <h1>{PRODUCT_NAME}</h1>
               <LogoutButton />
               <NetworkCredentialsManager />
               <ScanForm />
