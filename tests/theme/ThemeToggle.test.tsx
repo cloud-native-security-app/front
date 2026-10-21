@@ -32,7 +32,7 @@ describe("ThemeToggle", () => {
 
     expect(html).not.toHaveAttribute("data-theme");
     expect(
-      screen.getByRole("button", { name: "Tema: Sistema" }),
+      screen.getByRole("button", { name: "Tema: sistema. Cambiar." }),
     ).toBeInTheDocument();
   });
 
@@ -40,23 +40,31 @@ describe("ThemeToggle", () => {
     const user = userEvent.setup();
     render(<ThemeToggle />);
 
-    await user.click(screen.getByRole("button", { name: "Tema: Sistema" }));
+    await user.click(
+      screen.getByRole("button", { name: "Tema: sistema. Cambiar." }),
+    );
     expect(html).toHaveAttribute("data-theme", "light");
 
-    await user.click(screen.getByRole("button", { name: "Tema: Claro" }));
+    await user.click(
+      screen.getByRole("button", { name: "Tema: claro. Cambiar." }),
+    );
     expect(html).toHaveAttribute("data-theme", "dark");
 
-    await user.click(screen.getByRole("button", { name: "Tema: Oscuro" }));
+    await user.click(
+      screen.getByRole("button", { name: "Tema: oscuro. Cambiar." }),
+    );
     expect(html).not.toHaveAttribute("data-theme");
     expect(
-      screen.getByRole("button", { name: "Tema: Sistema" }),
+      screen.getByRole("button", { name: "Tema: sistema. Cambiar." }),
     ).toBeInTheDocument();
   });
 
   it("persists_the_choice_and_restores_it_on_startup", async () => {
     const user = userEvent.setup();
     render(<ThemeToggle />);
-    await user.click(screen.getByRole("button", { name: "Tema: Sistema" }));
+    await user.click(
+      screen.getByRole("button", { name: "Tema: sistema. Cambiar." }),
+    );
 
     expect(window.localStorage.getItem(THEME_STORAGE_KEY)).toBe("light");
 
@@ -66,7 +74,7 @@ describe("ThemeToggle", () => {
     expect(html).toHaveAttribute("data-theme", "light");
     render(<ThemeToggle />);
     expect(
-      screen.getByRole("button", { name: "Tema: Claro" }),
+      screen.getByRole("button", { name: "Tema: claro. Cambiar." }),
     ).toBeInTheDocument();
   });
 
@@ -87,8 +95,21 @@ describe("ThemeToggle", () => {
 
     expect(() => initTheme()).not.toThrow();
     render(<ThemeToggle />);
-    await user.click(screen.getByRole("button", { name: "Tema: Sistema" }));
+    await user.click(
+      screen.getByRole("button", { name: "Tema: sistema. Cambiar." }),
+    );
 
     expect(html).toHaveAttribute("data-theme", "light");
+  });
+
+  it("renders_an_icon_only_button_with_a_title_and_hidden_svg", () => {
+    render(<ThemeToggle />);
+    const button = screen.getByRole("button", {
+      name: "Tema: sistema. Cambiar.",
+    });
+
+    expect(button).toHaveAttribute("title", "Tema: sistema. Cambiar.");
+    expect(button).toHaveTextContent("");
+    expect(button.querySelector("svg")).toHaveAttribute("aria-hidden", "true");
   });
 });
