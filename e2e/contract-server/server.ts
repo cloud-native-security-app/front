@@ -7,16 +7,18 @@
  * usando únicamente `node:http` (sin frameworks nuevos, ver
  * `docs/decisions.md`).
  *
- * Además de esos endpoints reales, expone dos rutas que el Gateway real
- * **no tiene**, documentadas explícitamente aquí para no confundirlas con
+ * Contrato de escaneos (feature `scan-report`, igual al Gateway real):
+ * el histórico incluye `failure_reason` (siempre presente, `null` si no hay)
+ * y el estado `CANCELADO`; `POST /cancel` deja el escaneo `CANCELADO` (409 si
+ * ya es terminal, incluido `CANCELADO`); `GET /report` responde 200 con el
+ * `ScanResult` desnudo, 404 (inexistente o ajeno) o 409 de texto plano.
+ *
+ * Además de esos endpoints reales, expone una ruta que el Gateway real
+ * **no tiene**, documentada explícitamente aquí para no confundirla con
  * el contrato real:
  * - `POST /__test__/session`: crea una sesión sintética sin pasar por
  *   Google OIDC (docs/security-scope.md prohíbe usar una cuenta real de
  *   Google en tests). Solo existe en este servidor de contrato.
- * - `GET /api/scans/:scanId/report`: PROPUESTA de contrato para RF-11, no
- *   confirmada en el Gateway real (ver `../../src/api/report.ts` para la
- *   justificación completa) — se implementa aquí para poder testear
- *   `getReport` y la futura feature `report_view`.
  *
  * Este mismo servidor se reutiliza desde Vitest (arranque in-process en
  * puerto efímero, ver `tests/api/testServer.ts`) y desde Playwright
@@ -113,6 +115,7 @@ function toHistoryEntry(record: ScanRecord): ScanHistoryEntry {
     status: record.status,
     requested_at: record.requestedAt,
     updated_at: record.updatedAt,
+    failure_reason: record.failureReason,
   };
 }
 
@@ -256,11 +259,16 @@ function handleCancelScan(
     writeText(res, 404, "scan no encontrado");
     return;
   }
-  if (record.status === "COMPLETADO" || record.status === "FALLIDO") {
+  if (
+    record.status === "COMPLETADO" ||
+    record.status === "FALLIDO" ||
+    record.status === "CANCELADO"
+  ) {
     writeText(res, 409, "el escaneo ya está en un estado terminal");
     return;
   }
-  record.status = "FALLIDO";
+  record.status = "CANCELADO";
+  record.failureReason = "cancelado por el usuario";
   record.updatedAt = new Date().toISOString();
   // Deja el guion consistente con la cancelación para cualquier suscriptor
   // SSE que siga escuchando (ver docs/architecture.md: RF-14 es una acción
@@ -373,7 +381,7 @@ function handleGetReport(
     return;
   }
   if (record.status !== "COMPLETADO" || !record.result) {
-    writeText(res, 409, "el escaneo aún no está completado");
+    writeText(res, 409, "el reporte del escaneo aún no está disponible");
     return;
   }
   writeJson(res, 200, record.result);

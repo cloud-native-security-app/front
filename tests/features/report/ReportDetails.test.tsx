@@ -65,7 +65,9 @@ describe("ReportDetails", () => {
     expect(portRow).toHaveTextContent("OpenSSH 9.6");
 
     expect(screen.getByText("CVE-2023-38408")).toBeInTheDocument();
-    expect(screen.getByText(/severidad: high/i)).toBeInTheDocument();
+    const badge = screen.getByText("Alta");
+    expect(badge).toHaveAttribute("data-severity", "high");
+    expect(badge).toHaveClass("severity-badge");
   });
 
   it("nunca_vuelca_el_reporte_como_json_crudo_en_pantalla", () => {

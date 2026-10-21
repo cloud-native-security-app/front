@@ -4,7 +4,7 @@
  * traduce el resultado a los estados que exige el criterio de aceptación
  * 2 — un scan que existe pero no está `COMPLETADO` (`ApiError.kind ===
  * "not_ready"`) es un estado vacío/explicativo, nunca un error genérico
- * (`not_found`/`network`/`unexpected` sí lo son). El renderizado
+ * (`not_found`/`unavailable`/`network`/`unexpected` sí lo son). El renderizado
  * estructurado del reporte vive en `ReportDetails` (componente puro, sin
  * conocimiento de `src/api`, ver su comentario de cabecera).
  *
@@ -21,6 +21,9 @@ import { useEffect, useState } from "react";
 
 import { getReport, type ApiError, type ScanResult } from "../../api";
 import {
+  REPORT_LOADING_MESSAGE,
+  REPORT_NOT_FOUND_MESSAGE,
+  REPORT_UNAVAILABLE_MESSAGE,
   SESSION_EXPIRED_MESSAGE,
   networkErrorMessage,
   unexpectedErrorMessage,
@@ -43,7 +46,9 @@ function describeReportError(error: ApiError): string {
     case "unauthorized":
       return SESSION_EXPIRED_MESSAGE;
     case "not_found":
-      return "El reporte no existe o no pertenece a tu sesión.";
+      return REPORT_NOT_FOUND_MESSAGE;
+    case "unavailable":
+      return REPORT_UNAVAILABLE_MESSAGE;
     case "unexpected":
       return unexpectedErrorMessage("al obtener el reporte");
     default:
@@ -94,7 +99,7 @@ export function ReportView({ scanId }: ReportViewProps) {
   if (state.status === "loading") {
     return (
       <p role="status" data-tone="neutral">
-        Cargando reporte…
+        {REPORT_LOADING_MESSAGE}
       </p>
     );
   }

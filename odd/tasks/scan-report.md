@@ -2,7 +2,7 @@
 
 - Engram topic: `odd/scan-report/tasks` (project: `front`)
 - Branch: `feature/scan_report` (not created yet; spans `front`, `gateway`, `user-service`)
-- Status: planned (2026-10-20); needs a user decision (D1)
+- Status: in progress; D1 = option A; SRP-01/02/03 done, SRP-04 pending deploy
 - Priority: 5
 
 ## Objective
@@ -22,10 +22,10 @@
 
 ## Tasks (option A)
 
-- [ ] SRP-01 user-service: store the scan result with the history entry; endpoint to read it by scan id for the owner (Strict TDD, testcontainers Postgres).
-- [ ] SRP-02 gateway: forward the `completed` result to user-service; `GET /api/scans/{id}/report` (404 not found/not owner, 409 not ready); OpenAPI docs; LocalStack e2e.
-- [ ] SRP-03 front: remove the "speculative contract" warning in `src/api/report.ts`; report as a panel/page with "Volver", focus moved to its heading; export JSON.
-- [ ] SRP-04 Live check on AWS: completed scan -> report renders.
+- [x] SRP-01 (user-service commits 98cc00f + ca63d81) user-service: store the scan result with the history entry; endpoint to read it by scan id for the owner (Strict TDD, testcontainers Postgres).
+- [x] SRP-02 (gateway commit 7d76da0) gateway: forward the `completed` result to user-service; `GET /api/scans/{id}/report` (404 not found/not owner, 409 not ready); OpenAPI docs; LocalStack e2e.
+- [x] SRP-03 front (2026-10-20, branch `feature/scan_report`, uncommitted): remove the "speculative contract" warning in `src/api/report.ts`; report as a panel/page with "Volver", focus moved to its heading; export JSON.
+- [ ] SRP-04 (pending deploy of user-service + gateway) Live check on AWS: completed scan -> report renders.
 
 ## Acceptance criteria
 
@@ -34,3 +34,12 @@
 ## Checks
 
 Strict TDD in every repo; `make verify` (gateway, user-service), `npm run verify` (front); live check on the AWS stack.
+
+## Front evidence (SRP-03)
+
+- SRP-03a `getReport`/`isScanResult` match the gateway `ScanResult` field by field (no mismatch found); speculative warning removed; 409 -> `not_ready`, 404 -> `not_found`, 502/504 -> new `unavailable`.
+- SRP-03b `ScanStatus` + `CANCELADO`, `failure_reason` in `ScanHistoryEntry`/guard (required, string|null), "Cancelado" label, `Motivo: ...` line under FALLIDO/CANCELADO rows, no "Cancelar" for CANCELADO, cancel 409 message friendly.
+- SRP-03c `/historial/:scanId` shows the report in place of the table with a "Volver al historial" link; heading focus kept; severity badge (`severity-badge`, existing color tokens); states loading / not ready / not found / unavailable via `src/copy.ts`.
+- SRP-03d contract server: `failure_reason`, cancel -> `CANCELADO` (409 also for CANCELADO), report 200/404/409 (plain-text body).
+- RED: `npx vitest run` -> 18 failed / 184 passed (new tests before implementation).
+- GREEN: `CI=true npm run verify` exit 0; vitest 39 files / 202 tests passed; playwright 29 passed.

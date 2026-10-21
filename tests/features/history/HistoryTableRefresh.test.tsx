@@ -95,7 +95,7 @@ describe("HistoryTable refresh on live scan end", () => {
 
     await waitFor(() => {
       expect(screen.getByText("10.7.0.1").closest("tr")).toHaveTextContent(
-        "Falló",
+        "Cancelado",
       );
     });
   });

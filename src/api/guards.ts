@@ -37,6 +37,7 @@ const SCAN_STATUSES: readonly ScanStatus[] = [
   "EN_PROGRESO",
   "COMPLETADO",
   "FALLIDO",
+  "CANCELADO",
 ];
 
 export function isScanStatus(value: unknown): value is ScanStatus {
@@ -67,7 +68,8 @@ export function isScanHistoryEntry(value: unknown): value is ScanHistoryEntry {
     isString(value["target"]) &&
     isScanStatus(value["status"]) &&
     isString(value["requested_at"]) &&
-    isString(value["updated_at"])
+    isString(value["updated_at"]) &&
+    (value["failure_reason"] === null || isString(value["failure_reason"]))
   );
 }
 

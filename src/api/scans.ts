@@ -67,7 +67,7 @@ export async function getScanHistory(): Promise<ApiResult<ScanHistoryEntry[]>> {
  * Puede fallar con: `network`, `unauthorized`, `not_found` (scanId ajeno o
  * inexistente — mismo status para ambos casos, deliberado, ver
  * `docs/decisions.md`), `conflict` (409, el escaneo ya
- * está en un estado terminal), `unexpected`.
+ * está en un estado terminal: `COMPLETADO`, `FALLIDO` o `CANCELADO`), `unexpected`.
  */
 export async function cancelScan(scanId: string): Promise<ApiResult<void>> {
   const result = await performRequest(

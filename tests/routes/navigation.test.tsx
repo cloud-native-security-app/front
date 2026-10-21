@@ -172,4 +172,26 @@ describe("sectioned navigation", () => {
       ),
     ).toHaveTextContent("Historial");
   });
+
+  it("shows_the_report_as_its_own_view_with_a_back_link_to_the_history", async () => {
+    await loginAsSyntheticUser();
+    const submitted = await submitScan("10.8.0.2");
+    if (!submitted.ok) {
+      throw new Error("setup failed");
+    }
+    renderAt(`/historial/${submitted.value.scanId}`);
+
+    const back = await screen.findByRole("link", {
+      name: "Volver al historial",
+    });
+    expect(back).toHaveAttribute("href", "/historial");
+    expect(screen.queryByRole("table")).not.toBeInTheDocument();
+
+    await userEvent.click(back);
+
+    expect(await screen.findByRole("table")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("link", { name: "Volver al historial" }),
+    ).not.toBeInTheDocument();
+  });
 });

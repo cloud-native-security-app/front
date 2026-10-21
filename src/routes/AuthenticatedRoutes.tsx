@@ -1,13 +1,14 @@
 /**
  * Routes of the authenticated app (feature `sectioned-navigation`): header
  * plus the three sections. `/` and any unknown path go to "Escanear". The
- * report is a sub-route of the history (`/historial/:scanId`) so it can be
- * linked, reloaded and navigated with back/forward. After a change of
+ * report is a sub-route of the history (`/historial/:scanId`) that replaces
+ * the table and links back to it, so it can be linked, reloaded and navigated with back/forward. After a change of
  * section, focus moves to that section's heading (SNV-04).
  */
 
 import { useEffect, useRef } from "react";
 import {
+  Link,
   Navigate,
   Route,
   Routes,
@@ -20,7 +21,7 @@ import { NetworkCredentialsManager } from "../features/credentials";
 import { HistoryTable } from "../features/history";
 import { ReportView } from "../features/report";
 import { ScanActivityProvider, ScanForm } from "../features/scan";
-import { SECTION_HISTORY } from "../copy";
+import { BACK_TO_HISTORY_LABEL, SECTION_HISTORY } from "../copy";
 import { AppHeader } from "./AppHeader";
 import { SECTION_PATHS, sectionOf } from "./paths";
 
@@ -29,17 +30,23 @@ function HistorySection() {
   const navigate = useNavigate();
 
   return (
-    <>
-      <section aria-label={SECTION_HISTORY}>
-        <h2 tabIndex={-1} data-section-heading>
-          {SECTION_HISTORY}
-        </h2>
+    <section aria-label={SECTION_HISTORY}>
+      <h2 tabIndex={-1} data-section-heading>
+        {SECTION_HISTORY}
+      </h2>
+      {scanId ? (
+        <>
+          <p>
+            <Link to={SECTION_PATHS.history}>{BACK_TO_HISTORY_LABEL}</Link>
+          </p>
+          <ReportView scanId={scanId} />
+        </>
+      ) : (
         <HistoryTable
           onViewReport={(id) => void navigate(`${SECTION_PATHS.history}/${id}`)}
         />
-      </section>
-      {scanId && <ReportView scanId={scanId} />}
-    </>
+      )}
+    </section>
   );
 }
 

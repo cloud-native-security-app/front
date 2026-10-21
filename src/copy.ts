@@ -66,3 +66,20 @@ export function targetsLoadErrorMessage(
       return unexpectedErrorMessage("al cargar los objetivos");
   }
 }
+
+/** History: reason line under failed and cancelled scans. */
+export function failureReasonLine(reason: string): string {
+  return `Motivo: ${reason}`;
+}
+
+export const CANCEL_CONFLICT_MESSAGE =
+  "El escaneo ya no se puede cancelar: probablemente ya terminó o fue cancelado.";
+
+/** Report view (feature `scan-report`). */
+export const REPORT_LOADING_MESSAGE = "Cargando reporte…";
+export const REPORT_NOT_FOUND_MESSAGE =
+  "No encontramos este reporte. Puede que no exista o que no sea tuyo.";
+export const REPORT_UNAVAILABLE_MESSAGE =
+  "El reporte no está disponible en este momento. Inténtalo de nuevo en unos minutos.";
+export const BACK_TO_HISTORY_LABEL = "Volver al historial";
+export const EXPORT_REPORT_LABEL = "Exportar reporte (JSON)";

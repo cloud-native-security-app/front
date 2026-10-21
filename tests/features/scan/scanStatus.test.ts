@@ -17,12 +17,14 @@ describe("scan status labels", () => {
       EN_PROGRESO: "Escaneando…",
       COMPLETADO: "Completado",
       FALLIDO: "Falló",
+      CANCELADO: "Cancelado",
     });
   });
 
-  it("flags_only_COMPLETADO_and_FALLIDO_as_terminal", () => {
+  it("flags_COMPLETADO_FALLIDO_and_CANCELADO_as_terminal", () => {
     expect(isTerminalScanStatus("COMPLETADO")).toBe(true);
     expect(isTerminalScanStatus("FALLIDO")).toBe(true);
+    expect(isTerminalScanStatus("CANCELADO")).toBe(true);
     expect(isTerminalScanStatus("PENDIENTE")).toBe(false);
     expect(isTerminalScanStatus("EN_PROGRESO")).toBe(false);
   });
