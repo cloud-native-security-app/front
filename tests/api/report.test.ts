@@ -6,7 +6,12 @@
 // reemplaza. No renderiza DOM, así que no pierde cobertura.
 import { beforeEach, describe, expect, it } from "vitest";
 
-import { getReport, submitScan, subscribeToScanEvents } from "../../src/api";
+import {
+  cancelScan,
+  getReport,
+  submitScan,
+  subscribeToScanEvents,
+} from "../../src/api";
 import {
   clearNodeTestSessionCookies,
   loginAsSyntheticUser,
@@ -67,5 +72,17 @@ describe("getReport", () => {
     const result = await getReport("no-existe");
 
     expect(result).toEqual({ ok: false, error: { kind: "not_found" } });
+  });
+
+  it("returns_not_ready_for_a_cancelled_scan", async () => {
+    const submitted = await submitScan("10.0.0.22");
+    if (!submitted.ok) {
+      throw new Error("setup del test falló: submitScan no fue exitoso");
+    }
+    await cancelScan(submitted.value.scanId);
+
+    const result = await getReport(submitted.value.scanId);
+
+    expect(result).toEqual({ ok: false, error: { kind: "not_ready" } });
   });
 });

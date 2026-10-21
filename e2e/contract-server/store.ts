@@ -28,6 +28,8 @@ export interface ScanRecord {
   /** Índice del próximo evento del guion que falta emitir a algún suscriptor. */
   nextEventIndex: number;
   result: ScanResult | undefined;
+  /** Reason of a `FALLIDO`/`CANCELADO` scan; `null` otherwise (wire: always present). */
+  failureReason: string | null;
   /**
    * Si es `true`, la próxima vez que alguien se suscriba a `/events` la
    * conexión se corta abruptamente (`res.destroy()`, no `res.end()`) justo
@@ -184,6 +186,7 @@ export function createScan(
     script,
     nextEventIndex: 0,
     result: undefined,
+    failureReason: null,
     dropConnectionOnce: target.toLowerCase().includes("disconnect"),
   };
   store.scans.set(scanId, record);
@@ -213,8 +216,11 @@ export function applyEventToRecord(
   } else if (event.status === "completed") {
     record.status = "COMPLETADO";
     record.result = event.result;
-  } else {
+  } else if (record.status !== "CANCELADO") {
+    // A scan cancelled through `POST /cancel` keeps `CANCELADO` even if a
+    // late `failed` event still reaches the script.
     record.status = "FALLIDO";
+    record.failureReason = event.reason;
   }
 }
 

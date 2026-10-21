@@ -34,9 +34,9 @@
  * en vez de esperar al siguiente tick del polling. Sin proveedor montado
  * (tests de componente aislados) el valor es siempre `undefined`.
  *
- * Los motivos de fallo y el estado "Cancelado" NO se muestran: el
- * `ScanHistoryEntry` del Gateway no los incluye (ver
- * `odd/tasks/sectioned-navigation.md`, seguimientos entre repos).
+ * El motivo de fallo (`failure_reason`) y el estado `CANCELADO` los entrega
+ * el Gateway en el histórico (feature `scan-report`); `HistoryTableView`
+ * los muestra.
  */
 
 import { useEffect, useState } from "react";
@@ -49,6 +49,7 @@ import {
   type ScanStatus,
 } from "../../api";
 import {
+  CANCEL_CONFLICT_MESSAGE,
   SESSION_EXPIRED_MESSAGE,
   networkErrorMessage,
   unexpectedErrorMessage,
@@ -95,7 +96,7 @@ function describeCancelError(error: ApiError): string {
     case "not_found":
       return "El escaneo ya no existe o no pertenece a tu sesión.";
     case "conflict":
-      return "El escaneo ya no se puede cancelar: probablemente ya terminó.";
+      return CANCEL_CONFLICT_MESSAGE;
     case "unexpected":
       return unexpectedErrorMessage("al cancelar el escaneo");
     default:

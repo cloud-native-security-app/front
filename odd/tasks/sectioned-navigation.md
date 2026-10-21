@@ -55,5 +55,4 @@ Strict TDD (Testing Library + Playwright e2e for navigation and the scan flow), 
 
 ## Cross-repo follow-ups
 
-- Failure reason: `ScanHistoryEntry` (`GET /api/scans`) has no reason field; the reason only travels in the SSE `failed` event. Not shown to avoid inventing it. Needs gateway/user-service to persist and expose it (e.g. `failure_reason`) in the history entry; then show it in `HistoryTableView`.
-- "Cancelado" state: `ScanStatus` is `PENDIENTE | EN_PROGRESO | COMPLETADO | FALLIDO`; the contract server maps cancel to `FALLIDO`. Needs the gateway/user-service to return a distinct cancelled status; then add it to `ScanStatus`, `SCAN_STATUS_LABEL` and the guards.
+- RESOLVED (front side, feature `scan-report`, SRP-03b/d): the gateway now exposes `failure_reason` (always present, nullable) and status `CANCELADO` in `GET /api/scans`. Front: types/guards updated, "Cancelado" label, reason line (`Motivo: ...`) under FALLIDO/CANCELADO rows, contract server mirrors it (cancel -> `CANCELADO`).

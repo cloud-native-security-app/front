@@ -72,7 +72,7 @@ describe("HistoryTable", () => {
 
     await waitFor(() => {
       const row = screen.getByText("10.1.0.11").closest("tr");
-      expect(row).toHaveTextContent("Falló");
+      expect(row).toHaveTextContent("Cancelado");
     });
     expect(
       screen.queryByRole("button", { name: "Cancelar escaneo de 10.1.0.11" }),

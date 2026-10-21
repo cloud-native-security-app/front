@@ -93,7 +93,7 @@ describe("HistoryTable polling", () => {
     await vi.advanceTimersByTimeAsync(HISTORY_POLL_INTERVAL_MS);
 
     await waitFor(() => {
-      expect(row).toHaveTextContent("Falló");
+      expect(row).toHaveTextContent("Cancelado");
     });
   });
 
@@ -115,7 +115,7 @@ describe("HistoryTable polling", () => {
       }
       return tr;
     });
-    expect(row).toHaveTextContent("Falló");
+    expect(row).toHaveTextContent("Cancelado");
 
     // Todas las entradas cargadas son terminales: el polling no debería
     // estar activo. Se encola un escaneo nuevo directamente contra el

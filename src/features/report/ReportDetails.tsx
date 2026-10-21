@@ -16,7 +16,17 @@
 
 import { useEffect, useRef } from "react";
 
-import type { ScanResult } from "../../api";
+import type { ScanResult, VulnerabilitySeverity } from "../../api";
+import { EXPORT_REPORT_LABEL } from "../../copy";
+
+const SEVERITY_LABEL: Record<VulnerabilitySeverity, string> = {
+  unknown: "Desconocida",
+  info: "Informativa",
+  low: "Baja",
+  medium: "Media",
+  high: "Alta",
+  critical: "Crítica",
+};
 
 export interface ReportDetailsProps {
   scanId: string;
@@ -49,7 +59,7 @@ export function ReportDetails({
       </h2>
       <p>Escaneado: {formatScannedAt(report.scanned_at)}</p>
       <button type="button" onClick={onExport}>
-        Exportar reporte (JSON)
+        {EXPORT_REPORT_LABEL}
       </button>
 
       <h3>Puertos y servicios</h3>
@@ -95,9 +105,14 @@ export function ReportDetails({
           {report.vulnerabilities.map((vulnerability, index) => (
             <li key={`${vulnerability.id ?? "sin-id"}-${index}`}>
               <p>
-                <strong>{vulnerability.id ?? "Sin identificador"}</strong> —
-                severidad: {vulnerability.severity} (fuente:{" "}
-                {vulnerability.source})
+                <strong>{vulnerability.id ?? "Sin identificador"}</strong>{" "}
+                <span
+                  className="severity-badge"
+                  data-severity={vulnerability.severity}
+                >
+                  {SEVERITY_LABEL[vulnerability.severity]}
+                </span>{" "}
+                (fuente: {vulnerability.source})
               </p>
               <p>{vulnerability.description}</p>
               <p>

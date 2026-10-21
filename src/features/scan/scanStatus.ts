@@ -11,6 +11,7 @@ export const SCAN_STATUS_LABEL: Record<ScanStatus, string> = {
   EN_PROGRESO: "Escaneando…",
   COMPLETADO: "Completado",
   FALLIDO: "Falló",
+  CANCELADO: "Cancelado",
 };
 
 export const CONNECTION_STATUS_LABEL: Record<ConnectionStatus, string> = {
@@ -21,5 +22,7 @@ export const CONNECTION_STATUS_LABEL: Record<ConnectionStatus, string> = {
 };
 
 export function isTerminalScanStatus(status: ScanStatus): boolean {
-  return status === "COMPLETADO" || status === "FALLIDO";
+  return (
+    status === "COMPLETADO" || status === "FALLIDO" || status === "CANCELADO"
+  );
 }

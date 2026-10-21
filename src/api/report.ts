@@ -1,18 +1,12 @@
 /**
  * Reporte consolidado de un escaneo (RF-11).
  *
- * ADVERTENCIA — contrato especulativo, NO confirmado en el Gateway real:
- * `docs/decisions.md` confirma que el Gateway real hoy
- * NO expone ningún endpoint de reporte — `GET /api/scans/{id}/report`
- * simplemente no existe todavía (RF-11 depende de `ms-analisis`, que ni
- * siquiera existe como repo). Se decidió (ver `docs/decisions.md`) implementar aquí una PROPUESTA de
- * contrato que reutiliza literalmente el shape de `ScanResult` que el
- * Gateway ya serializa en el evento SSE `completed.result`, para poder
- * construir y testear `src/features/report` (feature futura) contra el
- * servidor de contrato local (`e2e/contract-server`, que sí lo implementa
- * para poder testear). Integrar esto contra el Gateway real requiere que
- * ese repo (fuera del alcance de `front`) implemente primero este
- * endpoint — no asumir que ya existe fuera del servidor de contrato.
+ * Endpoint real del Gateway: `GET /api/scans/{scan_id}/report` (requiere la
+ * cookie de sesión). Respuestas: `200` con el `ScanResult` desnudo (`host`,
+ * `ports`, `vulnerabilities`, `scanned_at`), `401`, `404` (inexistente o de
+ * otro usuario), `409` (texto plano: el reporte aún no está disponible) y
+ * `502`/`504` (falla de `ms-usuarios`). El reporte se guarda al completarse
+ * el escaneo; un escaneo `FALLIDO`/`CANCELADO` nunca tiene reporte (409).
  */
 
 import { isScanResult } from "./guards";
@@ -21,9 +15,9 @@ import type { ApiResult, ScanResult } from "./types";
 
 /**
  * Puede fallar con: `network`, `unauthorized`, `not_found` (scanId ajeno o
- * inexistente), `not_ready` (el scan existe pero todavía no está
- * `COMPLETADO` — tipado explícitamente, sin necesidad de parsear texto,
- * ver `docs/decisions.md`), `unexpected`.
+ * inexistente), `not_ready` (409: el scan existe pero aún no hay
+ * reporte; tipado explícitamente, sin parsear texto), `unavailable`
+ * (502/504), `unexpected`.
  */
 export async function getReport(
   scanId: string,
@@ -36,6 +30,9 @@ export async function getReport(
   }
   if (result.status === 409) {
     return { ok: false, error: { kind: "not_ready" } };
+  }
+  if (result.status === 502 || result.status === 504) {
+    return { ok: false, error: { kind: "unavailable" } };
   }
   if (result.status !== 200) {
     return {

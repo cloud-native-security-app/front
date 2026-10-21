@@ -46,7 +46,8 @@ test("cancelar_un_escaneo_en_curso_refleja_el_nuevo_estado_sin_recargar_la_pagin
     .getByRole("button", { name: "Cancelar escaneo de 172.16.40.9" })
     .click();
 
-  await expect(row).toContainText("Falló");
+  await expect(row).toContainText("Cancelado");
+  await expect(row).toContainText("Motivo:");
   await expect(
     row.getByRole("button", { name: "Cancelar escaneo de 172.16.40.9" }),
   ).toHaveCount(0);

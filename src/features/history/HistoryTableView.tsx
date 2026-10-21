@@ -17,7 +17,7 @@
  * routing nuevo para esto).
  */
 
-import { EMPTY_HISTORY_MESSAGE } from "../../copy";
+import { EMPTY_HISTORY_MESSAGE, failureReasonLine } from "../../copy";
 import type { ScanHistoryEntry } from "../../api";
 import { ScanStatusBadge } from "../scan/ScanStatusBadge";
 import { isCancellableEntry } from "./isCancellableEntry";
@@ -79,6 +79,12 @@ export function HistoryTableView({
               <td>{entry.target}</td>
               <td>
                 <ScanStatusBadge status={entry.status} />
+                {(entry.status === "FALLIDO" || entry.status === "CANCELADO") &&
+                  entry.failure_reason && (
+                    <p className="failure-reason">
+                      {failureReasonLine(entry.failure_reason)}
+                    </p>
+                  )}
               </td>
               <td>{formatRequestedAt(entry.requested_at)}</td>
               <td>
