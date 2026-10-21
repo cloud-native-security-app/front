@@ -15,6 +15,8 @@
  */
 import { expect, test } from "@playwright/test";
 
+import { seedTarget } from "./seedTarget";
+
 test.beforeEach(async ({ context }) => {
   const response = await context.request.post("/__test__/session", {
     data: { email: "report-view-e2e@example.test", name: "Analista E2E" },
@@ -24,18 +26,19 @@ test.beforeEach(async ({ context }) => {
 
 test("abrir_el_reporte_de_un_escaneo_completado_muestra_su_estructura_y_permite_exportarlo", async ({
   page,
+  context,
 }) => {
+  await seedTarget(context, "172.16.50.7");
   await page.goto("/");
 
-  await page.getByLabel("IP a escanear").fill("172.16.50.7");
+  await page.getByLabel("Objetivo a escanear").selectOption("172.16.50.7");
   await page.getByRole("button", { name: "Escanear" }).click();
 
   const statusLine = page.getByText(/^Estado: /);
   await expect(statusLine).toContainText("Completado");
 
-  // El histórico necesita un refetch para reflejar el nuevo estado
-  // COMPLETADO (mismo patrón que `e2e/scan-history.spec.ts`).
-  await page.reload();
+  // Historial loads fresh on navigation and shows the finished scan.
+  await page.getByRole("link", { name: "Historial" }).click();
 
   const row = page.locator("tr", { hasText: "172.16.50.7" });
   await expect(row).toBeVisible();
@@ -43,9 +46,12 @@ test("abrir_el_reporte_de_un_escaneo_completado_muestra_su_estructura_y_permite_
 
   await row.getByRole("button", { name: "Ver reporte de 172.16.50.7" }).click();
 
-  await expect(
-    page.getByRole("heading", { name: /reporte de 172\.16\.50\.7/i }),
-  ).toBeVisible();
+  const reportHeading = page.getByRole("heading", {
+    name: /reporte de 172\.16\.50\.7/i,
+  });
+  await expect(reportHeading).toBeVisible();
+  await expect(reportHeading).toBeFocused();
+  await expect(page).toHaveURL(/\/historial\/.+/);
   await expect(
     page.getByRole("heading", { name: /puertos y servicios/i }),
   ).toBeVisible();
@@ -83,7 +89,7 @@ test("un_escaneo_no_completado_muestra_un_estado_explicativo_en_el_reporte", asy
   );
   expect(reportResponse.status()).toBe(409);
 
-  await page.goto("/");
+  await page.goto("/historial");
 
   const row = page.locator("tr", { hasText: "172.16.50.8" });
   await expect(row).toBeVisible();

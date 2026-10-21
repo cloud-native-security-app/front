@@ -1,12 +1,9 @@
 /**
- * Enrutado de la aplicación (ver docs/architecture.md, capa 7: "src/routes"):
- * login, formulario de escaneo, histórico, detalle/reporte de un escaneo.
- *
- * Placeholder de la feature `scaffolding` (`docs/decisions.md`): la
- * librería de enrutado y las rutas concretas se introducen junto con las
- * features que las necesiten (`auth_session` id 3 en adelante); no se añade
- * una dependencia de router sin una feature que la justifique
- * (docs/security-scope.md, "Dependencias").
+ * Routing of the app (docs/architecture.md, layer 7): header and the three
+ * authenticated sections (feature `sectioned-navigation`).
  */
 
-export {};
+export { AppHeader } from "./AppHeader";
+export { AuthenticatedRoutes } from "./AuthenticatedRoutes";
+export { SECTION_PATHS, sectionOf } from "./paths";
+export type { SectionKey } from "./paths";

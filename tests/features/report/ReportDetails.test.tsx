@@ -139,3 +139,21 @@ describe("ReportDetails", () => {
     expect(screen.queryByText("CPEs")).not.toBeInTheDocument();
   });
 });
+
+describe("ReportDetails focus (SNV-04)", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("moves_focus_to_the_report_heading_when_it_opens", () => {
+    render(
+      <ReportDetails scanId="scan-1" report={REPORT} onExport={vi.fn()} />,
+    );
+
+    const heading = screen.getByRole("heading", {
+      name: /reporte de 10\.5\.0\.1/i,
+    });
+    expect(heading).toHaveFocus();
+    expect(heading).toHaveAttribute("tabindex", "-1");
+  });
+});

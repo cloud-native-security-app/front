@@ -24,6 +24,8 @@
  */
 import { expect, test } from "@playwright/test";
 
+import { seedTarget } from "./seedTarget";
+
 test.beforeEach(async ({ context }) => {
   const response = await context.request.post("/__test__/session", {
     data: { email: "realtime-status-e2e@example.test", name: "Analista E2E" },
@@ -33,10 +35,12 @@ test.beforeEach(async ({ context }) => {
 
 test("un_escaneo_exitoso_llega_al_estado_completado_sin_recargar_la_pagina", async ({
   page,
+  context,
 }) => {
+  await seedTarget(context, "172.16.20.5");
   await page.goto("/");
 
-  await page.getByLabel("IP a escanear").fill("172.16.20.5");
+  await page.getByLabel("Objetivo a escanear").selectOption("172.16.20.5");
   await page.getByRole("button", { name: "Escanear" }).click();
 
   await expect(page.getByText(/escaneo en cola/i)).toBeVisible();
