@@ -165,4 +165,41 @@ describe("isScanResult", () => {
       }),
     ).toBe(false);
   });
+  describe("vulnerability confidence", () => {
+    const withVulnerability = (extra: Record<string, unknown>) => ({
+      host: "10.0.0.1",
+      ports: [],
+      vulnerabilities: [
+        {
+          id: "CVE-2023-38408",
+          severity: "high",
+          description: "d",
+          nse_script: "s",
+          source: "nmap_nse",
+          references: [],
+          ...extra,
+        },
+      ],
+      scanned_at: "2026-01-01T00:00:00Z",
+    });
+
+    it("acepta_una_vulnerabilidad_sin_confidence_de_reportes_antiguos", () => {
+      expect(isScanResult(withVulnerability({}))).toBe(true);
+    });
+
+    it("acepta_confirmed_y_version_match", () => {
+      expect(isScanResult(withVulnerability({ confidence: "confirmed" }))).toBe(
+        true,
+      );
+      expect(
+        isScanResult(withVulnerability({ confidence: "version_match" })),
+      ).toBe(true);
+    });
+
+    it("tolera_un_valor_de_confidence_desconocido_sin_romper_el_reporte", () => {
+      expect(
+        isScanResult(withVulnerability({ confidence: "future_value" })),
+      ).toBe(true);
+    });
+  });
 });

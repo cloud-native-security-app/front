@@ -17,7 +17,12 @@
 import { useEffect, useRef } from "react";
 
 import type { ScanResult, VulnerabilitySeverity } from "../../api";
-import { EXPORT_REPORT_LABEL } from "../../copy";
+import {
+  CONFIDENCE_CONFIRMED_LABEL,
+  CONFIDENCE_VERSION_MATCH_LABEL,
+  CONFIDENCE_VERSION_MATCH_NOTE,
+  EXPORT_REPORT_LABEL,
+} from "../../copy";
 
 const SEVERITY_LABEL: Record<VulnerabilitySeverity, string> = {
   unknown: "Desconocida",
@@ -27,6 +32,17 @@ const SEVERITY_LABEL: Record<VulnerabilitySeverity, string> = {
   high: "Alta",
   critical: "Crítica",
 };
+
+const CONFIDENCE_LABEL: Record<string, string> = {
+  confirmed: CONFIDENCE_CONFIRMED_LABEL,
+  version_match: CONFIDENCE_VERSION_MATCH_LABEL,
+};
+
+function confidenceLabel(confidence: string | undefined): string | undefined {
+  return confidence !== undefined && Object.hasOwn(CONFIDENCE_LABEL, confidence)
+    ? CONFIDENCE_LABEL[confidence]
+    : undefined;
+}
 
 export interface ReportDetailsProps {
   scanId: string;
@@ -51,6 +67,10 @@ export function ReportDetails({
   useEffect(() => {
     headingRef.current?.focus();
   }, []);
+
+  const hasVersionMatch = report.vulnerabilities.some(
+    (vulnerability) => vulnerability.confidence === "version_match",
+  );
 
   return (
     <section aria-label={`Reporte del escaneo ${scanId}`}>
@@ -101,38 +121,51 @@ export function ReportDetails({
       {report.vulnerabilities.length === 0 ? (
         <p role="status">No se detectaron vulnerabilidades.</p>
       ) : (
-        <ul>
-          {report.vulnerabilities.map((vulnerability, index) => (
-            <li key={`${vulnerability.id ?? "sin-id"}-${index}`}>
-              <p>
-                <strong>{vulnerability.id ?? "Sin identificador"}</strong>{" "}
-                <span
-                  className="severity-badge"
-                  data-severity={vulnerability.severity}
-                >
-                  {SEVERITY_LABEL[vulnerability.severity]}
-                </span>{" "}
-                (fuente: {vulnerability.source})
-              </p>
-              <p>{vulnerability.description}</p>
-              <p>
-                <abbr title="Script del Nmap Scripting Engine que detectó este hallazgo.">
-                  Script NSE
-                </abbr>
-                : {vulnerability.nse_script}
-              </p>
-              {vulnerability.references.length > 0 && (
-                <ul>
-                  {vulnerability.references.map((reference) => (
-                    <li key={reference}>
-                      <a href={reference}>{reference}</a>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </li>
-          ))}
-        </ul>
+        <>
+          {hasVersionMatch && <p>{CONFIDENCE_VERSION_MATCH_NOTE}</p>}
+          <ul>
+            {report.vulnerabilities.map((vulnerability, index) => (
+              <li key={`${vulnerability.id ?? "sin-id"}-${index}`}>
+                <p>
+                  <strong>{vulnerability.id ?? "Sin identificador"}</strong>{" "}
+                  <span
+                    className="severity-badge"
+                    data-severity={vulnerability.severity}
+                  >
+                    {SEVERITY_LABEL[vulnerability.severity]}
+                  </span>{" "}
+                  {confidenceLabel(vulnerability.confidence) && (
+                    <>
+                      <span
+                        className="confidence-badge"
+                        data-confidence={vulnerability.confidence}
+                      >
+                        {confidenceLabel(vulnerability.confidence)}
+                      </span>{" "}
+                    </>
+                  )}
+                  (fuente: {vulnerability.source})
+                </p>
+                <p>{vulnerability.description}</p>
+                <p>
+                  <abbr title="Script del Nmap Scripting Engine que detectó este hallazgo.">
+                    Script NSE
+                  </abbr>
+                  : {vulnerability.nse_script}
+                </p>
+                {vulnerability.references.length > 0 && (
+                  <ul>
+                    {vulnerability.references.map((reference) => (
+                      <li key={reference}>
+                        <a href={reference}>{reference}</a>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </section>
   );
