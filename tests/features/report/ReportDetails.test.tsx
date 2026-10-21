@@ -158,4 +158,45 @@ describe("ReportDetails focus (SNV-04)", () => {
     expect(heading).toHaveFocus();
     expect(heading).toHaveAttribute("tabindex", "-1");
   });
+  describe("confianza del hallazgo", () => {
+    const vuln = (id: string, confidence?: string) => ({
+      id,
+      severity: "high" as const,
+      description: `desc ${id}`,
+      nse_script: "script",
+      source: "nmap_nse" as const,
+      references: [],
+      ...(confidence === undefined ? {} : { confidence }),
+    });
+    const NOTE =
+      /Detectada comparando la versión del servicio\. Las distribuciones como Amazon Linux o RHEL suelen aplicar parches sin cambiar la versión, así que podría estar ya corregida\./;
+
+    it("muestra_Confirmada_y_Posible_segun_version_y_la_nota_una_sola_vez", () => {
+      const report = {
+        ...REPORT,
+        vulnerabilities: [
+          vuln("CVE-1", "confirmed"),
+          vuln("CVE-2", "version_match"),
+          vuln("CVE-3", "version_match"),
+        ],
+      } as ScanResult;
+      render(<ReportDetails scanId="s" report={report} onExport={vi.fn()} />);
+
+      expect(screen.getAllByText("Confirmada")).toHaveLength(1);
+      expect(screen.getAllByText("Posible (según versión)")).toHaveLength(2);
+      expect(screen.getAllByText(NOTE)).toHaveLength(1);
+    });
+
+    it("sin_confidence_o_con_valor_desconocido_no_hay_insignia_ni_nota", () => {
+      const report = {
+        ...REPORT,
+        vulnerabilities: [vuln("CVE-1"), vuln("CVE-2", "future_value")],
+      } as ScanResult;
+      render(<ReportDetails scanId="s" report={report} onExport={vi.fn()} />);
+
+      expect(screen.queryByText("Confirmada")).not.toBeInTheDocument();
+      expect(screen.queryByText(/Posible/)).not.toBeInTheDocument();
+      expect(screen.queryByText(NOTE)).not.toBeInTheDocument();
+    });
+  });
 });

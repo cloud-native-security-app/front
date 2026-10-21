@@ -83,3 +83,11 @@ export const REPORT_UNAVAILABLE_MESSAGE =
   "El reporte no está disponible en este momento. Inténtalo de nuevo en unos minutos.";
 export const BACK_TO_HISTORY_LABEL = "Volver al historial";
 export const EXPORT_REPORT_LABEL = "Exportar reporte (JSON)";
+
+/** Finding confidence badges and the one-per-report explanation (report readability). */
+export const CONFIDENCE_CONFIRMED_LABEL = "Confirmada";
+
+export const CONFIDENCE_VERSION_MATCH_LABEL = "Posible (según versión)";
+
+export const CONFIDENCE_VERSION_MATCH_NOTE =
+  "Detectada comparando la versión del servicio. Las distribuciones como Amazon Linux o RHEL suelen aplicar parches sin cambiar la versión, así que podría estar ya corregida.";

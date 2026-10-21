@@ -49,6 +49,13 @@ export interface ScanPort {
   cpes: string[];
 }
 
+/**
+ * How sure the scanner is about a finding. Optional on the wire: old reports
+ * never carry it, and a future backend value must not break the report, so
+ * consumers treat anything other than these two as unknown.
+ */
+export type VulnerabilityConfidence = "confirmed" | "version_match";
+
 export interface ScanVulnerability {
   id: string | null;
   severity: VulnerabilitySeverity;
@@ -56,6 +63,8 @@ export interface ScanVulnerability {
   nse_script: string;
   source: VulnerabilitySource;
   references: string[];
+  /** Absent or unrecognized values mean "unknown" (see `VulnerabilityConfidence`). */
+  confidence?: VulnerabilityConfidence | (string & {});
 }
 
 /**
