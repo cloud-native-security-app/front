@@ -65,7 +65,9 @@ describe("ReportDetails", () => {
     expect(portRow).toHaveTextContent("OpenSSH 9.6");
 
     expect(screen.getByText("CVE-2023-38408")).toBeInTheDocument();
-    expect(screen.getByText(/severidad: high/i)).toBeInTheDocument();
+    const badge = screen.getByText("Alta");
+    expect(badge).toHaveAttribute("data-severity", "high");
+    expect(badge).toHaveClass("severity-badge");
   });
 
   it("nunca_vuelca_el_reporte_como_json_crudo_en_pantalla", () => {
@@ -121,5 +123,39 @@ describe("ReportDetails", () => {
     expect(
       screen.getByText(/no se detectaron vulnerabilidades/i),
     ).toBeInTheDocument();
+  });
+
+  it("explica_cpe_y_script_nse_con_ayuda_accesible", () => {
+    render(
+      <ReportDetails scanId="scan-1" report={REPORT} onExport={vi.fn()} />,
+    );
+
+    expect(screen.getByText("CPE")).toHaveAttribute(
+      "title",
+      expect.stringMatching(/identificador/i),
+    );
+    expect(screen.getByText("Script NSE")).toHaveAttribute(
+      "title",
+      expect.stringMatching(/nmap/i),
+    );
+    expect(screen.queryByText("CPEs")).not.toBeInTheDocument();
+  });
+});
+
+describe("ReportDetails focus (SNV-04)", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  it("moves_focus_to_the_report_heading_when_it_opens", () => {
+    render(
+      <ReportDetails scanId="scan-1" report={REPORT} onExport={vi.fn()} />,
+    );
+
+    const heading = screen.getByRole("heading", {
+      name: /reporte de 10\.5\.0\.1/i,
+    });
+    expect(heading).toHaveFocus();
+    expect(heading).toHaveAttribute("tabindex", "-1");
   });
 });

@@ -16,6 +16,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { ScanHistoryEntry } from "../../../src/api";
+import { SCAN_STATUS_LABEL } from "../../../src/features/scan/scanStatus";
 import {
   HistoryTableView,
   type RowCancelState,
@@ -28,6 +29,7 @@ const BASE_ENTRIES: ScanHistoryEntry[] = [
     status: "PENDIENTE",
     requested_at: "2026-01-01T00:00:00.000Z",
     updated_at: "2026-01-01T00:00:00.000Z",
+    failure_reason: null,
   },
   {
     scanId: "scan-en-progreso",
@@ -35,6 +37,7 @@ const BASE_ENTRIES: ScanHistoryEntry[] = [
     status: "EN_PROGRESO",
     requested_at: "2026-01-01T00:01:00.000Z",
     updated_at: "2026-01-01T00:01:00.000Z",
+    failure_reason: null,
   },
   {
     scanId: "scan-completado",
@@ -42,6 +45,7 @@ const BASE_ENTRIES: ScanHistoryEntry[] = [
     status: "COMPLETADO",
     requested_at: "2026-01-01T00:02:00.000Z",
     updated_at: "2026-01-01T00:02:00.000Z",
+    failure_reason: null,
   },
   {
     scanId: "scan-fallido",
@@ -49,6 +53,15 @@ const BASE_ENTRIES: ScanHistoryEntry[] = [
     status: "FALLIDO",
     requested_at: "2026-01-01T00:03:00.000Z",
     updated_at: "2026-01-01T00:03:00.000Z",
+    failure_reason: "objetivo inalcanzable",
+  },
+  {
+    scanId: "scan-cancelado",
+    target: "10.0.0.6",
+    status: "CANCELADO",
+    requested_at: "2026-01-01T00:05:00.000Z",
+    updated_at: "2026-01-01T00:05:00.000Z",
+    failure_reason: "cancelado por el usuario",
   },
   {
     // Sin scanId: campo opcional del wire format. Nunca cancelable, sin
@@ -58,6 +71,7 @@ const BASE_ENTRIES: ScanHistoryEntry[] = [
     status: "PENDIENTE",
     requested_at: "2026-01-01T00:04:00.000Z",
     updated_at: "2026-01-01T00:04:00.000Z",
+    failure_reason: null,
   },
 ];
 
@@ -79,7 +93,7 @@ describe("HistoryTableView", () => {
     for (const entry of BASE_ENTRIES) {
       const row = screen.getByText(entry.target).closest("tr");
       expect(row).not.toBeNull();
-      expect(row).toHaveTextContent(entry.status);
+      expect(row).toHaveTextContent(SCAN_STATUS_LABEL[entry.status]);
     }
   });
 
@@ -195,6 +209,54 @@ describe("HistoryTableView", () => {
     ).toBeEnabled();
   });
 
+  it("shows_the_failure_reason_under_failed_and_cancelled_rows_only", () => {
+    render(
+      <HistoryTableView
+        entries={BASE_ENTRIES}
+        rowStates={{}}
+        onCancel={vi.fn()}
+        onViewReport={vi.fn()}
+      />,
+    );
+
+    const failed = screen.getByText("10.0.0.4").closest("tr");
+    expect(failed).toHaveTextContent("Falló");
+    expect(failed).toHaveTextContent("Motivo: objetivo inalcanzable");
+    const cancelled = screen.getByText("10.0.0.6").closest("tr");
+    expect(cancelled).toHaveTextContent("Cancelado");
+    expect(cancelled).toHaveTextContent("Motivo: cancelado por el usuario");
+    expect(screen.getByText("10.0.0.3").closest("tr")).not.toHaveTextContent(
+      "Motivo",
+    );
+  });
+
+  it("omits_the_reason_line_when_a_terminal_row_has_no_reason", () => {
+    render(
+      <HistoryTableView
+        entries={[{ ...BASE_ENTRIES[3]!, failure_reason: null }]}
+        rowStates={{}}
+        onCancel={vi.fn()}
+        onViewReport={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("table")).not.toHaveTextContent("Motivo");
+  });
+
+  it("does_not_offer_cancel_or_report_for_cancelled_rows", () => {
+    render(
+      <HistoryTableView
+        entries={BASE_ENTRIES}
+        rowStates={{}}
+        onCancel={vi.fn()}
+        onViewReport={vi.fn()}
+      />,
+    );
+
+    const row = screen.getByText("10.0.0.6").closest("tr")!;
+    expect(row.querySelector("button")).toBeNull();
+  });
+
   it("muestra_un_estado_vacio_explicito_cuando_no_hay_entradas", () => {
     render(
       <HistoryTableView
@@ -205,9 +267,11 @@ describe("HistoryTableView", () => {
       />,
     );
 
-    expect(screen.getByRole("status")).toHaveTextContent(
-      /todavía no hay escaneos/i,
+    const empty = screen.getByRole("status");
+    expect(empty).toHaveTextContent(
+      "Todavía no hay escaneos. Lanza el primero desde «Escanear».",
     );
+    expect(empty).toHaveAttribute("data-tone", "neutral");
   });
 
   it("muestra_la_accion_ver_reporte_solo_para_completado_con_scanId", () => {

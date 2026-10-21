@@ -24,6 +24,8 @@
  */
 import { expect, test } from "@playwright/test";
 
+import { seedTarget } from "./seedTarget";
+
 test.beforeEach(async ({ context }) => {
   const response = await context.request.post("/__test__/session", {
     data: { email: "realtime-status-e2e@example.test", name: "Analista E2E" },
@@ -33,13 +35,15 @@ test.beforeEach(async ({ context }) => {
 
 test("un_escaneo_exitoso_llega_al_estado_completado_sin_recargar_la_pagina", async ({
   page,
+  context,
 }) => {
+  await seedTarget(context, "172.16.20.5");
   await page.goto("/");
 
-  await page.getByLabel("IP o rango a escanear").fill("172.16.20.5");
+  await page.getByLabel("Objetivo a escanear").selectOption("172.16.20.5");
   await page.getByRole("button", { name: "Escanear" }).click();
 
-  await expect(page.getByText(/escaneo encolado\. id: /i)).toBeVisible();
+  await expect(page.getByText(/escaneo en cola/i)).toBeVisible();
 
   // No se asevera sobre los estados intermedios (`PENDIENTE`/`EN_PROGRESO`):
   // el servidor de contrato emite todo el guion (`started` -> `completed`)
@@ -55,5 +59,6 @@ test("un_escaneo_exitoso_llega_al_estado_completado_sin_recargar_la_pagina", asy
   // que sí es exclusivo de un navegador real: que la UI llega al estado
   // terminal correcto sin recargar la página.
   const statusLine = page.getByText(/^Estado: /);
-  await expect(statusLine).toContainText("COMPLETADO");
+  await expect(statusLine).toContainText("Completado");
+  await expect(statusLine).not.toContainText(/desconectado|sin conexión/);
 });

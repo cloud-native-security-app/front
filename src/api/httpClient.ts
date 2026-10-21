@@ -32,9 +32,8 @@ export async function performRequest(
   init: PerformRequestInit = {},
 ): Promise<RawResponse | NetworkError> {
   const method = init.method ?? "GET";
-  let response: Response;
   try {
-    response = await fetch(`${gatewayBaseUrl()}${path}`, {
+    const response = await fetch(`${gatewayBaseUrl()}${path}`, {
       method,
       credentials: "include",
       // Sin caché HTTP del navegador: un `GET /api/me` con 200 cacheado
@@ -47,14 +46,18 @@ export async function performRequest(
       body:
         init.jsonBody !== undefined ? JSON.stringify(init.jsonBody) : undefined,
     });
+    // La lectura del body va DENTRO del `try`: `response.text()` puede
+    // rechazar (stream cortado a mitad de camino) y ninguna promesa debe
+    // rechazar fuera de la capa API (feature `resilient-error-handling`).
+    const bodyText = await response.text();
+    return { status: response.status, bodyText };
   } catch {
     // `fetch` solo rechaza la promesa por fallos de red/DNS/CORS, nunca
-    // por un status HTTP de error — ese caso se maneja abajo con el status
-    // ya resuelto.
+    // por un status HTTP de error. Un fallo al leer el body se trata igual:
+    // se mapea al `ApiError` existente `network` (no se llegó a obtener una
+    // respuesta utilizable), así que la UI muestra su mensaje de red.
     return { networkError: true };
   }
-  const bodyText = await response.text();
-  return { status: response.status, bodyText };
 }
 
 /**

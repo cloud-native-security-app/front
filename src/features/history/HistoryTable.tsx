@@ -27,6 +27,16 @@
  * periódico de `getScanHistory()` mientras quede al menos una entrada en
  * estado no terminal — sigue siendo el mismo "refetch simple" ya elegido
  * arriba, nunca un `EventSource` nuevo por fila.
+ *
+ * Refresco inmediato (feature `sectioned-navigation`, SNV-03): cuando el
+ * escaneo en vivo que sigue `ScanActivityProvider` llega a un estado
+ * terminal (`finishedScanId`), se vuelve a pedir el histórico de inmediato
+ * en vez de esperar al siguiente tick del polling. Sin proveedor montado
+ * (tests de componente aislados) el valor es siempre `undefined`.
+ *
+ * El motivo de fallo (`failure_reason`) y el estado `CANCELADO` los entrega
+ * el Gateway en el histórico (feature `scan-report`); `HistoryTableView`
+ * los muestra.
  */
 
 import { useEffect, useState } from "react";
@@ -38,6 +48,13 @@ import {
   type ScanHistoryEntry,
   type ScanStatus,
 } from "../../api";
+import {
+  CANCEL_CONFLICT_MESSAGE,
+  SESSION_EXPIRED_MESSAGE,
+  networkErrorMessage,
+  unexpectedErrorMessage,
+} from "../../copy";
+import { useFinishedScanId } from "../scan";
 import { HistoryTableView, type RowCancelState } from "./HistoryTableView";
 
 type HistoryState =
@@ -60,30 +77,30 @@ function hasNonTerminalEntries(entries: ScanHistoryEntry[]): boolean {
 function describeHistoryError(error: ApiError): string {
   switch (error.kind) {
     case "network":
-      return "No se pudo contactar al Gateway para cargar el histórico. Verifica tu conexión e inténtalo de nuevo.";
+      return networkErrorMessage("para cargar el histórico");
     case "unauthorized":
-      return "Tu sesión ya no es válida. Inicia sesión nuevamente.";
+      return SESSION_EXPIRED_MESSAGE;
     case "unexpected":
-      return `Ocurrió un error inesperado (código ${error.status}) al cargar el histórico.`;
+      return unexpectedErrorMessage("al cargar el histórico");
     default:
-      return "Ocurrió un error inesperado al cargar el histórico.";
+      return unexpectedErrorMessage("al cargar el histórico");
   }
 }
 
 function describeCancelError(error: ApiError): string {
   switch (error.kind) {
     case "network":
-      return "No se pudo contactar al Gateway para cancelar el escaneo. Verifica tu conexión e inténtalo de nuevo.";
+      return networkErrorMessage("para cancelar el escaneo");
     case "unauthorized":
-      return "Tu sesión ya no es válida. Inicia sesión nuevamente.";
+      return SESSION_EXPIRED_MESSAGE;
     case "not_found":
       return "El escaneo ya no existe o no pertenece a tu sesión.";
     case "conflict":
-      return "El escaneo ya no se puede cancelar: probablemente ya terminó.";
+      return CANCEL_CONFLICT_MESSAGE;
     case "unexpected":
-      return `Ocurrió un error inesperado (código ${error.status}) al cancelar el escaneo.`;
+      return unexpectedErrorMessage("al cancelar el escaneo");
     default:
-      return "Ocurrió un error inesperado al cancelar el escaneo.";
+      return unexpectedErrorMessage("al cancelar el escaneo");
   }
 }
 
@@ -104,6 +121,7 @@ export function HistoryTable({ onViewReport }: HistoryTableProps) {
   const [rowStates, setRowStates] = useState<Record<string, RowCancelState>>(
     {},
   );
+  const finishedScanId = useFinishedScanId();
 
   useEffect(() => {
     // Patrón oficial de `useEffect` con una petición async (mismo que
@@ -120,7 +138,7 @@ export function HistoryTable({ onViewReport }: HistoryTableProps) {
     return () => {
       active = false;
     };
-  }, []);
+  }, [finishedScanId]);
 
   const isPolling =
     state.status === "loaded" && hasNonTerminalEntries(state.entries);
@@ -173,7 +191,11 @@ export function HistoryTable({ onViewReport }: HistoryTableProps) {
   }
 
   if (state.status === "loading") {
-    return <p role="status">Cargando histórico…</p>;
+    return (
+      <p role="status" data-tone="neutral">
+        Cargando histórico…
+      </p>
+    );
   }
 
   if (state.status === "error") {

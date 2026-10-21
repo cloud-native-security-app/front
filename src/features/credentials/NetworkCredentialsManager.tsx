@@ -22,6 +22,13 @@ import {
   type ApiError,
   type NetworkCredential,
 } from "../../api";
+import {
+  CREDENTIAL_SAVED_MESSAGE,
+  SECTION_TARGETS,
+  SESSION_EXPIRED_MESSAGE,
+  networkErrorMessage,
+  unexpectedErrorMessage,
+} from "../../copy";
 import { NetworkCredentialForm } from "./NetworkCredentialForm";
 import {
   NetworkCredentialsListView,
@@ -36,28 +43,28 @@ type ListState =
 function describeListError(error: ApiError): string {
   switch (error.kind) {
     case "network":
-      return "No se pudo contactar al Gateway para cargar las credenciales. Verifica tu conexión e inténtalo de nuevo.";
+      return networkErrorMessage("para cargar las credenciales");
     case "unauthorized":
-      return "Tu sesión ya no es válida. Inicia sesión nuevamente.";
+      return SESSION_EXPIRED_MESSAGE;
     case "unexpected":
-      return `Ocurrió un error inesperado (código ${error.status}) al cargar las credenciales.`;
+      return unexpectedErrorMessage("al cargar las credenciales");
     default:
-      return "Ocurrió un error inesperado al cargar las credenciales.";
+      return unexpectedErrorMessage("al cargar las credenciales");
   }
 }
 
 function describeDeleteError(error: ApiError): string {
   switch (error.kind) {
     case "network":
-      return "No se pudo contactar al Gateway para borrar la credencial. Verifica tu conexión e inténtalo de nuevo.";
+      return networkErrorMessage("para borrar la credencial");
     case "unauthorized":
-      return "Tu sesión ya no es válida. Inicia sesión nuevamente.";
+      return SESSION_EXPIRED_MESSAGE;
     case "not_found":
       return "La credencial ya no existe o no pertenece a tu sesión.";
     case "unexpected":
-      return `Ocurrió un error inesperado (código ${error.status}) al borrar la credencial.`;
+      return unexpectedErrorMessage("al borrar la credencial");
     default:
-      return "Ocurrió un error inesperado al borrar la credencial.";
+      return unexpectedErrorMessage("al borrar la credencial");
   }
 }
 
@@ -71,6 +78,7 @@ function toListState(
 
 export function NetworkCredentialsManager() {
   const [state, setState] = useState<ListState>({ status: "loading" });
+  const [savedNotice, setSavedNotice] = useState(false);
   const [rowStates, setRowStates] = useState<Record<string, RowDeleteState>>(
     {},
   );
@@ -90,34 +98,89 @@ export function NetworkCredentialsManager() {
     };
   }, []);
 
+  /** Drops stale row errors; rows still deleting are kept untouched. */
+  function clearRowErrors(): void {
+    setRowStates((previous) =>
+      Object.fromEntries(
+        Object.entries(previous).filter(
+          ([, rowState]) => rowState.status !== "error",
+        ),
+      ),
+    );
+  }
+
   async function refresh(): Promise<void> {
     const result = await listNetworkCredentials();
     setState(toListState(result));
+    if (result.ok) {
+      clearRowErrors();
+    }
   }
 
   async function handleDelete(id: string): Promise<void> {
+    setSavedNotice(false);
     setRowStates((previous) => ({
       ...previous,
       [id]: { status: "deleting" },
     }));
-    const result = await deleteNetworkCredential(id);
-    if (result.ok) {
-      setRowStates((previous) => ({ ...previous, [id]: { status: "idle" } }));
-      await refresh();
-    } else {
+    try {
+      const result = await deleteNetworkCredential(id);
+      if (result.ok) {
+        setRowStates((previous) => ({
+          ...previous,
+          [id]: { status: "idle" },
+        }));
+        clearRowErrors();
+        await refresh();
+      } else {
+        setRowStates((previous) => ({
+          ...previous,
+          [id]: {
+            status: "error",
+            message: describeDeleteError(result.error),
+          },
+        }));
+      }
+    } catch {
+      // Defensive: the API layer never rejects, but a row must never stay
+      // on "Borrando…" if something unexpected throws.
       setRowStates((previous) => ({
         ...previous,
-        [id]: { status: "error", message: describeDeleteError(result.error) },
+        [id]: {
+          status: "error",
+          message: describeDeleteError({ kind: "network" }),
+        },
       }));
     }
   }
 
   return (
     <section aria-label="Credenciales de red">
-      <h2>Credenciales de red</h2>
-      <NetworkCredentialForm onCreated={() => void refresh()} />
+      <h2 tabIndex={-1} data-section-heading>
+        {SECTION_TARGETS}
+      </h2>
+      <NetworkCredentialForm
+        onCreated={() => {
+          setSavedNotice(true);
+          void refresh();
+        }}
+      />
+      {savedNotice && (
+        <p role="status" className="notice">
+          <span>{CREDENTIAL_SAVED_MESSAGE}</span>
+          <button
+            type="button"
+            className="button--secondary"
+            onClick={() => setSavedNotice(false)}
+          >
+            Cerrar aviso
+          </button>
+        </p>
+      )}
       {state.status === "loading" && (
-        <p role="status">Cargando credenciales…</p>
+        <p role="status" data-tone="neutral">
+          Cargando credenciales…
+        </p>
       )}
       {state.status === "error" && <p role="alert">{state.message}</p>}
       {state.status === "loaded" && (

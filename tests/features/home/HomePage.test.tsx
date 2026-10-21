@@ -54,7 +54,7 @@ describe("HomePage", () => {
     ).toBeInTheDocument();
     expect(
       screen.getByText(
-        "front encola un escaneo, sigue su estado en tiempo real y termina en un hallazgo verificable — sin paneles que adivinar.",
+        "Security Scan App encola el escaneo de una IP, sigue su estado en tiempo real y te muestra los hallazgos — sin paneles que adivinar.",
       ),
     ).toBeInTheDocument();
     expect(
@@ -67,7 +67,7 @@ describe("HomePage", () => {
 
     expect(
       screen.getByText(
-        "Encolar — un objetivo, IP o rango, validado antes de enviarse.",
+        "Encolar — una IP objetivo, validada antes de enviarse.",
       ),
     ).toBeInTheDocument();
     expect(
@@ -76,9 +76,7 @@ describe("HomePage", () => {
       ),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(
-        "Reportar — hallazgos con severidad, listos para exportar.",
-      ),
+      screen.getByText("Revisar — hallazgos con su severidad."),
     ).toBeInTheDocument();
   });
 
@@ -92,5 +90,16 @@ describe("HomePage", () => {
     expect(
       screen.getByText("10.4.19.6 → 5432/tcp abierto postgresql"),
     ).toBeInTheDocument();
+  });
+
+  it("usa_el_nombre_del_producto_y_no_menciona_ni_front_ni_gateway", () => {
+    const { container } = render(<HomePage />);
+
+    expect(
+      screen.getByText("Security Scan App", { selector: "p" }),
+    ).toBeInTheDocument();
+    expect(container).not.toHaveTextContent(
+      /gateway|\bfront\b|exportar|rango/i,
+    );
   });
 });

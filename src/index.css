@@ -401,6 +401,90 @@ li {
   color: var(--color-status-text);
 }
 
+/* Neutral informational states (loading, empty): same box, but distinct
+   from the green success notice. */
+[role="status"][data-tone="neutral"] {
+  background-color: var(--color-surface);
+  border-color: var(--color-border);
+  border-style: dashed;
+  color: var(--color-text-muted);
+}
+
+/* Dismissible success notice and inline delete confirmation
+   (feature `layout-and-forms`). */
+.notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.confirm-delete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.button--secondary {
+  color: var(--color-text);
+  background-color: transparent;
+  border-color: var(--color-border);
+}
+
+.button--secondary:hover:not(:disabled) {
+  background-color: var(--color-surface);
+  border-color: var(--color-accent);
+}
+
+/* Credential form: compact single row on wide screens (LAF-02). */
+form.credential-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3) var(--space-4);
+  align-items: start;
+}
+
+.credential-form__field > p {
+  margin: var(--space-1) 0 0;
+}
+
+.credential-form__field label:not(:has(input)) {
+  line-height: 1.5;
+}
+
+.credential-form__actions button {
+  white-space: nowrap;
+}
+
+.credential-form__alert {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 640px) {
+  form.credential-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 960px) {
+  form.credential-form {
+    grid-template-columns:
+      minmax(9rem, 18ch) minmax(8rem, 16ch) minmax(10rem, 1fr)
+      minmax(10rem, 13rem) auto;
+  }
+
+  /* Align checkbox and button with the inputs, below the label line. */
+  .credential-form__field--sudo,
+  .credential-form__actions {
+    padding-top: calc(0.9rem * 1.5 + var(--space-1));
+  }
+
+  .credential-form__field--sudo label {
+    min-height: 2.4rem;
+  }
+}
+
 /* Ventanas angostas: los formularios/botones ya son fluidos (`width: 100%`
    en inputs, `flex-direction: column` en forms); las tablas ganan scroll
    horizontal propio en vez de desbordar la página. */
@@ -413,4 +497,186 @@ li {
     display: block;
     overflow-x: auto;
   }
+}
+
+/* Session-expired notice (feature `resilient-error-handling`): the landing
+   page is a full-bleed layer, so the notice is pinned above it. */
+.session-expired-notice {
+  position: fixed;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  max-width: calc(100vw - 2rem);
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-alert-border);
+  border-radius: 0.5rem;
+  background: var(--color-alert-bg);
+  color: var(--color-alert-text);
+}
+
+.session-expired-notice p {
+  margin: 0;
+}
+
+/* Insignia de estado de escaneo (`ScanStatusBadge`, feature
+   `user-facing-copy`): mismos tokens de color que los avisos, sin paleta
+   nueva. El estado se distingue también por el texto, nunca solo por color. */
+.status-badge {
+  display: inline-block;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  color: var(--color-text);
+}
+
+.status-badge[data-status="EN_PROGRESO"] {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.status-badge[data-status="COMPLETADO"] {
+  background-color: var(--color-status-bg);
+  border-color: var(--color-status-border);
+  color: var(--color-status-text);
+}
+
+.status-badge[data-status="FALLIDO"] {
+  background-color: var(--color-alert-bg);
+  border-color: var(--color-alert-border);
+  color: var(--color-alert-text);
+}
+
+.status-badge[data-status="CANCELADO"] {
+  border-color: var(--color-border);
+  color: var(--color-text-muted);
+}
+
+/* Motivo de fallo/cancelación bajo la insignia del histórico. */
+.failure-reason {
+  margin: var(--space-1, 0.25rem) 0 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+/* Insignia de severidad del reporte: mismos tokens que los avisos; la
+   severidad se distingue también por el texto, nunca solo por color. */
+.severity-badge {
+  display: inline-block;
+  padding: 0 var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  font-size: 0.85rem;
+  color: var(--color-text);
+}
+
+.severity-badge[data-severity="medium"] {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.severity-badge[data-severity="high"],
+.severity-badge[data-severity="critical"] {
+  background-color: var(--color-alert-bg);
+  border-color: var(--color-alert-border);
+  color: var(--color-alert-text);
+}
+
+/* Texto de ayuda bajo un campo (se enlaza con `aria-describedby`). */
+.field-help {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+/* Authenticated header and section navigation (feature `sectioned-navigation`). */
+.app-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-5);
+  padding-bottom: var(--space-3);
+  margin-bottom: var(--space-5);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.app-header h1 {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: 1.35rem;
+}
+
+.app-header__nav {
+  display: flex;
+  gap: var(--space-2);
+  flex: 1 1 auto;
+}
+
+.app-header__nav a {
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.app-header__nav a:hover {
+  color: var(--color-text);
+  border-color: var(--color-border);
+}
+
+.app-header__nav a[aria-current="page"] {
+  color: var(--color-text);
+  border-color: var(--color-accent);
+  background-color: var(--color-surface);
+}
+
+.app-header__user {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.app-header__identity {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 0.85rem;
+  line-height: 1.3;
+  color: var(--color-text-muted);
+}
+
+.app-header__identity strong {
+  color: var(--color-text);
+}
+
+.app-header__user button {
+  padding: var(--space-1) var(--space-3);
+  font-size: 0.85rem;
+}
+
+@media (max-width: 639px) {
+  .app-header__nav {
+    order: 3;
+    flex-basis: 100%;
+  }
+}
+
+/* Section headings receive programmatic focus on navigation. */
+[data-section-heading]:focus {
+  outline: none;
+}
+
+[data-section-heading]:focus-visible {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 4px;
+}
+
+select {
+  font: inherit;
 }

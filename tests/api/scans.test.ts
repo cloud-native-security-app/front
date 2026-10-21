@@ -68,6 +68,15 @@ describe("getScanHistory", () => {
     }
   });
 
+  it("includes_a_null_failure_reason_for_non_failed_scans", async () => {
+    await loginAsSyntheticUser();
+    await submitScan("10.0.0.7");
+
+    const result = await getScanHistory();
+
+    expect(result.ok && result.value[0]?.failure_reason).toBeNull();
+  });
+
   it("mapea_401_a_unauthorized_sin_sesion", async () => {
     const result = await getScanHistory();
 
@@ -113,6 +122,30 @@ describe("cancelScan", () => {
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.error.kind).toBe("conflict");
+    }
+  });
+
+  it("marks_a_cancelled_scan_CANCELADO_with_a_reason_and_rejects_a_second_cancel", async () => {
+    await loginAsSyntheticUser();
+    const submitted = await submitScan("10.0.0.8");
+    if (!submitted.ok) {
+      throw new Error("setup failed");
+    }
+    await cancelScan(submitted.value.scanId);
+
+    const history = await getScanHistory();
+    expect(history.ok).toBe(true);
+    if (history.ok) {
+      const entry = history.value.find(
+        (e) => e.scanId === submitted.value.scanId,
+      );
+      expect(entry?.status).toBe("CANCELADO");
+      expect(entry?.failure_reason).toEqual(expect.any(String));
+    }
+    const again = await cancelScan(submitted.value.scanId);
+    expect(again.ok).toBe(false);
+    if (!again.ok) {
+      expect(again.error.kind).toBe("conflict");
     }
   });
 });

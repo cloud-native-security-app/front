@@ -30,6 +30,7 @@ describe("isScanHistoryEntryArray", () => {
           status: "PENDIENTE",
           requested_at: "2026-01-01T00:00:00Z",
           updated_at: "2026-01-01T00:00:00Z",
+          failure_reason: null,
         },
       ]),
     ).toBe(true);
@@ -43,7 +44,36 @@ describe("isScanHistoryEntryArray", () => {
           status: "EN_ESPERA",
           requested_at: "2026-01-01T00:00:00Z",
           updated_at: "2026-01-01T00:00:00Z",
+          failure_reason: null,
         },
+      ]),
+    ).toBe(false);
+  });
+});
+
+describe("isScanHistoryEntryArray failure_reason and CANCELADO", () => {
+  const base = {
+    target: "10.0.0.1",
+    requested_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-01-01T00:00:00Z",
+  };
+
+  it("accepts_CANCELADO_with_a_reason_and_FALLIDO_with_a_reason", () => {
+    expect(
+      isScanHistoryEntryArray([
+        { ...base, status: "CANCELADO", failure_reason: "cancelado" },
+        { ...base, status: "FALLIDO", failure_reason: "sin ruta" },
+      ]),
+    ).toBe(true);
+  });
+
+  it("rejects_an_entry_without_failure_reason_or_with_a_non_string_one", () => {
+    expect(isScanHistoryEntryArray([{ ...base, status: "FALLIDO" }])).toBe(
+      false,
+    );
+    expect(
+      isScanHistoryEntryArray([
+        { ...base, status: "FALLIDO", failure_reason: 3 },
       ]),
     ).toBe(false);
   });

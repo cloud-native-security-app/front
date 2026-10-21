@@ -19,17 +19,19 @@ test.beforeEach(async ({ context }) => {
 test("crear_una_credencial_verla_en_el_listado_y_borrarla", async ({
   page,
 }) => {
-  await page.goto("/");
+  await page.goto("/objetivos");
 
-  await expect(page.getByRole("heading", { name: "front" })).toBeVisible();
   await expect(
-    page.getByText(/todavía no hay credenciales de red configuradas/i),
+    page.getByRole("heading", { name: "Security Scan App" }),
   ).toBeVisible();
+  await expect(page.getByText(/todavía no tienes objetivos/i)).toBeVisible();
 
-  await page.getByLabel("IP o rango del objetivo").fill("172.20.10.5");
+  await page.getByLabel("IP del objetivo").fill("172.20.10.5");
   await page.getByLabel("Usuario de red").fill("root");
   await page.getByLabel("Credencial SSH").fill("vault://ssh/e2e-lab-key");
   await page.getByRole("button", { name: "Agregar credencial" }).click();
+
+  await expect(page.getByText("Credencial guardada.")).toBeVisible();
 
   const row = page.locator("tr", { hasText: "172.20.10.5" });
   await expect(row).toBeVisible();
@@ -45,9 +47,9 @@ test("crear_una_credencial_verla_en_el_listado_y_borrarla", async ({
   await row
     .getByRole("button", { name: "Borrar credencial de 172.20.10.5" })
     .click();
+  await expect(row).toBeVisible();
+  await row.getByRole("button", { name: "Sí, borrar" }).click();
 
   await expect(row).toHaveCount(0);
-  await expect(
-    page.getByText(/todavía no hay credenciales de red configuradas/i),
-  ).toBeVisible();
+  await expect(page.getByText(/todavía no tienes objetivos/i)).toBeVisible();
 });

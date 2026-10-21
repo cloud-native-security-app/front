@@ -15,6 +15,8 @@
  */
 import { expect, test } from "@playwright/test";
 
+import { seedTarget } from "./seedTarget";
+
 test.beforeEach(async ({ context }) => {
   const response = await context.request.post("/__test__/session", {
     data: { email: "report-view-e2e@example.test", name: "Analista E2E" },
@@ -24,28 +26,32 @@ test.beforeEach(async ({ context }) => {
 
 test("abrir_el_reporte_de_un_escaneo_completado_muestra_su_estructura_y_permite_exportarlo", async ({
   page,
+  context,
 }) => {
+  await seedTarget(context, "172.16.50.7");
   await page.goto("/");
 
-  await page.getByLabel("IP o rango a escanear").fill("172.16.50.7");
+  await page.getByLabel("Objetivo a escanear").selectOption("172.16.50.7");
   await page.getByRole("button", { name: "Escanear" }).click();
 
   const statusLine = page.getByText(/^Estado: /);
-  await expect(statusLine).toContainText("COMPLETADO");
+  await expect(statusLine).toContainText("Completado");
 
-  // El histórico necesita un refetch para reflejar el nuevo estado
-  // COMPLETADO (mismo patrón que `e2e/scan-history.spec.ts`).
-  await page.reload();
+  // Historial loads fresh on navigation and shows the finished scan.
+  await page.getByRole("link", { name: "Historial" }).click();
 
   const row = page.locator("tr", { hasText: "172.16.50.7" });
   await expect(row).toBeVisible();
-  await expect(row).toContainText("COMPLETADO");
+  await expect(row).toContainText("Completado");
 
   await row.getByRole("button", { name: "Ver reporte de 172.16.50.7" }).click();
 
-  await expect(
-    page.getByRole("heading", { name: /reporte de 172\.16\.50\.7/i }),
-  ).toBeVisible();
+  const reportHeading = page.getByRole("heading", {
+    name: /reporte de 172\.16\.50\.7/i,
+  });
+  await expect(reportHeading).toBeVisible();
+  await expect(reportHeading).toBeFocused();
+  await expect(page).toHaveURL(/\/historial\/.+/);
   await expect(
     page.getByRole("heading", { name: /puertos y servicios/i }),
   ).toBeVisible();
@@ -61,34 +67,28 @@ test("abrir_el_reporte_de_un_escaneo_completado_muestra_su_estructura_y_permite_
   ]);
 
   expect(download.suggestedFilename()).toMatch(/^reporte-escaneo-.+\.json$/);
+
+  await page.getByRole("link", { name: "Volver al historial" }).click();
+  await expect(page).toHaveURL(/\/historial$/);
+  await expect(page.locator("tr", { hasText: "172.16.50.7" })).toBeVisible();
 });
 
-test("un_escaneo_no_completado_muestra_un_estado_explicativo_en_el_reporte", async ({
+test("un_escaneo_fallido_muestra_su_motivo_en_el_historial", async ({
   page,
   context,
 }) => {
-  // Encolado directo por API (mismo motivo que `e2e/scan-history.spec.ts`):
-  // sin suscriptor SSE, el escaneo se queda en PENDIENTE, así el histórico
-  // no ofrece "Ver reporte" para él — se navega directo con el `scanId`
-  // conocido para probar el estado explicativo de `ReportView`, ejercitando
-  // la misma vista que monta `App.tsx`, no un componente aislado.
+  // Queued through the API and drained through the SSE endpoint so the
+  // contract server reaches the terminal `failed` outcome ("fail" in the
+  // target selects it).
   const submitResponse = await context.request.post("/api/scans", {
-    data: { target: "172.16.50.8" },
+    data: { target: "172.16.50.fail" },
   });
   expect(submitResponse.ok()).toBe(true);
   const { scanId } = (await submitResponse.json()) as { scanId: string };
+  await context.request.get(`/api/scans/${scanId}/events`);
 
-  const reportResponse = await context.request.get(
-    `/api/scans/${scanId}/report`,
-  );
-  expect(reportResponse.status()).toBe(409);
-
-  await page.goto("/");
-
-  const row = page.locator("tr", { hasText: "172.16.50.8" });
-  await expect(row).toBeVisible();
-  await expect(row).toContainText("PENDIENTE");
-  await expect(row.getByRole("button", { name: /ver reporte/i })).toHaveCount(
-    0,
-  );
+  await page.goto("/historial");
+  const row = page.locator("tr", { hasText: "172.16.50.fail" });
+  await expect(row).toContainText("Falló");
+  await expect(row).toContainText("Motivo: objetivo inalcanzable");
 });

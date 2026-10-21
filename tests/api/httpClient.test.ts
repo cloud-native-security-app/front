@@ -32,3 +32,26 @@ describe("performRequest", () => {
     },
   );
 });
+
+describe("performRequest body read failures (REH-02)", () => {
+  useContractServer();
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("resuelve_con_networkError_si_la_lectura_del_body_falla_en_vez_de_rechazar", async () => {
+    const text = vi
+      .fn()
+      .mockRejectedValue(new TypeError("body stream interrumpido"));
+    vi.spyOn(globalThis, "fetch").mockResolvedValue({
+      status: 200,
+      text,
+    } as unknown as Response);
+
+    await expect(performRequest("/api/me")).resolves.toEqual({
+      networkError: true,
+    });
+    expect(text).toHaveBeenCalledTimes(1);
+  });
+});

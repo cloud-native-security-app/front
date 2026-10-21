@@ -18,7 +18,8 @@
  * conexión abierta hasta que el stream termina.
  */
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { gatewayBaseUrl, submitScan } from "../../../src/api";
 import { ReportView } from "../../../src/features/report/ReportView";
@@ -82,6 +83,8 @@ describe("ReportView", () => {
         screen.getByText(/el escaneo todavía no ha terminado/i),
       ).toBeInTheDocument();
     });
+    expect(screen.getByRole("status")).toHaveTextContent(/completado/i);
+    expect(screen.getByRole("status")).not.toHaveTextContent("COMPLETADO");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
@@ -92,8 +95,36 @@ describe("ReportView", () => {
 
     await waitFor(() => {
       expect(screen.getByRole("alert")).toHaveTextContent(
-        /el reporte no existe/i,
+        /no encontramos este reporte/i,
       );
     });
+  });
+
+  it("exports_the_report_as_a_json_download_named_after_the_scan", async () => {
+    await loginAsSyntheticUser();
+    const submitted = await submitScan("10.2.0.32");
+    if (!submitted.ok) {
+      throw new Error("setup failed");
+    }
+    await runToTerminalState(submitted.value.scanId);
+    const createObjectURL = vi.fn<(blob: Blob) => string>(() => "blob:fake");
+    const revokeObjectURL = vi.fn();
+    Object.assign(URL, { createObjectURL, revokeObjectURL });
+    const clicked: string[] = [];
+    const clickSpy = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(function (this: HTMLAnchorElement) {
+        clicked.push(this.download);
+      });
+
+    render(<ReportView scanId={submitted.value.scanId} />);
+    await userEvent.click(
+      await screen.findByRole("button", { name: "Exportar reporte (JSON)" }),
+    );
+
+    expect(clicked).toEqual([`reporte-escaneo-${submitted.value.scanId}.json`]);
+    const blob = createObjectURL.mock.calls[0]?.[0] as Blob;
+    expect(JSON.parse(await blob.text())).toMatchObject({ host: "10.2.0.32" });
+    clickSpy.mockRestore();
   });
 });

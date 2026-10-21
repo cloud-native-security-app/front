@@ -43,10 +43,7 @@ describe("NetworkCredentialForm", () => {
       screen.getByRole("button", { name: /agregar credencial/i }),
     ).toBeDisabled();
 
-    await user.type(
-      screen.getByLabelText("IP o rango del objetivo"),
-      "192.168.1.10",
-    );
+    await user.type(screen.getByLabelText("IP del objetivo"), "192.168.1.10");
     expect(
       screen.getByRole("button", { name: /agregar credencial/i }),
     ).toBeDisabled();
@@ -73,10 +70,7 @@ describe("NetworkCredentialForm", () => {
     const onCreated = vi.fn();
     render(<NetworkCredentialForm onCreated={onCreated} />);
 
-    await user.type(
-      screen.getByLabelText("IP o rango del objetivo"),
-      "192.168.1.10",
-    );
+    await user.type(screen.getByLabelText("IP del objetivo"), "192.168.1.10");
     await user.type(screen.getByLabelText("Usuario de red"), "root");
     await user.type(
       screen.getByLabelText("Credencial SSH"),
@@ -96,7 +90,7 @@ describe("NetworkCredentialForm", () => {
     });
     expect(created).not.toHaveProperty("ssh_credentials_ref");
 
-    expect(screen.getByLabelText("IP o rango del objetivo")).toHaveValue("");
+    expect(screen.getByLabelText("IP del objetivo")).toHaveValue("");
     expect(screen.getByLabelText("Usuario de red")).toHaveValue("");
     expect(screen.getByLabelText("Credencial SSH")).toHaveValue("");
   });
@@ -115,7 +109,7 @@ describe("NetworkCredentialForm", () => {
     render(<NetworkCredentialForm onCreated={vi.fn()} />);
 
     await userEvent.type(
-      screen.getByLabelText("IP o rango del objetivo"),
+      screen.getByLabelText("IP del objetivo"),
       "192.168.1.10",
     );
     await userEvent.type(screen.getByLabelText("Usuario de red"), "root");
@@ -132,5 +126,38 @@ describe("NetworkCredentialForm", () => {
         /tu sesión ya no es válida/i,
       );
     });
+  });
+
+  it("explica_los_campos_con_texto_de_ayuda_asociado", () => {
+    render(<NetworkCredentialForm onCreated={vi.fn()} />);
+
+    expect(screen.getByLabelText("IP del objetivo")).toHaveAttribute(
+      "placeholder",
+      "192.168.1.10",
+    );
+    expect(screen.getByLabelText("Credencial SSH")).toHaveAccessibleDescription(
+      "Contraseña SSH del usuario de red en el objetivo.",
+    );
+    expect(
+      screen.getByLabelText(/privilegios sudo/i),
+    ).toHaveAccessibleDescription(
+      "Permite técnicas de escaneo más profundas (requiere sudo sin contraseña).",
+    );
+  });
+
+  it("no_muestra_gateway_ni_el_cuerpo_del_servidor_en_los_errores", async () => {
+    // Sin sesión: la API responde 401.
+    render(<NetworkCredentialForm onCreated={vi.fn()} />);
+    await userEvent.type(screen.getByLabelText("IP del objetivo"), "10.0.0.1");
+    await userEvent.type(screen.getByLabelText("Usuario de red"), "root");
+    await userEvent.type(screen.getByLabelText("Credencial SSH"), "x");
+    await userEvent.click(
+      screen.getByRole("button", { name: /agregar credencial/i }),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toBeInTheDocument();
+    });
+    expect(screen.getByRole("alert")).not.toHaveTextContent(/gateway/i);
   });
 });

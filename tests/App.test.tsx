@@ -14,7 +14,8 @@
  * verifica ahora.
  */
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { MemoryRouter } from "react-router-dom";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { App } from "../src/App";
 import {
@@ -35,7 +36,11 @@ describe("App", () => {
   });
 
   it("renders_the_home_page_with_its_login_cta_when_anonymous", async () => {
-    render(<App />);
+    render(
+      <MemoryRouter>
+        <App />
+      </MemoryRouter>,
+    );
 
     await waitFor(() => {
       expect(
@@ -48,20 +53,51 @@ describe("App", () => {
       screen.getByRole("button", { name: "Iniciar sesión" }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("heading", { name: "front" }),
+      screen.queryByRole("heading", { name: "Security Scan App" }),
     ).not.toBeInTheDocument();
   });
 
-  it("renders_the_scan_form_inside_the_protected_route_when_authenticated", async () => {
+  it("renders_the_scan_section_inside_the_protected_route_when_authenticated", async () => {
     await loginAsSyntheticUser();
 
-    render(<App />);
+    render(
+      <MemoryRouter>
+        <App />
+      </MemoryRouter>,
+    );
 
-    await waitFor(() => {
-      expect(
-        screen.getByLabelText("IP o rango a escanear"),
-      ).toBeInTheDocument();
-    });
-    expect(screen.getByRole("heading", { name: "front" })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { level: 2, name: "Escanear" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Security Scan App" }),
+    ).toBeInTheDocument();
+  });
+});
+
+describe("App error boundary (REH-01)", () => {
+  it("shows_the_fallback_instead_of_a_blank_page_when_the_shell_throws", async () => {
+    vi.resetModules();
+    vi.doMock("../src/features/home", () => ({
+      HomePage: () => {
+        throw new Error("render roto");
+      },
+    }));
+    const consoleError = vi
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+    const { App: BrokenApp } = await import("../src/App");
+
+    render(
+      <MemoryRouter>
+        <BrokenApp />
+      </MemoryRouter>,
+    );
+
+    expect(await screen.findByText("Algo salió mal.")).toBeInTheDocument();
+    expect(consoleError).toHaveBeenCalled();
+    vi.doUnmock("../src/features/home");
+    vi.restoreAllMocks();
+    cleanup();
   });
 });

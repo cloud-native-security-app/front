@@ -14,7 +14,19 @@
  * `docs/security-scope.md`).
  */
 
-import type { ScanResult } from "../../api";
+import { useEffect, useRef } from "react";
+
+import type { ScanResult, VulnerabilitySeverity } from "../../api";
+import { EXPORT_REPORT_LABEL } from "../../copy";
+
+const SEVERITY_LABEL: Record<VulnerabilitySeverity, string> = {
+  unknown: "Desconocida",
+  info: "Informativa",
+  low: "Baja",
+  medium: "Media",
+  high: "Alta",
+  critical: "Crítica",
+};
 
 export interface ReportDetailsProps {
   scanId: string;
@@ -32,12 +44,22 @@ export function ReportDetails({
   report,
   onExport,
 }: ReportDetailsProps) {
+  const headingRef = useRef<HTMLHeadingElement>(null);
+
+  // Opening a report moves focus to its heading (feature
+  // `sectioned-navigation`, SNV-04).
+  useEffect(() => {
+    headingRef.current?.focus();
+  }, []);
+
   return (
     <section aria-label={`Reporte del escaneo ${scanId}`}>
-      <h2>Reporte de {report.host}</h2>
+      <h2 ref={headingRef} tabIndex={-1}>
+        Reporte de {report.host}
+      </h2>
       <p>Escaneado: {formatScannedAt(report.scanned_at)}</p>
       <button type="button" onClick={onExport}>
-        Exportar reporte (JSON)
+        {EXPORT_REPORT_LABEL}
       </button>
 
       <h3>Puertos y servicios</h3>
@@ -53,7 +75,11 @@ export function ReportDetails({
               <th scope="col">Estado</th>
               <th scope="col">Servicio</th>
               <th scope="col">Versión</th>
-              <th scope="col">CPEs</th>
+              <th scope="col">
+                <abbr title="Common Platform Enumeration: identificador estándar del software detectado en el puerto.">
+                  CPE
+                </abbr>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -79,12 +105,22 @@ export function ReportDetails({
           {report.vulnerabilities.map((vulnerability, index) => (
             <li key={`${vulnerability.id ?? "sin-id"}-${index}`}>
               <p>
-                <strong>{vulnerability.id ?? "Sin identificador"}</strong> —
-                severidad: {vulnerability.severity} (fuente:{" "}
-                {vulnerability.source})
+                <strong>{vulnerability.id ?? "Sin identificador"}</strong>{" "}
+                <span
+                  className="severity-badge"
+                  data-severity={vulnerability.severity}
+                >
+                  {SEVERITY_LABEL[vulnerability.severity]}
+                </span>{" "}
+                (fuente: {vulnerability.source})
               </p>
               <p>{vulnerability.description}</p>
-              <p>Script NSE: {vulnerability.nse_script}</p>
+              <p>
+                <abbr title="Script del Nmap Scripting Engine que detectó este hallazgo.">
+                  Script NSE
+                </abbr>
+                : {vulnerability.nse_script}
+              </p>
               {vulnerability.references.length > 0 && (
                 <ul>
                   {vulnerability.references.map((reference) => (

@@ -17,7 +17,9 @@
  * routing nuevo para esto).
  */
 
+import { EMPTY_HISTORY_MESSAGE, failureReasonLine } from "../../copy";
 import type { ScanHistoryEntry } from "../../api";
+import { ScanStatusBadge } from "../scan/ScanStatusBadge";
 import { isCancellableEntry } from "./isCancellableEntry";
 import { isReportViewableEntry } from "./isReportViewableEntry";
 
@@ -45,7 +47,11 @@ export function HistoryTableView({
   onViewReport,
 }: HistoryTableViewProps) {
   if (entries.length === 0) {
-    return <p role="status">Todavía no hay escaneos en tu histórico.</p>;
+    return (
+      <p role="status" data-tone="neutral">
+        {EMPTY_HISTORY_MESSAGE}
+      </p>
+    );
   }
 
   return (
@@ -71,7 +77,15 @@ export function HistoryTableView({
           return (
             <tr key={rowKey}>
               <td>{entry.target}</td>
-              <td>{entry.status}</td>
+              <td>
+                <ScanStatusBadge status={entry.status} />
+                {(entry.status === "FALLIDO" || entry.status === "CANCELADO") &&
+                  entry.failure_reason && (
+                    <p className="failure-reason">
+                      {failureReasonLine(entry.failure_reason)}
+                    </p>
+                  )}
+              </td>
               <td>{formatRequestedAt(entry.requested_at)}</td>
               <td>
                 {isCancellableEntry(entry) && scanId && (

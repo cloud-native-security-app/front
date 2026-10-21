@@ -13,6 +13,11 @@ export type SessionStatus = "loading" | "authenticated" | "anonymous";
 export interface SessionState {
   status: SessionStatus;
   user: MeResponse | undefined;
+  /**
+   * `true` only when an authenticated session was ended by a 401/403
+   * (never for a first visit). Drives the "session expired" notice.
+   */
+  expired?: boolean;
 }
 
 export const LOADING_SESSION: SessionState = {
@@ -23,4 +28,10 @@ export const LOADING_SESSION: SessionState = {
 export const ANONYMOUS_SESSION: SessionState = {
   status: "anonymous",
   user: undefined,
+};
+
+export const EXPIRED_SESSION: SessionState = {
+  status: "anonymous",
+  user: undefined,
+  expired: true,
 };

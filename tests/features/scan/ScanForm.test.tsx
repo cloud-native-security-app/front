@@ -1,6 +1,8 @@
 /**
- * Test de componente de `ScanForm` (feature `scan_request_form`, criterio
- * 6): entrada inválida deshabilita el envío y muestra el error inline sin
+ * Feature `sectioned-navigation` (SNV-02): the target is picked from a
+ * `<select>` of the user's saved targets instead of typed; with no targets
+ * the form points to "Objetivos". Previous contract (feature
+ * `scan_request_form`, criterio 6): entrada inválida deshabilita el envío y muestra el error inline sin
  * llamar a `submitScan()`; entrada válida + submit exitoso muestra el
  * `scanId`; submit fallido muestra el error explícito. Contra el servidor
  * de contrato real para `getMe`/`submitScan` (nunca `vi.mock`/`msw` sobre
@@ -27,17 +29,32 @@
  * mismo pragma de entorno "node") y en `e2e/realtime-status.spec.ts`
  * (navegador real, sin este problema de `jsdom`).
  */
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { ScanEventsSubscription } from "../../../src/api";
-import { ScanForm } from "../../../src/features/scan";
+import { MemoryRouter } from "react-router-dom";
+
+import { createNetworkCredential } from "../../../src/api";
+import { ScanActivityProvider, ScanForm } from "../../../src/features/scan";
 import {
   clearNodeTestSessionCookies,
   loginAsSyntheticUser,
   useContractServer,
 } from "../../api/testHelpers";
+
+const subscription = vi.hoisted(() => ({
+  onEvent: undefined as ((event: unknown) => void) | undefined,
+  onStatusChange: undefined as ((status: string) => void) | undefined,
+}));
 
 vi.mock("../../../src/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../../src/api")>();
@@ -45,14 +62,49 @@ vi.mock("../../../src/api", async (importOriginal) => {
     ...actual,
     subscribeToScanEvents: (
       _scanId: string,
-      _onEvent: unknown,
+      onEvent: (event: unknown) => void,
       onStatusChange: (status: string) => void,
     ): ScanEventsSubscription => {
+      subscription.onEvent = onEvent;
+      subscription.onStatusChange = onStatusChange;
       onStatusChange("connecting");
       return { close: () => {} };
     },
   };
 });
+
+const SELECT_LABEL = "Objetivo a escanear";
+
+async function seedTargets(...targets: string[]): Promise<void> {
+  for (const target of targets) {
+    const created = await createNetworkCredential({
+      target_pattern: target,
+      network_user: "root",
+      ssh_credentials_ref: "vault://ssh/test-key",
+      has_sudo: false,
+    });
+    if (!created.ok) {
+      throw new Error("setup failed: could not seed a target");
+    }
+  }
+}
+
+function renderForm() {
+  return render(
+    <MemoryRouter>
+      <ScanActivityProvider>
+        <ScanForm />
+      </ScanActivityProvider>
+    </MemoryRouter>,
+  );
+}
+
+async function pickTarget(target: string) {
+  await userEvent.selectOptions(
+    await screen.findByLabelText(SELECT_LABEL),
+    target,
+  );
+}
 
 describe("ScanForm", () => {
   useContractServer();
@@ -65,64 +117,168 @@ describe("ScanForm", () => {
     cleanup();
   });
 
-  it("deshabilita_el_envio_y_muestra_el_error_inline_sin_llamar_a_submitScan_con_entrada_invalida", async () => {
+  it("lists_the_saved_targets_as_options_and_has_no_free_text_input", async () => {
     await loginAsSyntheticUser();
-    const fetchSpy = vi.spyOn(globalThis, "fetch");
-    render(<ScanForm />);
+    await seedTargets("10.9.0.1", "10.9.0.2");
+    renderForm();
 
-    await userEvent.type(
-      screen.getByLabelText("IP o rango a escanear"),
-      "192.168.1.999",
+    const select = await screen.findByLabelText(SELECT_LABEL);
+    await waitFor(() => {
+      expect(
+        within(select)
+          .getAllByRole("option")
+          .map((option) => option.textContent),
+      ).toEqual(["Selecciona un objetivo", "10.9.0.1", "10.9.0.2"]);
+    });
+    expect(screen.queryByRole("textbox")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Escanear" })).toBeDisabled();
+  });
+
+  it("shows_a_loading_notice_while_targets_load", async () => {
+    await loginAsSyntheticUser();
+    renderForm();
+
+    expect(screen.getByText("Cargando objetivos…")).toBeInTheDocument();
+    await screen.findByText(/agrega un objetivo/i);
+  });
+
+  it("points_to_objetivos_when_there_are_no_saved_targets", async () => {
+    await loginAsSyntheticUser();
+    renderForm();
+
+    expect(
+      await screen.findByText(/Agrega un objetivo para poder escanear\./),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Objetivos" })).toHaveAttribute(
+      "href",
+      "/objetivos",
     );
+    expect(screen.queryByLabelText(SELECT_LABEL)).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Escanear" }),
+    ).not.toBeInTheDocument();
+  });
 
-    expect(screen.getByRole("button", { name: /escanear/i })).toBeDisabled();
-    expect(screen.getByRole("alert")).toHaveTextContent(/fuera de rango/i);
+  it("shows_a_clear_error_when_targets_cannot_be_loaded", async () => {
+    renderForm();
 
-    await userEvent.click(screen.getByRole("button", { name: /escanear/i }));
-    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      /tu sesión ya no es válida/i,
+    );
+  });
 
+  it("selecting_a_valid_target_enables_the_submit_and_queues_the_scan", async () => {
+    await loginAsSyntheticUser();
+    await seedTargets("192.168.1.10");
+    renderForm();
+
+    await pickTarget("192.168.1.10");
+    expect(screen.getByRole("button", { name: "Escanear" })).toBeEnabled();
+    await userEvent.click(screen.getByRole("button", { name: "Escanear" }));
+
+    const notice = await screen.findByText(/escaneo en cola/i);
+    expect(notice).not.toHaveAttribute("data-tone", "neutral");
+    expect(notice.textContent).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-/i);
+  });
+
+  it("sends_the_normalized_single_ip_when_the_saved_target_has_slash_32", async () => {
+    await loginAsSyntheticUser();
+    await seedTargets("10.9.9.9/32");
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    renderForm();
+
+    await pickTarget("10.9.9.9/32");
+    await userEvent.click(screen.getByRole("button", { name: "Escanear" }));
+
+    await screen.findByText(/escaneo en cola/i);
+    const scanCall = fetchSpy.mock.calls.find(
+      ([input, init]) =>
+        String(input).endsWith("/api/scans") && init?.method === "POST",
+    );
+    expect(JSON.parse(String(scanCall?.[1]?.body))).toEqual({
+      target: "10.9.9.9",
+    });
     fetchSpy.mockRestore();
   });
 
-  it("entrada_valida_y_submit_exitoso_muestra_el_scanId", async () => {
+  it("rejects_a_saved_range_without_calling_submitScan", async () => {
     await loginAsSyntheticUser();
-    render(<ScanForm />);
+    await seedTargets("10.0.0.0/24");
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    renderForm();
 
-    await userEvent.type(
-      screen.getByLabelText("IP o rango a escanear"),
-      "192.168.1.10",
+    await pickTarget("10.0.0.0/24");
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Solo se admite una única IP (no rangos).",
     );
-
-    expect(screen.getByRole("button", { name: /escanear/i })).toBeEnabled();
-    await userEvent.click(screen.getByRole("button", { name: /escanear/i }));
-
-    await waitFor(() => {
-      // El `scanId` vive en un `<span>` de fuente monoespaciada aparte
-      // (feature `scan_console_redesign`, id 13): el texto directo del `<p>`
-      // que lo envuelve ya no incluye el espacio final antes del `<span>`
-      // (el normalizador por defecto de Testing Library recorta los
-      // extremos del texto propio del nodo antes de compararlo, ver
-      // `docs/decisions.md`), por eso el matcher ya no
-      // exige ese espacio — el comportamiento verificado (aparece el texto
-      // "Escaneo encolado. ID:" tras un submit exitoso) no cambia.
-      expect(screen.getByText(/escaneo encolado\. id:/i)).toBeInTheDocument();
-    });
+    expect(screen.getByRole("button", { name: "Escanear" })).toBeDisabled();
+    expect(
+      fetchSpy.mock.calls.some(([, init]) => init?.method === "POST"),
+    ).toBe(false);
+    fetchSpy.mockRestore();
   });
 
-  it("submit_fallido_muestra_el_error_explicito", async () => {
-    // Sin sesión: `submitScan` responde 401, mapeado a `unauthorized`.
-    render(<ScanForm />);
+  it("a_422_without_credential_is_explained_without_the_server_body", async () => {
+    await loginAsSyntheticUser();
+    await seedTargets("203.0.113.99");
+    renderForm();
 
-    await userEvent.type(
-      screen.getByLabelText("IP o rango a escanear"),
-      "192.168.1.10",
+    await pickTarget("203.0.113.99");
+    await userEvent.click(screen.getByRole("button", { name: "Escanear" }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(
+      "Primero agrega una credencial de red para esa IP.",
     );
-    await userEvent.click(screen.getByRole("button", { name: /escanear/i }));
+    expect(alert).not.toHaveTextContent(/gateway|422/i);
+  });
+
+  it("an_expired_session_on_submit_shows_the_explicit_error", async () => {
+    await loginAsSyntheticUser();
+    await seedTargets("192.168.1.10");
+    renderForm();
+    await pickTarget("192.168.1.10");
+    clearNodeTestSessionCookies();
+
+    await userEvent.click(screen.getByRole("button", { name: "Escanear" }));
 
     await waitFor(() => {
       expect(screen.getByRole("alert")).toHaveTextContent(
         /tu sesión ya no es válida/i,
       );
     });
+  });
+
+  it("shows_the_final_state_instead_of_disconnected_after_a_terminal_event", async () => {
+    await loginAsSyntheticUser();
+    await seedTargets("10.9.9.10");
+    renderForm();
+
+    await pickTarget("10.9.9.10");
+    await userEvent.click(screen.getByRole("button", { name: "Escanear" }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/^Estado:/)).toHaveTextContent(
+        "Estado: En cola (conectando…)",
+      );
+    });
+
+    act(() => {
+      subscription.onEvent?.({ status: "started", correlation_id: "c" });
+    });
+    expect(screen.getByText(/^Estado:/)).toHaveTextContent("Escaneando…");
+
+    act(() => {
+      subscription.onEvent?.({
+        status: "completed",
+        correlation_id: "c",
+        result: {},
+      });
+      subscription.onStatusChange?.("closed");
+    });
+    const line = screen.getByText(/^Estado:/);
+    expect(line).toHaveTextContent("Estado: Completado");
+    expect(line).not.toHaveTextContent(/desconectado|sin conexión|\(/);
   });
 });

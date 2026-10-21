@@ -6,7 +6,8 @@
  */
 
 /** Estados visibles del histórico REST (`GET /api/scans`), RF-07/RF-08. */
-export type ScanStatus = "PENDIENTE" | "EN_PROGRESO" | "COMPLETADO" | "FALLIDO";
+export type ScanStatus =
+  "PENDIENTE" | "EN_PROGRESO" | "COMPLETADO" | "FALLIDO" | "CANCELADO";
 
 /** `GET /api/me` — perfil de la sesión activa. */
 export interface MeResponse {
@@ -25,6 +26,8 @@ export interface ScanHistoryEntry {
   status: ScanStatus;
   requested_at: string;
   updated_at: string;
+  /** Always present in the wire format; `null` when there is no reason. */
+  failure_reason: string | null;
 }
 
 /** `POST /api/scans` — respuesta de éxito (200, no 201). */
@@ -57,10 +60,8 @@ export interface ScanVulnerability {
 
 /**
  * Resultado consolidado de un escaneo. Es el mismo shape que el Gateway ya
- * serializa dentro del evento SSE `completed.result` — `getReport` (ver
- * `getReport` en `./report.ts`) reutiliza literalmente esta forma porque no
- * existe todavía un endpoint de reporte confirmado en el Gateway real (ver
- * nota en `./report.ts`).
+ * serializa dentro del evento SSE `completed.result`, y también el cuerpo
+ * desnudo de `GET /api/scans/{scan_id}/report` (ver `./report.ts`).
  */
 export interface ScanResult {
   host: string;
@@ -127,6 +128,8 @@ export type ApiError =
   /** El recurso existe pero aún no está en el estado requerido para la
    * operación pedida (p. ej. `getReport` sobre un scan no `COMPLETADO`). */
   | { kind: "not_ready" }
+  /** Upstream failure (502/504) of an endpoint that depends on another service. */
+  | { kind: "unavailable" }
   | { kind: "conflict"; message: string }
   | { kind: "validation"; message: string }
   | { kind: "unexpected"; status: number };
