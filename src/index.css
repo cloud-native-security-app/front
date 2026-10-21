@@ -455,16 +455,120 @@ form.credential-form {
 }
 
 /* Ventanas angostas: los formularios/botones ya son fluidos (`width: 100%`
-   en inputs, `flex-direction: column` en forms); las tablas ganan scroll
-   horizontal propio en vez de desbordar la página. */
+   en inputs, `flex-direction: column` en forms). */
 @media (max-width: 640px) {
   #root {
     padding: var(--space-4) var(--space-3) var(--space-5);
   }
+}
 
-  table {
+/* Feature `mobile-report`: below 640 px every table becomes a list of cards
+   (one per row) so nothing scrolls sideways. Each `td` carries
+   `data-label="<column>"`, shown as the field label; the header row is kept
+   for assistive tech but visually hidden. */
+@media (max-width: 639px) {
+  table,
+  tbody {
     display: block;
-    overflow-x: auto;
+    background: none;
+    border: none;
+    border-radius: 0;
+  }
+
+  caption {
+    display: block;
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  tbody tr {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    column-gap: 0;
+    margin-bottom: var(--space-3);
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius);
+  }
+
+  tbody td,
+  tbody tr:last-child td {
+    flex: 1 1 100%;
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: var(--space-1) var(--space-3);
+    border-bottom: 1px solid var(--color-border);
+    overflow-wrap: anywhere;
+  }
+
+  tbody tr td:last-child {
+    border-bottom: none;
+  }
+
+  tbody td[data-label]::before {
+    content: attr(data-label);
+    flex: 0 0 7rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--color-text-muted);
+  }
+
+  /* Port / protocol read as the card title ("22 / tcp"), not as fields. */
+  tbody tr td.cell--card-title,
+  tbody tr td.cell--card-title-suffix {
+    display: block;
+    border-bottom: none;
+    padding-bottom: 0;
+    font-size: 1.05rem;
+    font-weight: 600;
+  }
+
+  tbody tr td.cell--card-title {
+    flex: 0 0 auto;
+    padding-right: 0;
+  }
+
+  tbody tr td.cell--card-title-suffix {
+    flex: 1 1 0;
+    padding-left: 0;
+    gap: 0;
+  }
+
+  tbody tr td.cell--card-title::before {
+    content: none;
+  }
+
+  tbody tr td.cell--card-title-suffix::before {
+    content: "/";
+    flex: none;
+    font-size: inherit;
+    color: var(--color-text-muted);
+  }
+
+  /* Row actions: full-width, finger-sized buttons. */
+  td.cell--actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  td.cell--actions::before {
+    flex: none;
+  }
+
+  td.cell--actions button {
+    min-height: 2.75rem;
   }
 }
 
