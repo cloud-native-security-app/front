@@ -115,3 +115,17 @@ export const NO_FINDINGS_FOR_FILTER_MESSAGE =
   "Ningún hallazgo coincide con las severidades seleccionadas.";
 
 export const cveLinkLabel = (id: string): string => `Ver ${id} en NVD`;
+
+/** Theme toggle (feature `theme-and-contrast`). */
+export const THEME_LABEL = "Tema";
+
+export function themeChoiceLabel(choice: "system" | "light" | "dark"): string {
+  switch (choice) {
+    case "light":
+      return "Claro";
+    case "dark":
+      return "Oscuro";
+    default:
+      return "Sistema";
+  }
+}

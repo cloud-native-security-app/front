@@ -4,8 +4,8 @@
  * como `anonymousView` cuando `useSession().status === "anonymous"`).
  *
  * Dirección visual "Signals & Traces" (acordada con el usuario vía la skill
- * `frontend-design`): consola técnica oscura, paleta propia (definida en
- * `home.css`, nunca las custom properties globales de `src/index.css`),
+ * `frontend-design`): consola técnica, con los tokens de color
+ * globales de `src/index.css` (tema claro/oscuro),
  * Space Grotesk para titular/cuerpo e IBM Plex Mono para el panel técnico.
  * `LoginButton` (ya existente en `src/auth`) es el CTA — esta página nunca
  * reimplementa la navegación de login.
@@ -23,6 +23,7 @@ import "@fontsource/ibm-plex-mono/latin-500.css";
 
 import { LoginButton } from "../../auth";
 import { PRODUCT_NAME } from "../../copy";
+import { ThemeToggle } from "../../theme";
 import "./home.css";
 
 /**
@@ -44,6 +45,9 @@ const EXAMPLE_LIVE_SCAN_LINES = [
 export function HomePage() {
   return (
     <div className="home-page">
+      <div className="home-page__toolbar">
+        <ThemeToggle />
+      </div>
       <div className="home-page__shell">
         <div className="home-page__intro">
           <p className="home-page__brand">{PRODUCT_NAME}</p>

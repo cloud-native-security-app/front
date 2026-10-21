@@ -14,6 +14,7 @@ import {
   SECTION_SCAN,
   SECTION_TARGETS,
 } from "../copy";
+import { ThemeToggle } from "../theme";
 import { SECTION_PATHS } from "./paths";
 
 const SECTION_LINKS = [
@@ -36,6 +37,7 @@ export function AppHeader() {
         ))}
       </nav>
       <div className="app-header__user">
+        <ThemeToggle />
         {user && (
           <span className="app-header__identity">
             <strong>{user.name}</strong>

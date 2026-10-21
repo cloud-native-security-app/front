@@ -3,19 +3,9 @@
  * scoped bajo `.home-page` a propósito: esta paleta/tipografía es propia de
  * la página de inicio del visitante anónimo.
  *
- * Desde la feature `unify_authenticated_theme` (id 17), este archivo usa
- * los mismos nombres `--color-*` que `.app-shell--authenticated`
- * (`src/index.css`, dashboard autenticado) en vez de un set paralelo
- * `--home-*` — ambos quedan con la misma paleta oscura "Signals & Traces"
- * y el mismo vocabulario de variables, eliminando la duplicación de
- * nombres que existía antes. Sigue siendo una redefinición LOCAL, scoped
- * bajo `.home-page`, no una herencia real de `.app-shell--authenticated`:
- * son dos ramas mutuamente excluyentes de `ProtectedRoute` (anónimo vs.
- * autenticado, ver `src/App.tsx`) que nunca coexisten en el mismo árbol
- * del DOM, así que no hay forma de heredar directamente las variables del
- * otro — cada una debe seguir declarando los mismos valores hex
- * literales, sincronizados a mano (igual que antes, solo que ahora bajo
- * el nombre compartido `--color-*` en vez de uno paralelo).
+ * Los colores salen de los tokens `--color-*` de `:root` (`src/index.css`,
+ * feature `theme-and-contrast`): esta hoja ya no redeclara ninguna paleta,
+ * así que sigue el tema claro/oscuro como el resto de la app.
  *
  * Acento cian (`--color-accent`) reservado a tres lugares, a propósito
  * (ver `docs/decisions.md`): el CTA, el punto "en vivo" del panel, y el
@@ -23,14 +13,6 @@
  */
 
 .home-page {
-  --color-bg: #0b1220;
-  --color-surface: #131b2c;
-  --color-border: #232e45;
-  --color-text: #e7ecf3;
-  --color-text-muted: #8996ac;
-  --color-accent: #38bdf8;
-  --color-accent-hover: #7dd4fb;
-
   /* `#root` (src/index.css, feature `basic_styling`) centra su contenido
      con un ancho máximo y padding pensados para la app autenticada. El
      contenido de esta página se libera de ese ancho máximo con la técnica
@@ -54,23 +36,6 @@
   display: flex;
   flex-direction: column;
   gap: 3rem;
-}
-
-/* El fondo oscuro se pinta con una capa fija a viewport completo, no con el
-   propio `background-color`/`margin` de `.home-page`: `#root` ya define
-   `main > *:last-child { margin-bottom: 0 }` (feature `basic_styling`) con
-   más especificidad que un margen negativo puesto aquí, así que cancelar su
-   padding vertical por margen sería frágil (y, si se lograra, dependería de
-   sus valores exactos, que cambian en su propio `@media`). Una capa
-   `position: fixed` cubre siempre el viewport completo sin importar el
-   padding/scroll del contenedor — nunca queda un borde claro visible
-   alrededor del fondo oscuro. */
-.home-page::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  background-color: var(--color-bg);
 }
 
 .home-page a {
@@ -285,4 +250,16 @@
   .home-page {
     padding: 2rem 1.25rem 2rem;
   }
+}
+
+.home-page__toolbar {
+  display: flex;
+  justify-content: flex-end;
+  max-width: 68rem;
+  width: 100%;
+  margin-inline: auto;
+}
+
+.home-page__toolbar button {
+  align-self: auto;
 }

@@ -17,33 +17,43 @@
  * consumo): fondos neutros, un único color de acento para botones/acciones
  * primarias, y rojo/verde reservados solo para alert/status.
  *
- * Las `--color-*` de `:root` son la paleta clara "por defecto", pero ya no
- * se ven en ningún estado real de la app: el visitante anónimo ve
- * `.home-page` (oscura, scope propio) y el usuario autenticado ve
- * `.app-shell--authenticated` (oscura, ver más abajo), que redefine estas
- * mismas variables antes de que los selectores de este archivo las lean.
+ * Tokens de color: UNA sola fuente (feature `theme-and-contrast`). Cada
+ * `--color-*` se declara una vez en `:root` como `light-dark(claro,
+ * oscuro)`; `color-scheme` decide cuál se usa: `light dark` sigue la
+ * preferencia del sistema operativo, y `<html data-theme="light|dark">`
+ * (ver `src/theme`) la fuerza. Ninguna otra hoja redeclara la paleta.
+ *
+ * Contrastes medidos (WCAG, ratio de luminancia relativa):
+ *   oscuro  texto-atenuado #a3afc4 sobre #0b1220 8.46, #131b2c 7.77, #232e45 6.13
+ *   claro   texto-atenuado #4b5563 sobre #ffffff 7.56, #f3f4f6 6.87, #e4e7ec 6.10
+ *   borde de control (UI, >= 3:1): oscuro #6b7a94 sobre #131b2c 3.96;
+ *                                  claro #76808f sobre #ffffff 4.00
  */
 
 :root {
-  color-scheme: light;
+  color-scheme: light dark;
 
-  --color-bg: #f3f4f6;
-  --color-surface: #ffffff;
-  --color-border: #d8dce2;
-  --color-text: #1c2230;
-  --color-text-muted: #5b6472;
+  --color-bg: light-dark(#f3f4f6, #0b1220);
+  --color-surface: light-dark(#ffffff, #131b2c);
+  --color-border: light-dark(#d8dce2, #232e45);
+  --color-control-border: light-dark(#76808f, #6b7a94);
+  --color-text: light-dark(#1c2230, #e7ecf3);
+  --color-text-muted: light-dark(#4b5563, #a3afc4);
 
-  --color-accent: #2d5a82;
-  --color-accent-hover: #1d4560;
-  --color-accent-contrast: #ffffff;
+  --color-disabled-bg: light-dark(#e4e7ec, #232e45);
+  --color-disabled-text: light-dark(#4b5563, #a9b4c8);
 
-  --color-alert-bg: #fdecea;
-  --color-alert-border: #c94a3c;
-  --color-alert-text: #8a2a1e;
+  --color-accent: light-dark(#2d5a82, #38bdf8);
+  --color-accent-hover: light-dark(#1d4560, #7dd4fb);
+  --color-accent-contrast: light-dark(#ffffff, #0b1220);
 
-  --color-status-bg: #e8f4ee;
-  --color-status-border: #3a8a5c;
-  --color-status-text: #1f5c3a;
+  --color-alert-bg: light-dark(#fdecea, #3a1518);
+  --color-alert-border: light-dark(#c94a3c, #f87171);
+  --color-alert-text: light-dark(#8a2a1e, #fecaca);
+
+  --color-status-bg: light-dark(#e8f4ee, #0f2e28);
+  --color-status-border: light-dark(#3a8a5c, #34d399);
+  --color-status-text: light-dark(#1f5c3a, #a7f3d0);
 
   --font-sans:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
@@ -58,6 +68,14 @@
 
   --radius: 6px;
   --content-max-width: 960px;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 *,
@@ -91,65 +109,14 @@ main {
 }
 
 /**
- * Tema oscuro "Signals & Traces" del dashboard autenticado (feature
- * `unify_authenticated_theme`, id 17). Antes de esta feature, solo
- * `.scan-console` (`ScanForm`, feature `scan_console_redesign`, id 13)
- * vivía como una isla oscura dentro de un dashboard claro, duplicando a
- * mano en `--scan-*` los mismos valores que `--home-*`
- * (`src/features/home/home.css`). Esta clase, aplicada al `<div>` que
- * envuelve TODO el contenido autenticado (ver `src/App.tsx`), redefine las
- * mismas `--color-*` que ya leen de forma genérica los selectores de este
- * archivo (`form`, `table`, `button`, `[role="alert"]`, etc.) — así se
- * retiñe `HistoryTable`/`NetworkCredentialsManager`/`ReportView`/
- * `LogoutButton` sin tocar su markup ni sus estilos propios.
- *
- * Valores idénticos (literal, sin recalcular) a los que antes vivían en
- * `--scan-*`/`--home-*`. `src/features/scan/scanForm.css` ya no define su
- * propio set: al estar `.scan-console` anidado dentro de este wrapper en
- * el DOM, hereda estas `--color-*` directamente. `src/features/home/
- * home.css` sigue redefiniéndolas en su propio scope porque `.home-page`
- * vive FUERA de este wrapper (rama anónima de `ProtectedRoute`, nunca
- * anidada aquí) — ver el comentario de cabecera de ese archivo.
- *
- * `--color-alert-*`/`--color-status-*` recalibrados a ~7:1 de contraste
- * sobre `--color-surface` (`#131b2c`) — cálculo ya documentado en
- * `docs/decisions.md`, no se recalcula aquí.
- *
- * El `::before` (mismo patrón que `.home-page::before`) cubre el viewport
- * completo para que no quede un borde claro visible alrededor del padding
- * de `#root`.
+ * Wrapper del contenido autenticado (ver `src/App.tsx`). Ya no redeclara
+ * ninguna paleta: lee los mismos `--color-*` de `:root` que el resto de la
+ * app (feature `theme-and-contrast`, antes duplicaba a mano la paleta
+ * oscura "Signals & Traces"). El fondo de viewport completo lo pinta `body`
+ * con `--color-bg`, así que ya no hace falta una capa `::before` fija.
  */
 .app-shell--authenticated {
-  position: relative;
-  isolation: isolate;
-
-  --color-bg: #0b1220;
-  --color-surface: #131b2c;
-  --color-border: #232e45;
-  --color-text: #e7ecf3;
-  --color-text-muted: #8996ac;
-
-  --color-accent: #38bdf8;
-  --color-accent-hover: #7dd4fb;
-  --color-accent-contrast: #0b1220;
-
-  --color-alert-bg: #3a1518;
-  --color-alert-border: #f87171;
-  --color-alert-text: #fecaca;
-
-  --color-status-bg: #0f2e28;
-  --color-status-border: #34d399;
-  --color-status-text: #a7f3d0;
-
   color: var(--color-text);
-}
-
-.app-shell--authenticated::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  background-color: var(--color-bg);
 }
 
 /* Espaciado consistente entre los bloques de alto nivel del shell
@@ -265,7 +232,7 @@ input[type="email"] {
   font: inherit;
   color: var(--color-text);
   background-color: var(--color-surface);
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-control-border);
   border-radius: var(--radius);
   padding: var(--space-2) var(--space-3);
 }
@@ -273,8 +240,8 @@ input[type="email"] {
 input[type="text"]:disabled,
 input[type="password"]:disabled,
 input[type="email"]:disabled {
-  background-color: var(--color-bg);
-  color: var(--color-text-muted);
+  background-color: var(--color-disabled-bg);
+  color: var(--color-disabled-text);
   cursor: not-allowed;
 }
 
@@ -302,9 +269,9 @@ button:hover:not(:disabled) {
 }
 
 button:disabled {
-  background-color: var(--color-border);
-  border-color: var(--color-border);
-  color: var(--color-text-muted);
+  background-color: var(--color-disabled-bg);
+  border-color: var(--color-control-border);
+  color: var(--color-disabled-text);
   cursor: not-allowed;
 }
 
@@ -429,7 +396,7 @@ li {
 .button--secondary {
   color: var(--color-text);
   background-color: transparent;
-  border-color: var(--color-border);
+  border-color: var(--color-control-border);
 }
 
 .button--secondary:hover:not(:disabled) {
@@ -598,8 +565,22 @@ form.credential-form {
   list-style: none;
 }
 
+/* The filter toggles are <button>s that reuse the badge look: without these
+   two rules the global filled-accent `button` background sits behind the
+   badge text colour (contrast 1.8:1 in dark, 2.2:1 in light). */
+.severity-toggle {
+  background-color: var(--color-surface);
+}
+
+.severity-toggle:hover:not(:disabled) {
+  background-color: var(--color-bg);
+  border-color: var(--color-accent-hover);
+}
+
 .severity-toggle[aria-pressed="false"] {
-  opacity: 0.55;
+  background-color: var(--color-disabled-bg);
+  border-color: var(--color-control-border);
+  color: var(--color-disabled-text);
   text-decoration: line-through;
 }
 
