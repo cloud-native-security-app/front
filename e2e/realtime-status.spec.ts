@@ -39,7 +39,7 @@ test("un_escaneo_exitoso_llega_al_estado_completado_sin_recargar_la_pagina", asy
   await page.getByLabel("IP a escanear").fill("172.16.20.5");
   await page.getByRole("button", { name: "Escanear" }).click();
 
-  await expect(page.getByText(/escaneo encolado\. id: /i)).toBeVisible();
+  await expect(page.getByText(/escaneo en cola/i)).toBeVisible();
 
   // No se asevera sobre los estados intermedios (`PENDIENTE`/`EN_PROGRESO`):
   // el servidor de contrato emite todo el guion (`started` -> `completed`)

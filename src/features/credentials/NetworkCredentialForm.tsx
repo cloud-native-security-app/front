@@ -110,79 +110,95 @@ export function NetworkCredentialForm({
 
   return (
     <form
+      className="credential-form"
       aria-label="Nueva credencial de red"
       onSubmit={(event) => void handleSubmit(event)}
     >
-      <label htmlFor="credential-target-pattern">IP del objetivo</label>
-      <input
-        id="credential-target-pattern"
-        name="credential-target-pattern"
-        type="text"
-        value={targetPattern}
-        placeholder="192.168.1.10"
-        aria-describedby={showTargetHint ? targetHintId : undefined}
-        disabled={isSubmitting}
-        onChange={(event) => {
-          setTargetPattern(event.target.value);
-          setState({ status: "idle" });
-        }}
-      />
-      {showTargetHint && (
-        <p id={targetHintId}>Sugerencia: {targetHint.message}</p>
-      )}
-
-      <label htmlFor="credential-network-user">Usuario de red</label>
-      <input
-        id="credential-network-user"
-        name="credential-network-user"
-        type="text"
-        value={networkUser}
-        disabled={isSubmitting}
-        onChange={(event) => {
-          setNetworkUser(event.target.value);
-          setState({ status: "idle" });
-        }}
-      />
-
-      <label htmlFor="credential-ssh-ref">Credencial SSH</label>
-      <input
-        id="credential-ssh-ref"
-        name="credential-ssh-ref"
-        type="password"
-        aria-describedby="credential-ssh-ref-help"
-        value={sshCredentialsRef}
-        disabled={isSubmitting}
-        onChange={(event) => {
-          setSshCredentialsRef(event.target.value);
-          setState({ status: "idle" });
-        }}
-      />
-
-      <p id="credential-ssh-ref-help" className="field-help">
-        Contraseña SSH del usuario de red en el objetivo.
-      </p>
-
-      <label htmlFor="credential-has-sudo">
+      <div className="credential-form__field credential-form__field--target">
+        <label htmlFor="credential-target-pattern">IP del objetivo</label>
         <input
-          id="credential-has-sudo"
-          name="credential-has-sudo"
-          type="checkbox"
-          aria-describedby="credential-has-sudo-help"
-          checked={hasSudo}
+          id="credential-target-pattern"
+          name="credential-target-pattern"
+          type="text"
+          value={targetPattern}
+          placeholder="192.168.1.10"
+          aria-describedby={showTargetHint ? targetHintId : undefined}
           disabled={isSubmitting}
-          onChange={(event) => setHasSudo(event.target.checked)}
+          onChange={(event) => {
+            setTargetPattern(event.target.value);
+            setState({ status: "idle" });
+          }}
         />
-        Tiene privilegios sudo
-      </label>
-      <p id="credential-has-sudo-help" className="field-help">
-        Permite técnicas de escaneo más profundas (requiere sudo sin
-        contraseña).
-      </p>
+        {showTargetHint && (
+          <p id={targetHintId} className="field-help">
+            Sugerencia: {targetHint.message}
+          </p>
+        )}
+      </div>
 
-      <button type="submit" disabled={!canSubmit}>
-        {isSubmitting ? "Guardando…" : "Agregar credencial"}
-      </button>
-      {state.status === "error" && <p role="alert">{state.message}</p>}
+      <div className="credential-form__field credential-form__field--user">
+        <label htmlFor="credential-network-user">Usuario de red</label>
+        <input
+          id="credential-network-user"
+          name="credential-network-user"
+          type="text"
+          value={networkUser}
+          disabled={isSubmitting}
+          onChange={(event) => {
+            setNetworkUser(event.target.value);
+            setState({ status: "idle" });
+          }}
+        />
+      </div>
+
+      <div className="credential-form__field credential-form__field--secret">
+        <label htmlFor="credential-ssh-ref">Credencial SSH</label>
+        <input
+          id="credential-ssh-ref"
+          name="credential-ssh-ref"
+          type="password"
+          aria-describedby="credential-ssh-ref-help"
+          value={sshCredentialsRef}
+          disabled={isSubmitting}
+          onChange={(event) => {
+            setSshCredentialsRef(event.target.value);
+            setState({ status: "idle" });
+          }}
+        />
+        <p id="credential-ssh-ref-help" className="field-help">
+          Contraseña SSH del usuario de red en el objetivo.
+        </p>
+      </div>
+
+      <div className="credential-form__field credential-form__field--sudo">
+        <label htmlFor="credential-has-sudo">
+          <input
+            id="credential-has-sudo"
+            name="credential-has-sudo"
+            type="checkbox"
+            aria-describedby="credential-has-sudo-help"
+            checked={hasSudo}
+            disabled={isSubmitting}
+            onChange={(event) => setHasSudo(event.target.checked)}
+          />
+          Tiene privilegios sudo
+        </label>
+        <p id="credential-has-sudo-help" className="field-help">
+          Permite técnicas de escaneo más profundas (requiere sudo sin
+          contraseña).
+        </p>
+      </div>
+
+      <div className="credential-form__actions">
+        <button type="submit" disabled={!canSubmit}>
+          {isSubmitting ? "Guardando…" : "Agregar credencial"}
+        </button>
+      </div>
+      {state.status === "error" && (
+        <p role="alert" className="credential-form__alert">
+          {state.message}
+        </p>
+      )}
     </form>
   );
 }

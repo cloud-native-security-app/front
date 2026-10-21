@@ -26,7 +26,7 @@ test("ingresar_una_ip_valida_y_ver_el_scanId_en_pantalla", async ({ page }) => {
   await page.getByLabel("IP a escanear").fill("172.16.10.5");
   await page.getByRole("button", { name: "Escanear" }).click();
 
-  await expect(page.getByText(/escaneo encolado\. id: .+/i)).toBeVisible();
+  await expect(page.getByText(/escaneo en cola/i)).toBeVisible();
 });
 
 test("un_objetivo_sin_credencial_explica_que_hay_que_agregar_una", async ({

@@ -35,8 +35,8 @@
      con un ancho máximo y padding pensados para la app autenticada. El
      contenido de esta página se libera de ese ancho máximo con la técnica
      estándar de "full-bleed" (ancho 100vw + márgenes horizontales negativos
-     relativos al viewport), para poder alinearse de verdad contra el borde
-     izquierdo real del navegador. */
+     relativos al viewport); el contenido (`.home-page__shell`) se centra
+     luego dentro de ese ancho con `margin-inline: auto`. */
   position: relative;
   isolation: isolate;
   width: 100vw;
@@ -87,6 +87,9 @@
   gap: 2.5rem;
   align-items: start;
   max-width: 68rem;
+  /* Centered on wide screens; on narrow ones the shell fills the column. */
+  width: 100%;
+  margin-inline: auto;
 }
 
 @media (min-width: 60rem) {

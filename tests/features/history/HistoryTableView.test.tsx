@@ -206,9 +206,11 @@ describe("HistoryTableView", () => {
       />,
     );
 
-    expect(screen.getByRole("status")).toHaveTextContent(
-      /todavía no hay escaneos/i,
+    const empty = screen.getByRole("status");
+    expect(empty).toHaveTextContent(
+      "Todavía no hay escaneos. Lanza el primero desde «Nueva solicitud de escaneo».",
     );
+    expect(empty).toHaveAttribute("data-tone", "neutral");
   });
 
   it("muestra_la_accion_ver_reporte_solo_para_completado_con_scanId", () => {

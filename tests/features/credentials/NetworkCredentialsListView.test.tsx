@@ -72,7 +72,7 @@ describe("NetworkCredentialsListView", () => {
     expect(container.textContent).not.toMatch(/ssh_credentials_ref/i);
   });
 
-  it("llama_a_onDelete_con_el_id_de_la_fila_al_hacer_click", async () => {
+  it("pide_confirmacion_antes_de_llamar_a_onDelete", async () => {
     const onDelete = vi.fn();
     render(
       <NetworkCredentialsListView
@@ -86,7 +86,61 @@ describe("NetworkCredentialsListView", () => {
       screen.getByRole("button", { name: "Borrar credencial de 10.0.0.1" }),
     );
 
+    expect(onDelete).not.toHaveBeenCalled();
+    expect(
+      screen.getByText("¿Borrar la credencial de 10.0.0.1?"),
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Sí, borrar" }));
+
+    expect(onDelete).toHaveBeenCalledTimes(1);
     expect(onDelete).toHaveBeenCalledWith("cred-1");
+  });
+
+  it("cancelar_la_confirmacion_no_borra_y_devuelve_el_foco", async () => {
+    const onDelete = vi.fn();
+    render(
+      <NetworkCredentialsListView
+        entries={BASE_ENTRIES}
+        rowStates={{}}
+        onDelete={onDelete}
+      />,
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Borrar credencial de 10.0.0.1" }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+
+    expect(onDelete).not.toHaveBeenCalled();
+    expect(
+      screen.queryByText("¿Borrar la credencial de 10.0.0.1?"),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Borrar credencial de 10.0.0.1" }),
+    ).toHaveFocus();
+  });
+
+  it("la_confirmacion_se_opera_con_teclado_y_Escape_cancela", async () => {
+    const onDelete = vi.fn();
+    render(
+      <NetworkCredentialsListView
+        entries={BASE_ENTRIES}
+        rowStates={{}}
+        onDelete={onDelete}
+      />,
+    );
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Borrar credencial de 10.0.0.1" }),
+    );
+    expect(screen.getByRole("button", { name: "Cancelar" })).toHaveFocus();
+
+    await userEvent.keyboard("{Escape}");
+    expect(onDelete).not.toHaveBeenCalled();
+    expect(
+      screen.queryByRole("button", { name: "Sí, borrar" }),
+    ).not.toBeInTheDocument();
   });
 
   it("deshabilita_el_boton_mientras_la_fila_esta_borrando", () => {
@@ -136,8 +190,10 @@ describe("NetworkCredentialsListView", () => {
       />,
     );
 
-    expect(screen.getByRole("status")).toHaveTextContent(
-      /todavía no hay credenciales/i,
+    const empty = screen.getByRole("status");
+    expect(empty).toHaveTextContent(
+      "Todavía no tienes objetivos. Agrega el primero con el formulario de arriba.",
     );
+    expect(empty).toHaveAttribute("data-tone", "neutral");
   });
 });

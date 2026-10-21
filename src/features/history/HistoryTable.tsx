@@ -178,7 +178,11 @@ export function HistoryTable({ onViewReport }: HistoryTableProps) {
   }
 
   if (state.status === "loading") {
-    return <p role="status">Cargando histórico…</p>;
+    return (
+      <p role="status" data-tone="neutral">
+        Cargando histórico…
+      </p>
+    );
   }
 
   if (state.status === "error") {

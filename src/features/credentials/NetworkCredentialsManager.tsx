@@ -23,6 +23,7 @@ import {
   type NetworkCredential,
 } from "../../api";
 import {
+  CREDENTIAL_SAVED_MESSAGE,
   SESSION_EXPIRED_MESSAGE,
   networkErrorMessage,
   unexpectedErrorMessage,
@@ -76,6 +77,7 @@ function toListState(
 
 export function NetworkCredentialsManager() {
   const [state, setState] = useState<ListState>({ status: "loading" });
+  const [savedNotice, setSavedNotice] = useState(false);
   const [rowStates, setRowStates] = useState<Record<string, RowDeleteState>>(
     {},
   );
@@ -115,6 +117,7 @@ export function NetworkCredentialsManager() {
   }
 
   async function handleDelete(id: string): Promise<void> {
+    setSavedNotice(false);
     setRowStates((previous) => ({
       ...previous,
       [id]: { status: "deleting" },
@@ -153,9 +156,28 @@ export function NetworkCredentialsManager() {
   return (
     <section aria-label="Credenciales de red">
       <h2>Credenciales de red</h2>
-      <NetworkCredentialForm onCreated={() => void refresh()} />
+      <NetworkCredentialForm
+        onCreated={() => {
+          setSavedNotice(true);
+          void refresh();
+        }}
+      />
+      {savedNotice && (
+        <p role="status" className="notice">
+          <span>{CREDENTIAL_SAVED_MESSAGE}</span>
+          <button
+            type="button"
+            className="button--secondary"
+            onClick={() => setSavedNotice(false)}
+          >
+            Cerrar aviso
+          </button>
+        </p>
+      )}
       {state.status === "loading" && (
-        <p role="status">Cargando credenciales…</p>
+        <p role="status" data-tone="neutral">
+          Cargando credenciales…
+        </p>
       )}
       {state.status === "error" && <p role="alert">{state.message}</p>}
       {state.status === "loaded" && (

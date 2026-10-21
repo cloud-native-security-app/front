@@ -401,6 +401,90 @@ li {
   color: var(--color-status-text);
 }
 
+/* Neutral informational states (loading, empty): same box, but distinct
+   from the green success notice. */
+[role="status"][data-tone="neutral"] {
+  background-color: var(--color-surface);
+  border-color: var(--color-border);
+  border-style: dashed;
+  color: var(--color-text-muted);
+}
+
+/* Dismissible success notice and inline delete confirmation
+   (feature `layout-and-forms`). */
+.notice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.confirm-delete {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.button--secondary {
+  color: var(--color-text);
+  background-color: transparent;
+  border-color: var(--color-border);
+}
+
+.button--secondary:hover:not(:disabled) {
+  background-color: var(--color-surface);
+  border-color: var(--color-accent);
+}
+
+/* Credential form: compact single row on wide screens (LAF-02). */
+form.credential-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-3) var(--space-4);
+  align-items: start;
+}
+
+.credential-form__field > p {
+  margin: var(--space-1) 0 0;
+}
+
+.credential-form__field label:not(:has(input)) {
+  line-height: 1.5;
+}
+
+.credential-form__actions button {
+  white-space: nowrap;
+}
+
+.credential-form__alert {
+  grid-column: 1 / -1;
+}
+
+@media (min-width: 640px) {
+  form.credential-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 960px) {
+  form.credential-form {
+    grid-template-columns:
+      minmax(9rem, 18ch) minmax(8rem, 16ch) minmax(10rem, 1fr)
+      minmax(10rem, 13rem) auto;
+  }
+
+  /* Align checkbox and button with the inputs, below the label line. */
+  .credential-form__field--sudo,
+  .credential-form__actions {
+    padding-top: calc(0.9rem * 1.5 + var(--space-1));
+  }
+
+  .credential-form__field--sudo label {
+    min-height: 2.4rem;
+  }
+}
+
 /* Ventanas angostas: los formularios/botones ya son fluidos (`width: 100%`
    en inputs, `flex-direction: column` en forms); las tablas ganan scroll
    horizontal propio en vez de desbordar la página. */

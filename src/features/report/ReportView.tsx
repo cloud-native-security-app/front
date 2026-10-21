@@ -92,7 +92,11 @@ export function ReportView({ scanId }: ReportViewProps) {
   }, [scanId]);
 
   if (state.status === "loading") {
-    return <p role="status">Cargando reporte…</p>;
+    return (
+      <p role="status" data-tone="neutral">
+        Cargando reporte…
+      </p>
+    );
   }
 
   if (state.status === "not_ready") {
