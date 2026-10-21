@@ -8,26 +8,34 @@
  * the history can refetch immediately instead of waiting for the poll.
  */
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useCallback, useMemo, useState, type ReactNode } from "react";
 
 import { ScanActivityContext, type ScanActivity } from "./scanActivityContext";
 import { isTerminalScanStatus } from "./scanStatus";
 import { useScanEvents } from "./useScanEvents";
 
 export function ScanActivityProvider({ children }: { children: ReactNode }) {
-  const [scanId, setScanId] = useState<string | undefined>(undefined);
+  const [tracked, setTracked] = useState<
+    { scanId: string; target: string | undefined } | undefined
+  >(undefined);
+  const scanId = tracked?.scanId;
+  const target = tracked?.target;
+  const trackScan = useCallback((id: string, label?: string) => {
+    setTracked({ scanId: id, target: label });
+  }, []);
   const { status, connectionStatus } = useScanEvents(scanId);
 
   const value = useMemo<ScanActivity>(
     () => ({
       scanId,
+      target,
       status,
       connectionStatus,
       finishedScanId:
         scanId && isTerminalScanStatus(status) ? scanId : undefined,
-      trackScan: setScanId,
+      trackScan,
     }),
-    [scanId, status, connectionStatus],
+    [scanId, target, status, connectionStatus, trackScan],
   );
 
   return (
