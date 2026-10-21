@@ -32,6 +32,7 @@ import { Link } from "react-router-dom";
 import { listNetworkCredentials, submitScan, type ApiError } from "../../api";
 import {
   NO_SCAN_TARGETS_MESSAGE,
+  SCAN_IN_PROGRESS_LABEL,
   SCAN_QUEUED_MESSAGE,
   SCAN_TARGETS_LOADING_MESSAGE,
   SCAN_TARGET_LABEL,
@@ -124,6 +125,8 @@ export function ScanForm() {
     };
   }, []);
 
+  const isScanRunning =
+    activity.status === "PENDIENTE" || activity.status === "EN_PROGRESO";
   const validation = validateScanTarget(target);
   const isSubmitting = submitState.status === "submitting";
   const canSubmit = validation.valid && !isSubmitting;
@@ -137,7 +140,7 @@ export function ScanForm() {
     const result = await submitScan(validation.target);
     if (result.ok) {
       setSubmitState({ status: "success", scanId: result.value.scanId });
-      trackScan(result.value.scanId);
+      trackScan(result.value.scanId, validation.target);
     } else {
       setSubmitState({
         status: "error",
@@ -215,16 +218,25 @@ export function ScanForm() {
         </form>
       )}
       {activity.scanId && (
-        <p role="status">
-          {activity.connectionStatus === "open" && (
-            <span className="scan-console__live-dot" aria-hidden="true" />
+        <div aria-busy={isScanRunning}>
+          <p role="status">
+            {activity.connectionStatus === "open" && (
+              <span className="scan-console__live-dot" aria-hidden="true" />
+            )}
+            <span className="scan-console__mono">
+              Estado: <ScanStatusBadge status={activity.status} />
+              {!isTerminalScanStatus(activity.status) &&
+                ` (${CONNECTION_STATUS_LABEL[activity.connectionStatus]})`}
+            </span>
+          </p>
+          {isScanRunning && (
+            <div
+              className="scan-console__progress"
+              role="progressbar"
+              aria-label={SCAN_IN_PROGRESS_LABEL}
+            />
           )}
-          <span className="scan-console__mono">
-            Estado: <ScanStatusBadge status={activity.status} />
-            {!isTerminalScanStatus(activity.status) &&
-              ` (${CONNECTION_STATUS_LABEL[activity.connectionStatus]})`}
-          </span>
-        </p>
+        </div>
       )}
     </section>
   );

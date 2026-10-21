@@ -97,6 +97,30 @@ export function createSyntheticSession(
   return { token, profile };
 }
 
+/**
+ * Eight extra version-based findings (ten "posibles" in total with the two
+ * above) so the report exceeds the collapse threshold and mixes severities.
+ */
+const SIMULATED_POSSIBLE_FINDINGS: ScanResult["vulnerabilities"] = [
+  "critical",
+  "low",
+  "low",
+  "medium",
+  "high",
+  "low",
+  "medium",
+  "unknown",
+].map((severity, index) => ({
+  id: `CVE-2022-${String(1000 + index)}`,
+  severity: severity as ScanResult["vulnerabilities"][number]["severity"],
+  description:
+    "Hallazgo simulado por comparación de versión (no es un hallazgo real).",
+  nse_script: "vulners",
+  source: "nvd" as const,
+  references: [],
+  confidence: "version_match",
+}));
+
 function buildScanResult(target: string): ScanResult {
   return {
     host: target,
@@ -149,6 +173,7 @@ function buildScanResult(target: string): ScanResult {
         references: ["https://nvd.nist.gov/vuln/detail/CVE-2023-51385"],
         confidence: "version_match",
       },
+      ...SIMULATED_POSSIBLE_FINDINGS,
     ],
     scanned_at: new Date().toISOString(),
   };

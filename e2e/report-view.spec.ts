@@ -58,9 +58,48 @@ test("abrir_el_reporte_de_un_escaneo_completado_muestra_su_estructura_y_permite_
   await expect(
     page.getByRole("heading", { name: /vulnerabilidades/i }),
   ).toBeVisible();
-  await expect(page.getByText("Confirmada")).toHaveCount(1);
-  await expect(page.getByText("Posible (según versión)").first()).toBeVisible();
+  await expect(page.getByText("Confirmada", { exact: true })).toHaveCount(1);
   await expect(page.getByText(/Amazon Linux o RHEL/)).toHaveCount(1);
+  await expect(
+    page.getByRole("link", { name: "Ver CVE-2023-38408 en NVD" }),
+  ).toHaveAttribute("target", "_blank");
+
+  // Confirmed findings first; the ten "posibles" start collapsed.
+  const posibles = page.locator("details", {
+    hasText: "Posibles (según versión) (10)",
+  });
+  await expect(posibles).toBeVisible();
+  await expect(posibles).not.toHaveAttribute("open", "");
+  await expect(
+    page.getByRole("link", { name: "Ver CVE-2023-38408 en NVD" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Ver CVE-2022-1000 en NVD" }),
+  ).toBeHidden();
+  await posibles
+    .getByText(/Posibles \(según versión\)/)
+    .first()
+    .click();
+  await expect(
+    page.getByRole("link", { name: "Ver CVE-2022-1000 en NVD" }),
+  ).toBeVisible();
+
+  // Severity filter hides rows; the export button stays available.
+  const criticalToggle = page.getByRole("button", { name: "Crítica: 1" });
+  await expect(criticalToggle).toHaveAttribute("aria-pressed", "true");
+  await criticalToggle.click();
+  await expect(criticalToggle).toHaveAttribute("aria-pressed", "false");
+  await expect(
+    page.getByRole("link", { name: "Ver CVE-2022-1000 en NVD" }),
+  ).toBeHidden();
+  await criticalToggle.click();
+  await expect(
+    page.getByRole("link", { name: "Ver CVE-2022-1000 en NVD" }),
+  ).toBeVisible();
+  await page.screenshot({
+    path: "test-results/report-readability-1440.png",
+    fullPage: true,
+  });
   // Nunca JSON crudo como presentación final (`docs/decisions.md`).
   await expect(page.locator("pre")).toHaveCount(0);
 

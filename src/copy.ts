@@ -91,3 +91,62 @@ export const CONFIDENCE_VERSION_MATCH_LABEL = "Posible (según versión)";
 
 export const CONFIDENCE_VERSION_MATCH_NOTE =
   "Detectada comparando la versión del servicio. Las distribuciones como Amazon Linux o RHEL suelen aplicar parches sin cambiar la versión, así que podría estar ya corregida.";
+
+/** Report readability: severity summary/filter, confidence groups, CVE links. */
+export const SEVERITY_LABEL = {
+  unknown: "Desconocida",
+  info: "Informativa",
+  low: "Baja",
+  medium: "Media",
+  high: "Alta",
+  critical: "Crítica",
+} as const;
+
+export const SEVERITY_SUMMARY_LABEL = "Resumen por severidad";
+
+export const SEVERITY_FILTER_HINT =
+  "Pulsa una severidad para mostrar u ocultar sus hallazgos.";
+
+export const CONFIRMED_GROUP_TITLE = "Confirmadas";
+
+export const VERSION_MATCH_GROUP_TITLE = "Posibles (según versión)";
+
+export const NO_FINDINGS_FOR_FILTER_MESSAGE =
+  "Ningún hallazgo coincide con las severidades seleccionadas.";
+
+export const cveLinkLabel = (id: string): string => `Ver ${id} en NVD`;
+
+/** Theme toggle (feature `theme-and-contrast`). */
+export const THEME_LABEL = "Tema";
+
+export function themeChoiceLabel(choice: "system" | "light" | "dark"): string {
+  switch (choice) {
+    case "light":
+      return "Claro";
+    case "dark":
+      return "Oscuro";
+    default:
+      return "Sistema";
+  }
+}
+
+/** Keyboard and live feedback (feature `keyboard-and-live-feedback`). */
+export const SKIP_TO_CONTENT_LABEL = "Saltar al contenido";
+export const SCAN_IN_PROGRESS_LABEL = "Escaneo en curso";
+export const SCAN_NOTICE_DISMISS_LABEL = "Cerrar aviso";
+export const SCAN_NOTICE_VIEW_REPORT_LABEL = "Ver reporte";
+
+const SCAN_OUTCOME_WORD = {
+  COMPLETADO: "completado",
+  FALLIDO: "falló",
+  CANCELADO: "cancelado",
+} as const;
+
+/** "Escaneo de 10.0.0.5 completado"; the target is omitted when unknown. */
+export function scanFinishedMessage(
+  status: keyof typeof SCAN_OUTCOME_WORD,
+  target: string | undefined,
+): string {
+  const subject = target ? `Escaneo de ${target}` : "Escaneo";
+  return `${subject} ${SCAN_OUTCOME_WORD[status]}`;
+}

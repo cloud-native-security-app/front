@@ -10,11 +10,13 @@ import type { ConnectionStatus, ScanStatus } from "../../api";
 export interface ScanActivity {
   /** Id of the scan whose live status is being followed, if any. */
   scanId: string | undefined;
+  /** Target the tracked scan was submitted for, when the caller provided it. */
+  target: string | undefined;
   status: ScanStatus;
   connectionStatus: ConnectionStatus;
   /** The tracked scan id once it reached a terminal state; otherwise `undefined`. */
   finishedScanId: string | undefined;
-  trackScan: (scanId: string) => void;
+  trackScan: (scanId: string, target?: string) => void;
 }
 
 export const ScanActivityContext = createContext<ScanActivity | undefined>(
