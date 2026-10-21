@@ -127,6 +127,27 @@ function buildScanResult(target: string): ScanResult {
         nse_script: "ssh-vuln-cve-2023-38408",
         source: "nmap_nse",
         references: ["https://nvd.nist.gov/vuln/detail/CVE-2023-38408"],
+        confidence: "confirmed",
+      },
+      {
+        id: "CVE-2024-6387",
+        severity: "high",
+        description:
+          "Hallazgo simulado por comparación de versión (no es un hallazgo real).",
+        nse_script: "vulners",
+        source: "nvd",
+        references: ["https://nvd.nist.gov/vuln/detail/CVE-2024-6387"],
+        confidence: "version_match",
+      },
+      {
+        id: "CVE-2023-51385",
+        severity: "medium",
+        description:
+          "Hallazgo simulado por comparación de versión (no es un hallazgo real).",
+        nse_script: "vulners",
+        source: "nvd",
+        references: ["https://nvd.nist.gov/vuln/detail/CVE-2023-51385"],
+        confidence: "version_match",
       },
     ],
     scanned_at: new Date().toISOString(),

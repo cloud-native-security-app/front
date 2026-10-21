@@ -58,6 +58,9 @@ test("abrir_el_reporte_de_un_escaneo_completado_muestra_su_estructura_y_permite_
   await expect(
     page.getByRole("heading", { name: /vulnerabilidades/i }),
   ).toBeVisible();
+  await expect(page.getByText("Confirmada")).toHaveCount(1);
+  await expect(page.getByText("Posible (según versión)").first()).toBeVisible();
+  await expect(page.getByText(/Amazon Linux o RHEL/)).toHaveCount(1);
   // Nunca JSON crudo como presentación final (`docs/decisions.md`).
   await expect(page.locator("pre")).toHaveCount(0);
 
