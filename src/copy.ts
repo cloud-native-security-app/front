@@ -91,3 +91,27 @@ export const CONFIDENCE_VERSION_MATCH_LABEL = "Posible (según versión)";
 
 export const CONFIDENCE_VERSION_MATCH_NOTE =
   "Detectada comparando la versión del servicio. Las distribuciones como Amazon Linux o RHEL suelen aplicar parches sin cambiar la versión, así que podría estar ya corregida.";
+
+/** Report readability: severity summary/filter, confidence groups, CVE links. */
+export const SEVERITY_LABEL = {
+  unknown: "Desconocida",
+  info: "Informativa",
+  low: "Baja",
+  medium: "Media",
+  high: "Alta",
+  critical: "Crítica",
+} as const;
+
+export const SEVERITY_SUMMARY_LABEL = "Resumen por severidad";
+
+export const SEVERITY_FILTER_HINT =
+  "Pulsa una severidad para mostrar u ocultar sus hallazgos.";
+
+export const CONFIRMED_GROUP_TITLE = "Confirmadas";
+
+export const VERSION_MATCH_GROUP_TITLE = "Posibles (según versión)";
+
+export const NO_FINDINGS_FOR_FILTER_MESSAGE =
+  "Ningún hallazgo coincide con las severidades seleccionadas.";
+
+export const cveLinkLabel = (id: string): string => `Ver ${id} en NVD`;
