@@ -19,10 +19,38 @@ test.beforeEach(async ({ context }) => {
 test("ingresar_una_ip_valida_y_ver_el_scanId_en_pantalla", async ({ page }) => {
   await page.goto("/");
 
-  await expect(page.getByRole("heading", { name: "front" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Security Scan App" }),
+  ).toBeVisible();
 
-  await page.getByLabel("IP o rango a escanear").fill("172.16.10.5");
+  await page.getByLabel("IP a escanear").fill("172.16.10.5");
   await page.getByRole("button", { name: "Escanear" }).click();
 
   await expect(page.getByText(/escaneo encolado\. id: .+/i)).toBeVisible();
+});
+
+test("un_objetivo_sin_credencial_explica_que_hay_que_agregar_una", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  // 203.0.113.99 es el objetivo "sin credencial" del servidor de contrato (422).
+  await page.getByLabel("IP a escanear").fill("203.0.113.99");
+  await page.getByRole("button", { name: "Escanear" }).click();
+
+  const alert = page.getByRole("alert");
+  await expect(alert).toHaveText(
+    "Primero agrega una credencial de red para esa IP.",
+  );
+  await expect(alert).not.toContainText(/gateway/i);
+});
+
+test("la_pestana_y_la_cabecera_usan_el_nombre_del_producto", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  await expect(page).toHaveTitle(
+    "Security Scan App · Escaneo de vulnerabilidades",
+  );
 });

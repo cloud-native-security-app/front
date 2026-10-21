@@ -27,11 +27,11 @@ test("abrir_el_reporte_de_un_escaneo_completado_muestra_su_estructura_y_permite_
 }) => {
   await page.goto("/");
 
-  await page.getByLabel("IP o rango a escanear").fill("172.16.50.7");
+  await page.getByLabel("IP a escanear").fill("172.16.50.7");
   await page.getByRole("button", { name: "Escanear" }).click();
 
   const statusLine = page.getByText(/^Estado: /);
-  await expect(statusLine).toContainText("COMPLETADO");
+  await expect(statusLine).toContainText("Completado");
 
   // El histórico necesita un refetch para reflejar el nuevo estado
   // COMPLETADO (mismo patrón que `e2e/scan-history.spec.ts`).
@@ -39,7 +39,7 @@ test("abrir_el_reporte_de_un_escaneo_completado_muestra_su_estructura_y_permite_
 
   const row = page.locator("tr", { hasText: "172.16.50.7" });
   await expect(row).toBeVisible();
-  await expect(row).toContainText("COMPLETADO");
+  await expect(row).toContainText("Completado");
 
   await row.getByRole("button", { name: "Ver reporte de 172.16.50.7" }).click();
 
@@ -87,7 +87,7 @@ test("un_escaneo_no_completado_muestra_un_estado_explicativo_en_el_reporte", asy
 
   const row = page.locator("tr", { hasText: "172.16.50.8" });
   await expect(row).toBeVisible();
-  await expect(row).toContainText("PENDIENTE");
+  await expect(row).toContainText("En cola");
   await expect(row.getByRole("button", { name: /ver reporte/i })).toHaveCount(
     0,
   );

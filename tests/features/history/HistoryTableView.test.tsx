@@ -16,6 +16,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { ScanHistoryEntry } from "../../../src/api";
+import { SCAN_STATUS_LABEL } from "../../../src/features/scan/scanStatus";
 import {
   HistoryTableView,
   type RowCancelState,
@@ -79,7 +80,7 @@ describe("HistoryTableView", () => {
     for (const entry of BASE_ENTRIES) {
       const row = screen.getByText(entry.target).closest("tr");
       expect(row).not.toBeNull();
-      expect(row).toHaveTextContent(entry.status);
+      expect(row).toHaveTextContent(SCAN_STATUS_LABEL[entry.status]);
     }
   });
 

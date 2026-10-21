@@ -41,7 +41,7 @@ describe("HistoryTable", () => {
       expect(screen.getByText("10.1.0.10")).toBeInTheDocument();
     });
     const row = screen.getByText("10.1.0.10").closest("tr");
-    expect(row).toHaveTextContent("PENDIENTE");
+    expect(row).toHaveTextContent("En cola");
     // Fecha (año actual) renderizada en la fila, no un `undefined`/JSON crudo.
     expect(row?.textContent).toMatch(/\d{4}/);
   });
@@ -72,7 +72,7 @@ describe("HistoryTable", () => {
 
     await waitFor(() => {
       const row = screen.getByText("10.1.0.11").closest("tr");
-      expect(row).toHaveTextContent("FALLIDO");
+      expect(row).toHaveTextContent("Falló");
     });
     expect(
       screen.queryByRole("button", { name: "Cancelar escaneo de 10.1.0.11" }),

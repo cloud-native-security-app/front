@@ -22,6 +22,11 @@ import {
   type ApiError,
   type NetworkCredential,
 } from "../../api";
+import {
+  SESSION_EXPIRED_MESSAGE,
+  networkErrorMessage,
+  unexpectedErrorMessage,
+} from "../../copy";
 import { NetworkCredentialForm } from "./NetworkCredentialForm";
 import {
   NetworkCredentialsListView,
@@ -36,28 +41,28 @@ type ListState =
 function describeListError(error: ApiError): string {
   switch (error.kind) {
     case "network":
-      return "No se pudo contactar al Gateway para cargar las credenciales. Verifica tu conexión e inténtalo de nuevo.";
+      return networkErrorMessage("para cargar las credenciales");
     case "unauthorized":
-      return "Tu sesión ya no es válida. Inicia sesión nuevamente.";
+      return SESSION_EXPIRED_MESSAGE;
     case "unexpected":
-      return `Ocurrió un error inesperado (código ${error.status}) al cargar las credenciales.`;
+      return unexpectedErrorMessage("al cargar las credenciales");
     default:
-      return "Ocurrió un error inesperado al cargar las credenciales.";
+      return unexpectedErrorMessage("al cargar las credenciales");
   }
 }
 
 function describeDeleteError(error: ApiError): string {
   switch (error.kind) {
     case "network":
-      return "No se pudo contactar al Gateway para borrar la credencial. Verifica tu conexión e inténtalo de nuevo.";
+      return networkErrorMessage("para borrar la credencial");
     case "unauthorized":
-      return "Tu sesión ya no es válida. Inicia sesión nuevamente.";
+      return SESSION_EXPIRED_MESSAGE;
     case "not_found":
       return "La credencial ya no existe o no pertenece a tu sesión.";
     case "unexpected":
-      return `Ocurrió un error inesperado (código ${error.status}) al borrar la credencial.`;
+      return unexpectedErrorMessage("al borrar la credencial");
     default:
-      return "Ocurrió un error inesperado al borrar la credencial.";
+      return unexpectedErrorMessage("al borrar la credencial");
   }
 }
 

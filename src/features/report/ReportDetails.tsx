@@ -53,7 +53,11 @@ export function ReportDetails({
               <th scope="col">Estado</th>
               <th scope="col">Servicio</th>
               <th scope="col">Versión</th>
-              <th scope="col">CPEs</th>
+              <th scope="col">
+                <abbr title="Common Platform Enumeration: identificador estándar del software detectado en el puerto.">
+                  CPE
+                </abbr>
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -84,7 +88,12 @@ export function ReportDetails({
                 {vulnerability.source})
               </p>
               <p>{vulnerability.description}</p>
-              <p>Script NSE: {vulnerability.nse_script}</p>
+              <p>
+                <abbr title="Script del Nmap Scripting Engine que detectó este hallazgo.">
+                  Script NSE
+                </abbr>
+                : {vulnerability.nse_script}
+              </p>
               {vulnerability.references.length > 0 && (
                 <ul>
                   {vulnerability.references.map((reference) => (

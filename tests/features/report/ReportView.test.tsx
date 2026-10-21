@@ -82,6 +82,8 @@ describe("ReportView", () => {
         screen.getByText(/el escaneo todavía no ha terminado/i),
       ).toBeInTheDocument();
     });
+    expect(screen.getByRole("status")).toHaveTextContent(/completado/i);
+    expect(screen.getByRole("status")).not.toHaveTextContent("COMPLETADO");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 

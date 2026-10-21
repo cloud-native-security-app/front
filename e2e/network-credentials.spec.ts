@@ -21,12 +21,14 @@ test("crear_una_credencial_verla_en_el_listado_y_borrarla", async ({
 }) => {
   await page.goto("/");
 
-  await expect(page.getByRole("heading", { name: "front" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Security Scan App" }),
+  ).toBeVisible();
   await expect(
     page.getByText(/todavía no hay credenciales de red configuradas/i),
   ).toBeVisible();
 
-  await page.getByLabel("IP o rango del objetivo").fill("172.20.10.5");
+  await page.getByLabel("IP del objetivo").fill("172.20.10.5");
   await page.getByLabel("Usuario de red").fill("root");
   await page.getByLabel("Credencial SSH").fill("vault://ssh/e2e-lab-key");
   await page.getByRole("button", { name: "Agregar credencial" }).click();

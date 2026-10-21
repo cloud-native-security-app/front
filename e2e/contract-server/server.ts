@@ -198,6 +198,9 @@ function handleGetScanHistory(
   writeJson(res, 200, entries);
 }
 
+/** Objetivo fijo que simula "sin credencial de red configurada" (422). */
+const NO_CREDENTIAL_TARGET = "203.0.113.99";
+
 async function handleSubmitScan(
   store: ContractServerStore,
   req: IncomingMessage,
@@ -227,6 +230,11 @@ async function handleSubmitScan(
       400,
       "target inválido: se esperaba un string no vacío (IP o CIDR)",
     );
+    return;
+  }
+  if (target.trim() === NO_CREDENTIAL_TARGET) {
+    // Como el Gateway real: sin credencial de red para el objetivo, 422.
+    writeText(res, 422, "no hay credencial de red para el objetivo");
     return;
   }
   const record = createScan(store, token, target);

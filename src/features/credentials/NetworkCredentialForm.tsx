@@ -28,6 +28,11 @@ import {
   type ApiError,
   type NetworkCredential,
 } from "../../api";
+import {
+  SESSION_EXPIRED_MESSAGE,
+  networkErrorMessage,
+  unexpectedErrorMessage,
+} from "../../copy";
 import { validateScanTarget } from "../scan/validateScanTarget";
 
 type CreateState =
@@ -39,15 +44,15 @@ type CreateState =
 function describeCreateError(error: ApiError): string {
   switch (error.kind) {
     case "network":
-      return "No se pudo contactar al Gateway. Verifica tu conexión e inténtalo de nuevo.";
+      return networkErrorMessage();
     case "unauthorized":
-      return "Tu sesión ya no es válida. Inicia sesión nuevamente.";
+      return SESSION_EXPIRED_MESSAGE;
     case "validation":
-      return `El Gateway rechazó la credencial: ${error.message}`;
+      return "El servidor no aceptó los datos de la credencial. Revísalos e inténtalo de nuevo.";
     case "unexpected":
-      return `Ocurrió un error inesperado (código ${error.status}). Inténtalo más tarde.`;
+      return unexpectedErrorMessage("al crear la credencial");
     default:
-      return "Ocurrió un error inesperado al crear la credencial.";
+      return unexpectedErrorMessage("al crear la credencial");
   }
 }
 
@@ -65,6 +70,8 @@ export function NetworkCredentialForm({
   const [state, setState] = useState<CreateState>({ status: "idle" });
 
   const targetHint = validateScanTarget(targetPattern);
+  const showTargetHint = !targetHint.valid && targetPattern.trim().length > 0;
+  const targetHintId = "credential-target-pattern-hint";
   const isSubmitting = state.status === "submitting";
   const canSubmit =
     targetPattern.trim().length > 0 &&
@@ -79,7 +86,9 @@ export function NetworkCredentialForm({
     }
     setState({ status: "submitting" });
     const result = await createNetworkCredential({
-      target_pattern: targetPattern.trim(),
+      target_pattern: targetHint.valid
+        ? targetHint.target
+        : targetPattern.trim(),
       network_user: networkUser.trim(),
       ssh_credentials_ref: sshCredentialsRef,
       has_sudo: hasSudo,
@@ -104,21 +113,22 @@ export function NetworkCredentialForm({
       aria-label="Nueva credencial de red"
       onSubmit={(event) => void handleSubmit(event)}
     >
-      <label htmlFor="credential-target-pattern">IP o rango del objetivo</label>
+      <label htmlFor="credential-target-pattern">IP del objetivo</label>
       <input
         id="credential-target-pattern"
         name="credential-target-pattern"
         type="text"
         value={targetPattern}
-        placeholder="192.168.1.0/24"
+        placeholder="192.168.1.10"
+        aria-describedby={showTargetHint ? targetHintId : undefined}
         disabled={isSubmitting}
         onChange={(event) => {
           setTargetPattern(event.target.value);
           setState({ status: "idle" });
         }}
       />
-      {!targetHint.valid && targetPattern.trim().length > 0 && (
-        <p>Sugerencia: {targetHint.message}</p>
+      {showTargetHint && (
+        <p id={targetHintId}>Sugerencia: {targetHint.message}</p>
       )}
 
       <label htmlFor="credential-network-user">Usuario de red</label>
@@ -139,6 +149,7 @@ export function NetworkCredentialForm({
         id="credential-ssh-ref"
         name="credential-ssh-ref"
         type="password"
+        aria-describedby="credential-ssh-ref-help"
         value={sshCredentialsRef}
         disabled={isSubmitting}
         onChange={(event) => {
@@ -147,17 +158,26 @@ export function NetworkCredentialForm({
         }}
       />
 
+      <p id="credential-ssh-ref-help" className="field-help">
+        Contraseña SSH del usuario de red en el objetivo.
+      </p>
+
       <label htmlFor="credential-has-sudo">
         <input
           id="credential-has-sudo"
           name="credential-has-sudo"
           type="checkbox"
+          aria-describedby="credential-has-sudo-help"
           checked={hasSudo}
           disabled={isSubmitting}
           onChange={(event) => setHasSudo(event.target.checked)}
         />
         Tiene privilegios sudo
       </label>
+      <p id="credential-has-sudo-help" className="field-help">
+        Permite técnicas de escaneo más profundas (requiere sudo sin
+        contraseña).
+      </p>
 
       <button type="submit" disabled={!canSubmit}>
         {isSubmitting ? "Guardando…" : "Agregar credencial"}

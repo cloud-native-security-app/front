@@ -48,7 +48,7 @@ describe("App", () => {
       screen.getByRole("button", { name: "Iniciar sesión" }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("heading", { name: "front" }),
+      screen.queryByRole("heading", { name: "Security Scan App" }),
     ).not.toBeInTheDocument();
   });
 
@@ -58,11 +58,11 @@ describe("App", () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(
-        screen.getByLabelText("IP o rango a escanear"),
-      ).toBeInTheDocument();
+      expect(screen.getByLabelText("IP a escanear")).toBeInTheDocument();
     });
-    expect(screen.getByRole("heading", { name: "front" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Security Scan App" }),
+    ).toBeInTheDocument();
   });
 });
 

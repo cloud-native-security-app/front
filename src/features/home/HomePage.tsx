@@ -22,12 +22,13 @@ import "@fontsource/ibm-plex-mono/latin-400.css";
 import "@fontsource/ibm-plex-mono/latin-500.css";
 
 import { LoginButton } from "../../auth";
+import { PRODUCT_NAME } from "../../copy";
 import "./home.css";
 
 /**
  * Contenido de ejemplo del panel "Escaneo en vivo": NUNCA proviene de
  * `submitScan`/`subscribeToScanEvents` ni de ninguna llamada real al
- * Gateway. Esta página se muestra a un visitante sin sesión, que no tiene
+ * backend. Esta página se muestra a un visitante sin sesión, que no tiene
  * ningún escaneo propio que mostrar — son líneas fabricadas solo para
  * transmitir, visualmente, la idea de "estado de escaneo en tiempo real"
  * que el producto ofrece una vez autenticado.
@@ -45,21 +46,19 @@ export function HomePage() {
     <div className="home-page">
       <div className="home-page__shell">
         <div className="home-page__intro">
-          <p className="home-page__brand">front</p>
+          <p className="home-page__brand">{PRODUCT_NAME}</p>
           <h1 className="home-page__headline">
             Analiza infraestructura antes de que alguien más lo haga.
           </h1>
           <p className="home-page__lede">
-            front encola un escaneo, sigue su estado en tiempo real y termina en
-            un hallazgo verificable — sin paneles que adivinar.
+            {PRODUCT_NAME} encola el escaneo de una IP, sigue su estado en
+            tiempo real y te muestra los hallazgos — sin paneles que adivinar.
           </p>
           <LoginButton label="Iniciar sesión" className="home-page__cta" />
           <ul className="home-page__capabilities">
-            <li>
-              Encolar — un objetivo, IP o rango, validado antes de enviarse.
-            </li>
+            <li>Encolar — una IP objetivo, validada antes de enviarse.</li>
             <li>Verificar — estado en tiempo real, sin recargar la página.</li>
-            <li>Reportar — hallazgos con severidad, listos para exportar.</li>
+            <li>Revisar — hallazgos con su severidad.</li>
           </ul>
         </div>
         <div className="home-page__panel">
@@ -76,9 +75,6 @@ export function HomePage() {
           </ul>
         </div>
       </div>
-      <p className="home-page__footer">
-        front habla únicamente con el Gateway de la plataforma.
-      </p>
     </div>
   );
 }

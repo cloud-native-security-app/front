@@ -27,7 +27,7 @@
  * mismo pragma de entorno "node") y en `e2e/realtime-status.spec.ts`
  * (navegador real, sin este problema de `jsdom`).
  */
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -39,15 +39,22 @@ import {
   useContractServer,
 } from "../../api/testHelpers";
 
+const subscription = vi.hoisted(() => ({
+  onEvent: undefined as ((event: unknown) => void) | undefined,
+  onStatusChange: undefined as ((status: string) => void) | undefined,
+}));
+
 vi.mock("../../../src/api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../../src/api")>();
   return {
     ...actual,
     subscribeToScanEvents: (
       _scanId: string,
-      _onEvent: unknown,
+      onEvent: (event: unknown) => void,
       onStatusChange: (status: string) => void,
     ): ScanEventsSubscription => {
+      subscription.onEvent = onEvent;
+      subscription.onStatusChange = onStatusChange;
       onStatusChange("connecting");
       return { close: () => {} };
     },
@@ -71,7 +78,7 @@ describe("ScanForm", () => {
     render(<ScanForm />);
 
     await userEvent.type(
-      screen.getByLabelText("IP o rango a escanear"),
+      screen.getByLabelText("IP a escanear"),
       "192.168.1.999",
     );
 
@@ -89,7 +96,7 @@ describe("ScanForm", () => {
     render(<ScanForm />);
 
     await userEvent.type(
-      screen.getByLabelText("IP o rango a escanear"),
+      screen.getByLabelText("IP a escanear"),
       "192.168.1.10",
     );
 
@@ -114,7 +121,7 @@ describe("ScanForm", () => {
     render(<ScanForm />);
 
     await userEvent.type(
-      screen.getByLabelText("IP o rango a escanear"),
+      screen.getByLabelText("IP a escanear"),
       "192.168.1.10",
     );
     await userEvent.click(screen.getByRole("button", { name: /escanear/i }));
@@ -124,5 +131,94 @@ describe("ScanForm", () => {
         /tu sesión ya no es válida/i,
       );
     });
+  });
+
+  it("usa_el_placeholder_de_una_sola_ip", () => {
+    render(<ScanForm />);
+
+    expect(screen.getByLabelText("IP a escanear")).toHaveAttribute(
+      "placeholder",
+      "192.168.1.10",
+    );
+  });
+
+  it("rechaza_un_rango_con_el_mensaje_de_unica_ip", async () => {
+    render(<ScanForm />);
+
+    await userEvent.type(screen.getByLabelText("IP a escanear"), "10.0.0.0/24");
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Solo se admite una única IP (no rangos).",
+    );
+    expect(screen.getByRole("button", { name: /escanear/i })).toBeDisabled();
+  });
+
+  it("envia_la_ip_sola_cuando_el_usuario_escribe_barra_32", async () => {
+    await loginAsSyntheticUser();
+    const fetchSpy = vi.spyOn(globalThis, "fetch");
+    render(<ScanForm />);
+
+    await userEvent.type(screen.getByLabelText("IP a escanear"), "10.9.9.9/32");
+    await userEvent.click(screen.getByRole("button", { name: /escanear/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/escaneo encolado\. id:/i)).toBeInTheDocument();
+    });
+    const scanCall = fetchSpy.mock.calls.find(([input]) =>
+      String(input).endsWith("/api/scans"),
+    );
+    expect(JSON.parse(String(scanCall?.[1]?.body))).toEqual({
+      target: "10.9.9.9",
+    });
+    fetchSpy.mockRestore();
+  });
+
+  it("un_422_sin_credencial_se_explica_sin_mostrar_el_cuerpo_del_servidor", async () => {
+    await loginAsSyntheticUser();
+    render(<ScanForm />);
+
+    await userEvent.type(
+      screen.getByLabelText("IP a escanear"),
+      "203.0.113.99",
+    );
+    await userEvent.click(screen.getByRole("button", { name: /escanear/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        "Primero agrega una credencial de red para esa IP.",
+      );
+    });
+    expect(screen.getByRole("alert")).not.toHaveTextContent(/gateway|422/i);
+  });
+
+  it("muestra_el_estado_final_en_vez_de_desconectado_tras_un_evento_terminal", async () => {
+    await loginAsSyntheticUser();
+    render(<ScanForm />);
+
+    await userEvent.type(screen.getByLabelText("IP a escanear"), "10.9.9.10");
+    await userEvent.click(screen.getByRole("button", { name: /escanear/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/^Estado:/)).toHaveTextContent(
+        "Estado: En cola (conectando…)",
+      );
+    });
+
+    act(() => {
+      subscription.onEvent?.({ status: "started", correlation_id: "c" });
+    });
+    expect(screen.getByText(/^Estado:/)).toHaveTextContent("Escaneando…");
+
+    act(() => {
+      subscription.onEvent?.({
+        status: "completed",
+        correlation_id: "c",
+        result: {},
+      });
+      subscription.onStatusChange?.("closed");
+    });
+    const line = screen.getByText(/^Estado:/);
+    expect(line).toHaveTextContent("Estado: Completado");
+    expect(line).not.toHaveTextContent(/desconectado|sin conexión|\(/);
   });
 });
