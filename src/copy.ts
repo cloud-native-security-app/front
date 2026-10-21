@@ -129,3 +129,24 @@ export function themeChoiceLabel(choice: "system" | "light" | "dark"): string {
       return "Sistema";
   }
 }
+
+/** Keyboard and live feedback (feature `keyboard-and-live-feedback`). */
+export const SKIP_TO_CONTENT_LABEL = "Saltar al contenido";
+export const SCAN_IN_PROGRESS_LABEL = "Escaneo en curso";
+export const SCAN_NOTICE_DISMISS_LABEL = "Cerrar aviso";
+export const SCAN_NOTICE_VIEW_REPORT_LABEL = "Ver reporte";
+
+const SCAN_OUTCOME_WORD = {
+  COMPLETADO: "completado",
+  FALLIDO: "falló",
+  CANCELADO: "cancelado",
+} as const;
+
+/** "Escaneo de 10.0.0.5 completado"; the target is omitted when unknown. */
+export function scanFinishedMessage(
+  status: keyof typeof SCAN_OUTCOME_WORD,
+  target: string | undefined,
+): string {
+  const subject = target ? `Escaneo de ${target}` : "Escaneo";
+  return `${subject} ${SCAN_OUTCOME_WORD[status]}`;
+}

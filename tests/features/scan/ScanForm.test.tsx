@@ -281,4 +281,42 @@ describe("ScanForm", () => {
     expect(line).toHaveTextContent("Estado: Completado");
     expect(line).not.toHaveTextContent(/desconectado|sin conexión|\(/);
   });
+  it("shows_a_labelled_busy_progress_indicator_only_while_queued_or_running", async () => {
+    await loginAsSyntheticUser();
+    await seedTargets("10.9.9.11");
+    renderForm();
+
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+
+    await pickTarget("10.9.9.11");
+    await userEvent.click(screen.getByRole("button", { name: "Escanear" }));
+
+    const progress = await screen.findByRole("progressbar", {
+      name: "Escaneo en curso",
+    });
+    expect(progress).not.toHaveAttribute("aria-valuenow");
+    expect(progress.closest("[aria-busy]")).toHaveAttribute(
+      "aria-busy",
+      "true",
+    );
+    expect(screen.getByText(/^Estado:/)).toHaveTextContent("En cola");
+
+    act(() => {
+      subscription.onEvent?.({ status: "started", correlation_id: "c" });
+    });
+    expect(screen.getByRole("progressbar")).toBeInTheDocument();
+
+    act(() => {
+      subscription.onEvent?.({
+        status: "completed",
+        correlation_id: "c",
+        result: {},
+      });
+    });
+    expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
+    expect(screen.getByText(/^Estado:/).closest("[aria-busy]")).toHaveAttribute(
+      "aria-busy",
+      "false",
+    );
+  });
 });

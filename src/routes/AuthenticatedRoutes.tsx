@@ -20,9 +20,14 @@ import {
 import { NetworkCredentialsManager } from "../features/credentials";
 import { HistoryTable } from "../features/history";
 import { ReportView } from "../features/report";
-import { ScanActivityProvider, ScanForm } from "../features/scan";
+import {
+  ScanActivityProvider,
+  ScanFinishedNotice,
+  ScanForm,
+} from "../features/scan";
 import { BACK_TO_HISTORY_LABEL, SECTION_HISTORY } from "../copy";
 import { AppHeader } from "./AppHeader";
+import { SkipLink } from "./SkipLink";
 import { SECTION_PATHS, sectionOf } from "./paths";
 
 function HistorySection() {
@@ -68,8 +73,10 @@ export function AuthenticatedRoutes() {
 
   return (
     <ScanActivityProvider>
+      <SkipLink />
       <AppHeader />
-      <main>
+      <ScanFinishedNotice />
+      <main id="main-content" tabIndex={-1}>
         <Routes>
           <Route
             path="/"
