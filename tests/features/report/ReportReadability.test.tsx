@@ -14,6 +14,7 @@ const finding = (
   id: string,
   severity: VulnerabilitySeverity,
   confidence?: "confirmed" | "version_match",
+  patchState?: "unpatched" | "fixed",
 ) => ({
   id,
   severity,
@@ -22,6 +23,7 @@ const finding = (
   source: "nmap_nse" as const,
   references: [],
   ...(confidence === undefined ? {} : { confidence }),
+  ...(patchState === undefined ? {} : { patch_state: patchState }),
 });
 
 function reportWith(vulnerabilities: ReturnType<typeof finding>[]): ScanResult {
@@ -348,5 +350,70 @@ describe("posibles dedup", () => {
     expect(within(summary).getByText("Crítica: 1")).toBeInTheDocument();
     expect(within(summary).getByText("Alta: 1")).toBeInTheDocument();
     expect(within(summary).queryByText(/Media|Baja/)).not.toBeInTheDocument();
+  });
+});
+
+describe("patch state (AVC-06)", () => {
+  afterEach(cleanup);
+
+  const PATCHED = reportWith([
+    finding("CVE-2024-1111", "critical", "confirmed", "unpatched"),
+    finding("CVE-2024-2222", "high", "version_match", "fixed"),
+    finding("CVE-2024-3333", "medium", "version_match"),
+  ]);
+
+  it("oculta_los_hallazgos_fixed_y_muestra_cuantas_se_descartaron", () => {
+    renderReport(PATCHED);
+
+    expect(screen.queryByText("CVE-2024-2222")).not.toBeInTheDocument();
+    expect(screen.getByText("CVE-2024-3333")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "1 descartada por backport (verificada como corregida en el equipo).",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("el_resumen_por_severidad_y_los_grupos_excluyen_los_fixed", () => {
+    renderReport(PATCHED);
+
+    expect(
+      screen.queryByRole("button", { name: "Alta: 1" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Crítica: 1" })).toBeVisible();
+    expect(screen.getByText("Posibles (según versión) (1)")).toBeVisible();
+  });
+
+  it("no_muestra_la_nota_sin_hallazgos_fixed", () => {
+    renderReport(MIXED);
+
+    expect(screen.queryByText(/descartada/)).not.toBeInTheDocument();
+  });
+
+  it("marca_sin_parche_en_un_hallazgo_confirmado_unpatched", () => {
+    renderReport(PATCHED);
+
+    const card = screen.getByText("CVE-2024-1111").closest("article");
+    expect(card).not.toBeNull();
+    expect(within(card as HTMLElement).getByText("Confirmada")).toBeVisible();
+    expect(within(card as HTMLElement).getByText("· sin parche")).toBeVisible();
+  });
+
+  it("no_marca_sin_parche_en_hallazgos_sin_patch_state", () => {
+    renderReport(PATCHED);
+
+    const card = screen.getByText("CVE-2024-3333").closest("article");
+    expect(
+      within(card as HTMLElement).queryByText("· sin parche"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("si_todos_son_fixed_muestra_la_nota_y_ningun_grupo", () => {
+    renderReport(
+      reportWith([finding("CVE-2024-9", "high", "version_match", "fixed")]),
+    );
+
+    expect(screen.getByText(/descartada por backport/)).toBeInTheDocument();
+    expect(screen.queryByText("Confirmadas (0)")).not.toBeInTheDocument();
   });
 });

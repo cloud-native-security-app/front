@@ -118,6 +118,13 @@ export const collapsedDuplicatesNote = (count: number): string =>
     ? "1 coincidencia repetida se agrupó con otra del mismo identificador (se conserva la de mayor severidad)."
     : `${count} coincidencias repetidas se agruparon con otras del mismo identificador (se conserva la de mayor severidad).`;
 
+export const UNPATCHED_QUALIFIER = "· sin parche";
+
+export const dismissedByBackportNote = (count: number): string =>
+  count === 1
+    ? "1 descartada por backport (verificada como corregida en el equipo)."
+    : `${count} descartadas por backport (verificadas como corregidas en el equipo).`;
+
 export const NO_FINDINGS_FOR_FILTER_MESSAGE =
   "Ningún hallazgo coincide con las severidades seleccionadas.";
 
