@@ -690,6 +690,60 @@ form.credential-form {
   text-decoration: line-through;
 }
 
+/* Finding cards: severity accent bar is decorative (the badge text carries
+   the meaning); it reuses the badge colour tokens. */
+.finding-list {
+  display: grid;
+  gap: var(--space-3);
+  margin: var(--space-3) 0;
+  padding: 0;
+  list-style: none;
+}
+
+.finding-card {
+  --finding-accent: var(--color-border);
+  padding: var(--space-3) var(--space-4);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--finding-accent);
+  border-radius: var(--radius);
+  overflow-wrap: anywhere;
+}
+
+.finding-card[data-severity="medium"] {
+  --finding-accent: var(--color-accent);
+}
+
+.finding-card[data-severity="high"],
+.finding-card[data-severity="critical"] {
+  --finding-accent: var(--color-alert-border);
+}
+
+.finding-card-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-1) var(--space-3);
+}
+
+.finding-card-source {
+  font-size: 0.85rem;
+  color: var(--color-text-muted);
+}
+
+.finding-card-description {
+  margin: var(--space-2) 0;
+}
+
+.finding-card-details > summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.finding-card-details ul {
+  padding-left: var(--space-4);
+}
+
 .finding-group > summary {
   cursor: pointer;
   font-weight: 600;

@@ -111,6 +111,13 @@ export const CONFIRMED_GROUP_TITLE = "Confirmadas";
 
 export const VERSION_MATCH_GROUP_TITLE = "Posibles (según versión)";
 
+export const FINDING_DETAILS_LABEL = "Detalles";
+
+export const collapsedDuplicatesNote = (count: number): string =>
+  count === 1
+    ? "1 coincidencia repetida se agrupó con otra del mismo identificador (se conserva la de mayor severidad)."
+    : `${count} coincidencias repetidas se agruparon con otras del mismo identificador (se conserva la de mayor severidad).`;
+
 export const NO_FINDINGS_FOR_FILTER_MESSAGE =
   "Ningún hallazgo coincide con las severidades seleccionadas.";
 
