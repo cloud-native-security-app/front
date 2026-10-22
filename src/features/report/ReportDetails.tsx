@@ -34,6 +34,8 @@ import {
   SEVERITY_SUMMARY_LABEL,
   VERSION_MATCH_GROUP_TITLE,
   collapsedDuplicatesNote,
+  dismissedByBackportNote,
+  UNPATCHED_QUALIFIER,
   cveLinkLabel,
 } from "../../copy";
 
@@ -153,6 +155,9 @@ function FindingList({ findings }: { findings: ScanVulnerability[] }) {
                   {confidenceLabel(vulnerability.confidence)}
                 </span>
               )}
+              {vulnerability.patch_state === "unpatched" && (
+                <span className="patch-qualifier">{UNPATCHED_QUALIFIER}</span>
+              )}
               <span className="finding-card-source">
                 (fuente: {vulnerability.source})
               </span>
@@ -213,7 +218,14 @@ export function ReportDetails({
     new Set(),
   );
 
-  const rawVulnerabilities = report.vulnerabilities;
+  // Findings verified as fixed by a backport are not shown (nor counted);
+  // the export still carries the full report.
+  const dismissedCount = report.vulnerabilities.filter(
+    (v) => v.patch_state === "fixed",
+  ).length;
+  const rawVulnerabilities = report.vulnerabilities.filter(
+    (v) => v.patch_state !== "fixed",
+  );
   const rawPossible = rawVulnerabilities.filter(
     (v) => v.confidence === "version_match",
   );
@@ -351,6 +363,9 @@ export function ReportDetails({
             </details>
           )}
         </>
+      )}
+      {dismissedCount > 0 && (
+        <p className="field-help">{dismissedByBackportNote(dismissedCount)}</p>
       )}
     </section>
   );

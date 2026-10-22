@@ -65,6 +65,11 @@ export interface ScanVulnerability {
   references: string[];
   /** Absent or unrecognized values mean "unknown" (see `VulnerabilityConfidence`). */
   confidence?: VulnerabilityConfidence | (string & {});
+  /**
+   * Authenticated patch check result: "unpatched" (confirmed not fixed) or
+   * "fixed" (backport). Absent when not verified; unknown strings tolerated.
+   */
+  patch_state?: "unpatched" | "fixed" | (string & {});
 }
 
 /**
