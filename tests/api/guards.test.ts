@@ -165,6 +165,31 @@ describe("isScanResult", () => {
       }),
     ).toBe(false);
   });
+  describe("vulnerability patch_state", () => {
+    const withPatchState = (patch_state?: unknown) => ({
+      host: "10.0.0.1",
+      ports: [],
+      vulnerabilities: [
+        {
+          id: "CVE-2023-38408",
+          severity: "high",
+          description: "d",
+          nse_script: "s",
+          source: "nmap_nse",
+          references: [],
+          ...(patch_state === undefined ? {} : { patch_state }),
+        },
+      ],
+      scanned_at: "2026-01-01T00:00:00Z",
+    });
+
+    it("acepta_unpatched_fixed_ausente_y_valores_desconocidos", () => {
+      for (const value of [undefined, "unpatched", "fixed", "future_value"]) {
+        expect(isScanResult(withPatchState(value))).toBe(true);
+      }
+    });
+  });
+
   describe("vulnerability confidence", () => {
     const withVulnerability = (extra: Record<string, unknown>) => ({
       host: "10.0.0.1",

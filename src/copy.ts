@@ -111,6 +111,20 @@ export const CONFIRMED_GROUP_TITLE = "Confirmadas";
 
 export const VERSION_MATCH_GROUP_TITLE = "Posibles (según versión)";
 
+export const FINDING_DETAILS_LABEL = "Detalles";
+
+export const collapsedDuplicatesNote = (count: number): string =>
+  count === 1
+    ? "1 coincidencia repetida se agrupó con otra del mismo identificador (se conserva la de mayor severidad)."
+    : `${count} coincidencias repetidas se agruparon con otras del mismo identificador (se conserva la de mayor severidad).`;
+
+export const UNPATCHED_QUALIFIER = "· sin parche";
+
+export const dismissedByBackportNote = (count: number): string =>
+  count === 1
+    ? "1 descartada por backport (verificada como corregida en el equipo)."
+    : `${count} descartadas por backport (verificadas como corregidas en el equipo).`;
+
 export const NO_FINDINGS_FOR_FILTER_MESSAGE =
   "Ningún hallazgo coincide con las severidades seleccionadas.";
 
@@ -128,6 +142,11 @@ export function themeChoiceLabel(choice: "system" | "light" | "dark"): string {
     default:
       return "Sistema";
   }
+}
+
+/** Accessible name of the icon-only theme toggle: current mode + the action. */
+export function themeToggleLabel(choice: "system" | "light" | "dark"): string {
+  return `${THEME_LABEL}: ${themeChoiceLabel(choice).toLowerCase()}. Cambiar.`;
 }
 
 /** Keyboard and live feedback (feature `keyboard-and-live-feedback`). */

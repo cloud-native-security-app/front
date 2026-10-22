@@ -14,6 +14,7 @@ const finding = (
   id: string,
   severity: VulnerabilitySeverity,
   confidence?: "confirmed" | "version_match",
+  patchState?: "unpatched" | "fixed",
 ) => ({
   id,
   severity,
@@ -22,6 +23,7 @@ const finding = (
   source: "nmap_nse" as const,
   references: [],
   ...(confidence === undefined ? {} : { confidence }),
+  ...(patchState === undefined ? {} : { patch_state: patchState }),
 });
 
 function reportWith(vulnerabilities: ReturnType<typeof finding>[]): ScanResult {
@@ -171,7 +173,7 @@ describe("confidence groups (RRD-03)", () => {
   it("sin_posibles_no_hay_grupo_posibles_vacio", () => {
     renderReport(reportWith([finding("CVE-2020-0001", "high", "confirmed")]));
     expect(screen.queryByText(/Posibles/)).not.toBeInTheDocument();
-    expect(document.querySelector("details")).toBeNull();
+    expect(document.querySelector("details.finding-group")).toBeNull();
   });
 
   it("dentro_de_cada_grupo_ordena_por_severidad_descendente", () => {
@@ -224,5 +226,194 @@ describe("CVE links (RRD-05)", () => {
     renderReport(reportWith([finding("EDB-12345", "high", "confirmed")]));
     expect(screen.getByText("EDB-12345")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /EDB-12345/ })).toBeNull();
+  });
+});
+
+describe("finding cards", () => {
+  afterEach(cleanup);
+
+  it("cada_hallazgo_es_una_tarjeta_dentro_de_una_lista", () => {
+    renderReport(MIXED);
+    const cards = screen.getAllByRole("article");
+    expect(cards).toHaveLength(4);
+    for (const card of cards) {
+      expect(card.closest("li")).not.toBeNull();
+      expect(card).toHaveAttribute("data-severity");
+    }
+  });
+
+  it("la_tarjeta_agrupa_severidad_id_confianza_y_fuente_en_el_encabezado", () => {
+    renderReport(reportWith([finding("CVE-2025-26465", "high", "confirmed")]));
+    const card = screen.getByRole("article");
+    const header = card.querySelector(".finding-card-header") as HTMLElement;
+    expect(header).not.toBeNull();
+    expect(within(header).getByText("Alta")).toHaveClass("severity-badge");
+    expect(
+      within(header).getByRole("link", { name: "Ver CVE-2025-26465 en NVD" }),
+    ).toBeInTheDocument();
+    expect(within(header).getByText("Confirmada")).toBeInTheDocument();
+    expect(within(header).getByText(/nmap_nse/)).toBeInTheDocument();
+    expect(within(card).getByText("desc CVE-2025-26465")).toBeInTheDocument();
+  });
+
+  it("el_script_nse_y_las_referencias_van_en_un_details_colapsado", async () => {
+    const withRefs = {
+      ...finding("CVE-2025-26465", "high", "confirmed"),
+      references: ["https://example.test/advisory"],
+    };
+    renderReport(
+      reportWith([withRefs as unknown as ReturnType<typeof finding>]),
+    );
+    const card = screen.getByRole("article");
+    const details = card.querySelector("details") as HTMLDetailsElement;
+    expect(details).not.toBeNull();
+    expect(details.open).toBe(false);
+    const summary = within(details).getByText("Detalles");
+    expect(within(details).getByText("Script NSE")).toBeInTheDocument();
+    const ref = within(details).getByRole("link", {
+      name: "https://example.test/advisory",
+    });
+    expect(ref).toHaveAttribute("href", "https://example.test/advisory");
+
+    await userEvent.click(summary);
+    expect(details.open).toBe(true);
+    expect(ref).toBeVisible();
+  });
+
+  it("ocultar_una_severidad_quita_las_tarjetas_correspondientes", async () => {
+    renderReport(MIXED);
+    await userEvent.click(screen.getByRole("button", { name: "Alta: 2" }));
+    expect(screen.getAllByRole("article")).toHaveLength(2);
+  });
+});
+
+describe("posibles dedup", () => {
+  afterEach(cleanup);
+
+  const DUPES = reportWith([
+    finding("CVE-2020-0001", "medium", "version_match"),
+    finding("CVE-2020-0001", "critical", "version_match"),
+    finding("CVE-2020-0001", "low", "version_match"),
+    finding("CVE-2020-0002", "high", "version_match"),
+  ]);
+
+  it("un_mismo_id_en_posibles_se_muestra_una_sola_vez_con_la_severidad_mas_alta", () => {
+    renderReport(DUPES);
+    expect(screen.getAllByRole("article")).toHaveLength(2);
+    const card = screen
+      .getByText("CVE-2020-0001")
+      .closest("article") as HTMLElement;
+    expect(card).toHaveAttribute("data-severity", "critical");
+    expect(within(card).getByText("Crítica")).toBeInTheDocument();
+  });
+
+  it("el_titulo_cuenta_unicos_y_avisa_cuantas_coincidencias_se_agruparon", () => {
+    renderReport(DUPES);
+    expect(
+      screen.getByText(/Posibles \(según versión\) \(2\)/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/2 coincidencias repetidas se agruparon/i),
+    ).toBeInTheDocument();
+  });
+
+  it("sin_duplicados_no_aparece_el_aviso_de_agrupacion", () => {
+    renderReport(MIXED);
+    expect(screen.queryByText(/se agruparon/i)).not.toBeInTheDocument();
+  });
+
+  it("los_hallazgos_sin_id_no_se_fusionan", () => {
+    const noId = (severity: VulnerabilitySeverity) =>
+      ({
+        ...finding("x", severity, "version_match"),
+        id: null,
+      }) as unknown as ReturnType<typeof finding>;
+    renderReport(reportWith([noId("high"), noId("high")]));
+    expect(screen.getAllByRole("article")).toHaveLength(2);
+  });
+
+  it("las_confirmadas_no_se_deduplican", () => {
+    renderReport(
+      reportWith([
+        finding("CVE-2020-0001", "high", "confirmed"),
+        finding("CVE-2020-0001", "high", "confirmed"),
+      ]),
+    );
+    expect(screen.getAllByRole("article")).toHaveLength(2);
+  });
+
+  it("los_conteos_por_severidad_reflejan_los_hallazgos_mostrados", () => {
+    renderReport(DUPES);
+    const summary = screen.getByRole("group", {
+      name: /resumen por severidad/i,
+    });
+    expect(within(summary).getByText("Crítica: 1")).toBeInTheDocument();
+    expect(within(summary).getByText("Alta: 1")).toBeInTheDocument();
+    expect(within(summary).queryByText(/Media|Baja/)).not.toBeInTheDocument();
+  });
+});
+
+describe("patch state (AVC-06)", () => {
+  afterEach(cleanup);
+
+  const PATCHED = reportWith([
+    finding("CVE-2024-1111", "critical", "confirmed", "unpatched"),
+    finding("CVE-2024-2222", "high", "version_match", "fixed"),
+    finding("CVE-2024-3333", "medium", "version_match"),
+  ]);
+
+  it("oculta_los_hallazgos_fixed_y_muestra_cuantas_se_descartaron", () => {
+    renderReport(PATCHED);
+
+    expect(screen.queryByText("CVE-2024-2222")).not.toBeInTheDocument();
+    expect(screen.getByText("CVE-2024-3333")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "1 descartada por backport (verificada como corregida en el equipo).",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("el_resumen_por_severidad_y_los_grupos_excluyen_los_fixed", () => {
+    renderReport(PATCHED);
+
+    expect(
+      screen.queryByRole("button", { name: "Alta: 1" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Crítica: 1" })).toBeVisible();
+    expect(screen.getByText("Posibles (según versión) (1)")).toBeVisible();
+  });
+
+  it("no_muestra_la_nota_sin_hallazgos_fixed", () => {
+    renderReport(MIXED);
+
+    expect(screen.queryByText(/descartada/)).not.toBeInTheDocument();
+  });
+
+  it("marca_sin_parche_en_un_hallazgo_confirmado_unpatched", () => {
+    renderReport(PATCHED);
+
+    const card = screen.getByText("CVE-2024-1111").closest("article");
+    expect(card).not.toBeNull();
+    expect(within(card as HTMLElement).getByText("Confirmada")).toBeVisible();
+    expect(within(card as HTMLElement).getByText("· sin parche")).toBeVisible();
+  });
+
+  it("no_marca_sin_parche_en_hallazgos_sin_patch_state", () => {
+    renderReport(PATCHED);
+
+    const card = screen.getByText("CVE-2024-3333").closest("article");
+    expect(
+      within(card as HTMLElement).queryByText("· sin parche"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("si_todos_son_fixed_muestra_la_nota_y_ningun_grupo", () => {
+    renderReport(
+      reportWith([finding("CVE-2024-9", "high", "version_match", "fixed")]),
+    );
+
+    expect(screen.getByText(/descartada por backport/)).toBeInTheDocument();
+    expect(screen.queryByText("Confirmadas (0)")).not.toBeInTheDocument();
   });
 });

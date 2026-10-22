@@ -26,12 +26,16 @@ import {
   CONFIDENCE_VERSION_MATCH_LABEL,
   CONFIDENCE_VERSION_MATCH_NOTE,
   CONFIRMED_GROUP_TITLE,
+  FINDING_DETAILS_LABEL,
   EXPORT_REPORT_LABEL,
   NO_FINDINGS_FOR_FILTER_MESSAGE,
   SEVERITY_FILTER_HINT,
   SEVERITY_LABEL,
   SEVERITY_SUMMARY_LABEL,
   VERSION_MATCH_GROUP_TITLE,
+  collapsedDuplicatesNote,
+  dismissedByBackportNote,
+  UNPATCHED_QUALIFIER,
   cveLinkLabel,
 } from "../../copy";
 
@@ -98,50 +102,88 @@ function FindingId({ id }: { id: string | null | undefined }) {
   );
 }
 
+/**
+ * Display-only dedup of "posibles": one finding per `id`, keeping the most
+ * severe. Findings without an id are never merged. The stored report (and the
+ * JSON export) is untouched.
+ */
+function dedupeById(findings: ScanVulnerability[]): ScanVulnerability[] {
+  const best = new Map<string, ScanVulnerability>();
+  const result: ScanVulnerability[] = [];
+  for (const finding of findings) {
+    if (finding.id === null || finding.id === undefined) {
+      result.push(finding);
+      continue;
+    }
+    const current = best.get(finding.id);
+    if (current === undefined) {
+      best.set(finding.id, finding);
+      result.push(finding);
+    } else if (bySeverity(finding, current) < 0) {
+      best.set(finding.id, finding);
+      result[result.indexOf(current)] = finding;
+    }
+  }
+  return result;
+}
+
 function FindingList({ findings }: { findings: ScanVulnerability[] }) {
   return (
-    <ul>
+    <ul className="finding-list">
       {findings.map((vulnerability, index) => (
         <li key={`${vulnerability.id ?? "sin-id"}-${index}`}>
-          <p>
-            <FindingId id={vulnerability.id} />{" "}
-            <span
-              className="severity-badge"
-              data-severity={vulnerability.severity}
-            >
-              <span className="severity-badge-icon" aria-hidden="true">
-                {SEVERITY_ICON[vulnerability.severity]}
+          <article
+            className="finding-card"
+            data-severity={vulnerability.severity}
+          >
+            <div className="finding-card-header">
+              <span
+                className="severity-badge"
+                data-severity={vulnerability.severity}
+              >
+                <span className="severity-badge-icon" aria-hidden="true">
+                  {SEVERITY_ICON[vulnerability.severity]}
+                </span>
+                {SEVERITY_LABEL[vulnerability.severity]}
               </span>
-              {SEVERITY_LABEL[vulnerability.severity]}
-            </span>{" "}
-            {confidenceLabel(vulnerability.confidence) && (
-              <>
+              <FindingId id={vulnerability.id} />
+              {confidenceLabel(vulnerability.confidence) && (
                 <span
                   className="confidence-badge"
                   data-confidence={vulnerability.confidence}
                 >
                   {confidenceLabel(vulnerability.confidence)}
-                </span>{" "}
-              </>
-            )}
-            (fuente: {vulnerability.source})
-          </p>
-          <p>{vulnerability.description}</p>
-          <p>
-            <abbr title="Script del Nmap Scripting Engine que detectó este hallazgo.">
-              Script NSE
-            </abbr>
-            : {vulnerability.nse_script}
-          </p>
-          {vulnerability.references.length > 0 && (
-            <ul>
-              {vulnerability.references.map((reference) => (
-                <li key={reference}>
-                  <a href={reference}>{reference}</a>
-                </li>
-              ))}
-            </ul>
-          )}
+                </span>
+              )}
+              {vulnerability.patch_state === "unpatched" && (
+                <span className="patch-qualifier">{UNPATCHED_QUALIFIER}</span>
+              )}
+              <span className="finding-card-source">
+                (fuente: {vulnerability.source})
+              </span>
+            </div>
+            <p className="finding-card-description">
+              {vulnerability.description}
+            </p>
+            <details className="finding-card-details">
+              <summary>{FINDING_DETAILS_LABEL}</summary>
+              <p>
+                <abbr title="Script del Nmap Scripting Engine que detectó este hallazgo.">
+                  Script NSE
+                </abbr>
+                : {vulnerability.nse_script}
+              </p>
+              {vulnerability.references.length > 0 && (
+                <ul>
+                  {vulnerability.references.map((reference) => (
+                    <li key={reference}>
+                      <a href={reference}>{reference}</a>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </details>
+          </article>
         </li>
       ))}
     </ul>
@@ -176,7 +218,24 @@ export function ReportDetails({
     new Set(),
   );
 
-  const all = report.vulnerabilities;
+  // Findings verified as fixed by a backport are not shown (nor counted);
+  // the export still carries the full report.
+  const dismissedCount = report.vulnerabilities.filter(
+    (v) => v.patch_state === "fixed",
+  ).length;
+  const rawVulnerabilities = report.vulnerabilities.filter(
+    (v) => v.patch_state !== "fixed",
+  );
+  const rawPossible = rawVulnerabilities.filter(
+    (v) => v.confidence === "version_match",
+  );
+  const uniquePossible = dedupeById(rawPossible);
+  const collapsedCount = rawPossible.length - uniquePossible.length;
+  // What is displayed: confirmed as-is, "posibles" deduped by id.
+  const all = [
+    ...rawVulnerabilities.filter((v) => v.confidence !== "version_match"),
+    ...uniquePossible,
+  ];
   const counts = SEVERITY_ORDER.map((severity) => ({
     severity,
     count: all.filter((v) => v.severity === severity).length,
@@ -185,9 +244,7 @@ export function ReportDetails({
   const visible = all.filter((v) => !hidden.has(v.severity)).sort(bySeverity);
   const possible = visible.filter((v) => v.confidence === "version_match");
   const confirmed = visible.filter((v) => v.confidence !== "version_match");
-  const totalPossible = all.filter(
-    (v) => v.confidence === "version_match",
-  ).length;
+  const totalPossible = uniquePossible.length;
 
   const toggleSeverity = (severity: VulnerabilitySeverity) => {
     setHidden((current) => {
@@ -297,10 +354,18 @@ export function ReportDetails({
             >
               <summary>{`${VERSION_MATCH_GROUP_TITLE} (${possible.length})`}</summary>
               <p>{CONFIDENCE_VERSION_MATCH_NOTE}</p>
+              {collapsedCount > 0 && (
+                <p className="field-help">
+                  {collapsedDuplicatesNote(collapsedCount)}
+                </p>
+              )}
               <FindingList findings={possible} />
             </details>
           )}
         </>
+      )}
+      {dismissedCount > 0 && (
+        <p className="field-help">{dismissedByBackportNote(dismissedCount)}</p>
       )}
     </section>
   );

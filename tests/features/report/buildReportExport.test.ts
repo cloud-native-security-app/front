@@ -49,4 +49,27 @@ describe("buildReportExport", () => {
 
     expect(file.filename).toContain("otro-scan");
   });
+
+  it("conserva_los_hallazgos_con_patch_state_fixed", () => {
+    const withFixed: ScanResult = {
+      ...REPORT,
+      vulnerabilities: [
+        ...REPORT.vulnerabilities,
+        {
+          id: "CVE-2024-2222",
+          severity: "high",
+          description: "Corregida por backport.",
+          nse_script: "vulners",
+          source: "nmap_nse",
+          references: [],
+          confidence: "version_match",
+          patch_state: "fixed",
+        },
+      ],
+    };
+
+    const file = buildReportExport("scan-1", withFixed);
+
+    expect(JSON.parse(file.content)).toEqual(withFixed);
+  });
 });
