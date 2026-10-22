@@ -130,6 +130,11 @@ export function themeChoiceLabel(choice: "system" | "light" | "dark"): string {
   }
 }
 
+/** Accessible name of the icon-only theme toggle: current mode + the action. */
+export function themeToggleLabel(choice: "system" | "light" | "dark"): string {
+  return `${THEME_LABEL}: ${themeChoiceLabel(choice).toLowerCase()}. Cambiar.`;
+}
+
 /** Keyboard and live feedback (feature `keyboard-and-live-feedback`). */
 export const SKIP_TO_CONTENT_LABEL = "Saltar al contenido";
 export const SCAN_IN_PROGRESS_LABEL = "Escaneo en curso";
