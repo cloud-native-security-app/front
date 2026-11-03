@@ -907,6 +907,17 @@ main:focus {
 }
 
 /* Finished-scan notification (KLF-04). */
+/* The live region is a container, not a status message: cancel the global
+   [role="status"] chrome so an empty region takes no space and shows no bar. */
+.scan-notice-region {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  color: inherit;
+  font-size: inherit;
+}
+
 .scan-notice {
   display: flex;
   flex-wrap: wrap;
