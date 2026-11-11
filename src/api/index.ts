@@ -7,6 +7,7 @@
 export { configureGatewayBaseUrl, gatewayBaseUrl } from "./config";
 export { getMe, loginRedirectUrl, logout } from "./auth";
 export { cancelScan, getScanHistory, submitScan } from "./scans";
+export { getAdminMetrics, subscribeToAdminEvents } from "./admin";
 export { getReport } from "./report";
 export { subscribeToScanEvents } from "./scanEvents";
 export { onUnauthorized } from "./unauthorized";
@@ -15,8 +16,17 @@ export {
   deleteNetworkCredential,
   listNetworkCredentials,
 } from "./networkCredentials";
+export type { AdminEventsHandlers, AdminEventsSubscription } from "./admin";
 export type { ConnectionStatus, ScanEventsSubscription } from "./scanEvents";
 export type {
+  AdminCriticalFinding,
+  AdminDelta,
+  AdminEventEntry,
+  AdminInFlightScan,
+  AdminKpis,
+  AdminScanChange,
+  AdminSnapshot,
+  AdminStreamClosed,
   ApiError,
   ApiResult,
   CreateNetworkCredentialInput,

@@ -146,6 +146,8 @@ export interface CreateNetworkCredentialInput {
 export type ApiError =
   | { kind: "network" }
   | { kind: "unauthorized" }
+  /** 403: the session is valid but not (or no longer) allowed (admin routes). */
+  | { kind: "forbidden" }
   | { kind: "not_found" }
   /** El recurso existe pero aún no está en el estado requerido para la
    * operación pedida (p. ej. `getReport` sobre un scan no `COMPLETADO`). */
@@ -164,3 +166,83 @@ export type ApiError =
  */
 export type ApiResult<T> =
   { ok: true; value: T } | { ok: false; error: ApiError };
+
+/**
+ * Admin feed (`GET /api/admin/metrics`, SSE `GET /api/admin/events`), same
+ * shapes as the Gateway's `AdminSnapshot` / `AdminDelta` OpenAPI schemas
+ * (`gateway/src/admin.rs`). Nothing here is added or inferred by `front`.
+ */
+export interface AdminKpis {
+  scans_in_flight: number;
+  completed_last_window: number;
+  failed_last_window: number;
+  /** `failed / (completed + failed)` in the window; `null` with no scans. */
+  failure_rate: number | null;
+  active_users: number;
+  rate_limit_hits: number;
+  /** Records skipped since the Gateway process started (not windowed). */
+  malformed_records: number;
+}
+
+export type AdminScanFlightStatus = "requested" | "running";
+
+export interface AdminInFlightScan {
+  scan_id: string;
+  status: AdminScanFlightStatus;
+  since: string;
+}
+
+export interface AdminCriticalFinding {
+  event_id: string;
+  occurred_at: string;
+  scan_id: string;
+  /** `null` for a host-level finding (no port). */
+  port: number | null;
+  /** `tcp` / `udp`; `null` for a host-level finding. */
+  protocol: string | null;
+  cve_id: string | null;
+  severity: string;
+  confidence: string;
+}
+
+export interface AdminEventEntry {
+  event_id: string;
+  event_type: string;
+  occurred_at: string;
+  source: string;
+  actor_sub?: string;
+  scan_id?: string;
+  payload: unknown;
+}
+
+export interface AdminSnapshot {
+  seq: number;
+  generated_at: string;
+  window_seconds: number;
+  kpis: AdminKpis;
+  scans_in_flight: AdminInFlightScan[];
+  critical_findings: AdminCriticalFinding[];
+  recent_events: AdminEventEntry[];
+}
+
+export type AdminScanChangeStatus = "requested" | "running" | "finished";
+
+export interface AdminScanChange {
+  scan_id: string;
+  status: AdminScanChangeStatus;
+}
+
+export interface AdminDelta {
+  seq: number;
+  /** Absent (`null`) when the delta only counts a malformed record. */
+  event: AdminEventEntry | null;
+  /** Full KPIs after the change (absolute values, so a lost delta self-heals). */
+  kpis: AdminKpis;
+  scan_change: AdminScanChange | null;
+  critical_finding: AdminCriticalFinding | null;
+}
+
+/** SSE `closed` event: the Gateway ends the stream after a failed role re-check. */
+export interface AdminStreamClosed {
+  reason: string;
+}
