@@ -3,6 +3,7 @@ export const SECTION_PATHS = {
   scan: "/escanear",
   history: "/historial",
   targets: "/objetivos",
+  admin: "/admin",
 } as const;
 
 export type SectionKey = keyof typeof SECTION_PATHS;
@@ -15,6 +16,9 @@ export function sectionOf(pathname: string): SectionKey {
   }
   if (first === "objetivos") {
     return "targets";
+  }
+  if (first === "admin") {
+    return "admin";
   }
   return "scan";
 }

@@ -7,6 +7,7 @@ import {
   isScanHistoryEntryArray,
   isScanOutcomeEvent,
   isScanResult,
+  parseRole,
 } from "../../src/api/guards";
 
 describe("isMeResponse", () => {
@@ -226,5 +227,18 @@ describe("isScanResult", () => {
         isScanResult(withVulnerability({ confidence: "future_value" })),
       ).toBe(true);
     });
+  });
+});
+
+describe("parseRole", () => {
+  it("accepts_only_the_two_known_roles", () => {
+    expect(parseRole("admin")).toBe("admin");
+    expect(parseRole("user")).toBe("user");
+  });
+
+  it("fails_closed_to_user_for_missing_or_unknown_values", () => {
+    for (const value of [undefined, null, "", "ADMIN", "root", 1, {}]) {
+      expect(parseRole(value)).toBe("user");
+    }
   });
 });

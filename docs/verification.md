@@ -43,6 +43,10 @@ npm run test
   levantar aquí vía `testcontainers` o similar); este servidor de contrato
   es la aproximación más real posible hasta que exista, y se documenta
   explícitamente como provisional en el código que lo define.
+- El servidor de contrato también imita el feed de administración
+  (`/api/admin/metrics`, SSE `/api/admin/events`, rol en `/api/me`) y expone
+  rutas de control solo de test (`/__test__/admin/emit|status|reset`); su
+  estado es global, por lo que `e2e/admin-panel.spec.ts` corre en serie.
 - Ningún test e2e depende de una cuenta real de Google ni de un Gateway de
   staging/producción.
 - Comando:

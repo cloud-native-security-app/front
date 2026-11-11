@@ -10,6 +10,7 @@ import { LogoutButton, useSession } from "../auth";
 import {
   NAV_LABEL,
   PRODUCT_NAME,
+  SECTION_ADMIN,
   SECTION_HISTORY,
   SECTION_SCAN,
   SECTION_TARGETS,
@@ -25,12 +26,16 @@ const SECTION_LINKS = [
 
 export function AppHeader() {
   const { user } = useSession();
+  const links =
+    user?.role === "admin"
+      ? [...SECTION_LINKS, { to: SECTION_PATHS.admin, label: SECTION_ADMIN }]
+      : SECTION_LINKS;
 
   return (
     <header className="app-header">
       <h1>{PRODUCT_NAME}</h1>
       <nav aria-label={NAV_LABEL} className="app-header__nav">
-        {SECTION_LINKS.map((link) => (
+        {links.map((link) => (
           <NavLink key={link.to} to={link.to}>
             {link.label}
           </NavLink>

@@ -44,6 +44,7 @@ export const NAV_LABEL = "Secciones";
 export const SECTION_SCAN = "Escanear";
 export const SECTION_HISTORY = "Historial";
 export const SECTION_TARGETS = "Objetivos";
+export const SECTION_ADMIN = "Administración";
 
 export const LOGOUT_LABEL = "Cerrar sesión";
 
@@ -168,4 +169,99 @@ export function scanFinishedMessage(
 ): string {
   const subject = target ? `Escaneo de ${target}` : "Escaneo";
   return `${subject} ${SCAN_OUTCOME_WORD[status]}`;
+}
+
+/** Admin panel (feature `admin-panel`). */
+export const ADMIN_LOADING_MESSAGE = "Cargando el panel de administración…";
+export const ADMIN_FORBIDDEN_MESSAGE =
+  "Tu cuenta ya no tiene permisos de administración. Puedes seguir usando el resto de la aplicación.";
+export const ADMIN_UNVERIFIABLE_MESSAGE =
+  "No pudimos verificar tu rol de administrador. Reintentando automáticamente…";
+export const BACK_TO_SCAN_LABEL = "Volver a Escanear";
+
+export const ADMIN_CONNECTION_LABEL = "Estado de la conexión";
+export function adminConnectionMessage(
+  status: "connecting" | "live" | "reconnecting" | "unavailable",
+): string {
+  switch (status) {
+    case "live":
+      return "En vivo";
+    case "connecting":
+      return "Conectando…";
+    case "reconnecting":
+      return "Reconectando… los datos mostrados pueden estar desactualizados.";
+    case "unavailable":
+      return `${ADMIN_UNVERIFIABLE_MESSAGE} Los datos mostrados pueden estar desactualizados.`;
+  }
+}
+
+export const ADMIN_KPI_SECTION_LABEL = "Indicadores";
+export const kpiLabels = (windowMinutes: number) =>
+  ({
+    scansInFlight: "Escaneos en curso",
+    completed: `Completados (últimos ${String(windowMinutes)} min)`,
+    failed: `Fallidos (últimos ${String(windowMinutes)} min)`,
+    failureRate: "Tasa de fallos",
+    activeUsers: "Usuarios activos",
+    rateLimitHits: `Límites de tasa alcanzados (últimos ${String(windowMinutes)} min)`,
+    malformed: "Registros malformados",
+  }) as const;
+
+export const ADMIN_SCANS_TITLE = "Escaneos en curso";
+export const ADMIN_NO_SCANS_MESSAGE = "No hay escaneos en curso.";
+export const ADMIN_SCAN_COLUMNS = {
+  scan: "Escaneo",
+  status: "Estado",
+  since: "Desde",
+} as const;
+export const ADMIN_SCAN_STATUS_LABEL = {
+  requested: "Solicitado",
+  running: "En ejecución",
+} as const;
+
+export const ADMIN_FINDINGS_TITLE = "Hallazgos críticos";
+export const ADMIN_NO_FINDINGS_MESSAGE = "Sin hallazgos críticos recientes.";
+export const ADMIN_FINDINGS_LIVE_LABEL = "Avisos de hallazgos críticos";
+/** Where a finding is: a port or the whole host (no port in the event). */
+export function findingLocation(
+  port: number | null,
+  protocol: string | null,
+): string {
+  if (port === null) {
+    return "Host";
+  }
+  return protocol
+    ? `Puerto ${String(port)}/${protocol}`
+    : `Puerto ${String(port)}`;
+}
+export function newCriticalFindingAnnouncement(finding: {
+  cve_id: string | null;
+  port: number | null;
+  protocol: string | null;
+  scan_id: string;
+}): string {
+  const what = finding.cve_id ?? "sin CVE";
+  const where =
+    finding.port === null
+      ? "en el host"
+      : `en el puerto ${String(finding.port)}${finding.protocol ? `/${finding.protocol}` : ""}`;
+  return `Nuevo hallazgo crítico: ${what} ${where} (escaneo ${finding.scan_id}).`;
+}
+
+export const ADMIN_EVENTS_TITLE = "Registro de eventos";
+export const ADMIN_EVENT_FILTER_LABEL = "Tipo de evento";
+export const ADMIN_ALL_EVENT_TYPES_LABEL = "Todos los tipos";
+export const ADMIN_NO_EVENTS_MESSAGE = "Todavía no hay eventos.";
+export const ADMIN_NO_EVENTS_FOR_FILTER_MESSAGE =
+  "Ningún evento coincide con el tipo seleccionado.";
+export const ADMIN_EVENT_COLUMNS = {
+  time: "Hora",
+  type: "Tipo",
+  source: "Origen",
+  scan: "Escaneo",
+  detail: "Detalle",
+} as const;
+export const ADMIN_EVENT_DETAIL_LABEL = "Ver carga";
+export function adminEventCount(shown: number, total: number): string {
+  return `Mostrando ${String(shown)} de ${String(total)}`;
 }

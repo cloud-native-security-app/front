@@ -57,7 +57,12 @@ describe("ProtectedRoute", () => {
   it("renderiza_el_contenido_protegido_si_la_sesion_esta_autenticada", () => {
     renderProtected({
       status: "authenticated",
-      user: { sub: "1", email: "analista@example.test", name: "Analista" },
+      user: {
+        sub: "1",
+        email: "analista@example.test",
+        name: "Analista",
+        role: "user",
+      },
     });
 
     expect(screen.getByText("Contenido secreto")).toBeInTheDocument();

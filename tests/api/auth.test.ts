@@ -39,6 +39,17 @@ describe("getMe", () => {
     }
   });
 
+  it("expone_el_rol_del_perfil_y_lo_normaliza_a_user_si_no_es_admin", async () => {
+    await loginAsSyntheticUser({ role: "admin" });
+    const admin = await getMe();
+    expect(admin.ok && admin.value.role).toBe("admin");
+
+    clearNodeTestSessionCookies();
+    await loginAsSyntheticUser();
+    const regular = await getMe();
+    expect(regular.ok && regular.value.role).toBe("user");
+  });
+
   it("mapea_401_a_unauthorized_cuando_no_hay_sesion", async () => {
     const result = await getMe();
 

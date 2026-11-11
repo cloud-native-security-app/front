@@ -7,6 +7,7 @@
 
 import { randomUUID } from "node:crypto";
 
+import { createAdminFeedState, type AdminFeedState } from "./adminFeed.ts";
 import type {
   CreateNetworkCredentialInput,
   MeResponse,
@@ -62,6 +63,7 @@ export interface NetworkCredentialRecord {
 }
 
 export interface ContractServerStore {
+  admin: AdminFeedState;
   sessions: Map<string, MeResponse>;
   scans: Map<string, ScanRecord>;
   networkCredentials: Map<string, NetworkCredentialRecord>;
@@ -71,6 +73,7 @@ let syntheticUserCounter = 0;
 
 export function createStore(): ContractServerStore {
   return {
+    admin: createAdminFeedState(),
     sessions: new Map(),
     scans: new Map(),
     networkCredentials: new Map(),
@@ -91,6 +94,7 @@ export function createSyntheticSession(
     sub: identity?.sub ?? `test-user-${syntheticUserCounter}`,
     email: identity?.email ?? `test-user-${syntheticUserCounter}@example.test`,
     name: identity?.name ?? `Analista de prueba ${syntheticUserCounter}`,
+    role: identity?.role === "admin" ? "admin" : "user",
   };
   const token = randomUUID();
   store.sessions.set(token, profile);

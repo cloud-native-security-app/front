@@ -32,7 +32,12 @@ const ANONYMOUS_SESSION: SessionState = {
 };
 const AUTHENTICATED_SESSION: SessionState = {
   status: "authenticated",
-  user: { sub: "1", email: "analista@example.test", name: "Analista" },
+  user: {
+    sub: "1",
+    email: "analista@example.test",
+    name: "Analista",
+    role: "user",
+  },
 };
 
 function renderWithSession(session: SessionState) {

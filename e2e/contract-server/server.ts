@@ -37,6 +37,14 @@ import type {
   ScanHistoryEntry,
 } from "../../src/api/types";
 import {
+  emitAdminEvent,
+  forceAdminStatus,
+  handleAdminEvents,
+  handleAdminMetrics,
+  resetAdminFeed,
+  type EmitRequest,
+} from "./adminFeed.ts";
+import {
   applyEventToRecord,
   createNetworkCredential,
   createScan,
@@ -453,6 +461,42 @@ function handleScanEvents(
   });
 }
 
+async function handleAdminTestControl(
+  store: ContractServerStore,
+  req: IncomingMessage,
+  res: ServerResponse,
+  pathname: string,
+): Promise<void> {
+  const bodyText = await readRequestBody(req);
+  let body: unknown;
+  try {
+    body = bodyText.length > 0 ? JSON.parse(bodyText) : {};
+  } catch {
+    writeText(res, 400, "cuerpo inválido: se esperaba JSON");
+    return;
+  }
+  const record = (
+    typeof body === "object" && body !== null ? body : {}
+  ) as Record<string, unknown>;
+  if (pathname === "/__test__/admin/emit") {
+    if (typeof record["event_type"] !== "string") {
+      writeText(res, 400, "se esperaba event_type");
+      return;
+    }
+    emitAdminEvent(store.admin, record as unknown as EmitRequest);
+  } else if (pathname === "/__test__/admin/status") {
+    const status = record["status"];
+    forceAdminStatus(store.admin, typeof status === "number" ? status : null);
+  } else if (pathname === "/__test__/admin/reset") {
+    resetAdminFeed(store.admin);
+  } else {
+    writeText(res, 404, "not found");
+    return;
+  }
+  res.writeHead(204);
+  res.end();
+}
+
 const SCAN_SUB_ROUTE = /^\/api\/scans\/([^/]+)\/(cancel|events|report)$/;
 const NETWORK_CREDENTIAL_ID_ROUTE = /^\/api\/network-credentials\/([^/]+)$/;
 
@@ -494,6 +538,28 @@ async function handleRequest(
 
   if (method === "GET" && pathname === "/api/me") {
     handleGetMe(store, req, res);
+    return;
+  }
+
+  if (
+    method === "GET" &&
+    (pathname === "/api/admin/metrics" || pathname === "/api/admin/events")
+  ) {
+    const token = requireSessionToken(store, req, res);
+    if (!token) {
+      return;
+    }
+    const role = store.sessions.get(token)?.role ?? "user";
+    if (pathname === "/api/admin/metrics") {
+      handleAdminMetrics(role, store.admin, res);
+    } else {
+      handleAdminEvents(role, store.admin, req, res);
+    }
+    return;
+  }
+
+  if (method === "POST" && pathname.startsWith("/__test__/admin/")) {
+    await handleAdminTestControl(store, req, res, pathname);
     return;
   }
 
