@@ -61,6 +61,17 @@
   `test-user-<n>@example.test`) servidas por el servidor de contrato de
   `docs/verification.md`.
 
+## Rol de administrador
+
+- `GET /api/me` devuelve `role` (`user`/`admin`). `front` solo lo usa para
+  mostrar u ocultar el enlace y la ruta `/admin`; **nunca** es autorización:
+  el Gateway responde 403 en `/api/admin/*` a quien no sea admin y revalida
+  el rol en el stream. Un rol ausente o desconocido se trata como `user`.
+- Un 403 del panel no cierra la sesión (a diferencia de un 401): solo se
+  sale del panel con un mensaje.
+- El panel muestra únicamente lo que envía el Gateway. El `actor_sub` de los
+  eventos no se renderiza.
+
 ## Validación de entrada
 
 - La validación de formato de IP/rango en el cliente (RF-02/RF-03) es una

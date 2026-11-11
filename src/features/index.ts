@@ -11,6 +11,8 @@
  *   `report_view`, id 7), ver `./report`.
  * - `features/credentials` — gestión de credenciales de red (feature
  *   `network_credentials_manager`, id 9), ver `./credentials`.
+ * - `features/admin` — panel de administración en tiempo real (feature
+ *   `admin-panel`, KAP-10), ver `./admin`.
  */
 
 export {};

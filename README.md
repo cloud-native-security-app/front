@@ -24,6 +24,9 @@ ellos.
 - Cancelar un escaneo `PENDIENTE`/`EN_PROGRESO` (RF-14).
 - Mostrar el histórico de escaneos del usuario (RF-13).
 - Visualizar y exportar el reporte consolidado (RF-11).
+- Panel de administración en tiempo real (`/admin`, solo rol `admin`): métricas
+  y eventos de seguridad que sirve el Gateway (`GET /api/admin/metrics` y SSE
+  `GET /api/admin/events`).
 
 **Seguridad**: este código corre en el navegador del usuario, el entorno
 menos confiable de la plataforma. Nunca debe manejar ni persistir el token

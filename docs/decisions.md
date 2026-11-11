@@ -72,3 +72,8 @@ features). Formato: contexto, decisión, consecuencia.
 - `.gitattributes` fuerza `eol=lf` (CRLF por `core.autocrlf` rompía scripts).
 - Los e2e requieren Chromium de Playwright instalado; no se sustituyen por mocks.
 - Un `.env.local` rompe tests unitarios porque Vitest lo carga.
+
+## D-15 Panel de administración (`/admin`)
+
+- **Decisión:** feature `admin-panel` (KAP-10). La ruta se protege con `AdminRoute` (rol de `GET /api/me`, fail closed) y el servidor sigue siendo la autoridad (403/503). El SSE nunca se deja reintentar solo: ante cualquier error o `closed` se cierra, se espera con backoff y se vuelve a pedir el snapshot REST, cuyo status distingue 401/403/503 (`EventSource` no lo expone).
+- **Consecuencia:** el enlace "Administración" puede seguir visible tras perder el rol hasta recargar la página (el rol de la sesión es una instantánea); el panel sí se bloquea al instante con el mensaje de 403. El servidor de contrato imita el feed (`e2e/contract-server/adminFeed.ts`) con rutas `/__test__/admin/*` que no existen en el Gateway real.

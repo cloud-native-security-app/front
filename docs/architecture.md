@@ -59,7 +59,8 @@ Browser (front) ──HTTPS──▶ Gateway ──▶ Identity Provider (Google
 1. **`src/api`** — único módulo que conoce la URL base del Gateway y su
    contrato HTTP/SSE. Expone funciones tipadas (`login()`, `getMe()`,
    `submitScan(target)`, `getScanHistory()`, `cancelScan(scanId)`,
-   `subscribeToScanEvents(onEvent)`, `getReport(scanId)`). Ningún otro
+   `subscribeToScanEvents(onEvent)`, `getReport(scanId)`,
+   `getAdminMetrics()`, `subscribeToAdminEvents(handlers)`). Ningún otro
    módulo hace `fetch`/`EventSource` directo.
 2. **`src/auth`** — estado de sesión derivado de `GET /api/me` (nunca de un
    token propio); componente de ruta protegida que redirige a login si no
@@ -71,11 +72,21 @@ Browser (front) ──HTTPS──▶ Gateway ──▶ Identity Provider (Google
    cancelar (RF-14) sobre escaneos en `PENDIENTE`/`EN_PROGRESO`.
 5. **`src/features/report`** — visualización del reporte consolidado de un
    escaneo `COMPLETADO` y su exportación (RF-11).
-6. **`src/components`** — componentes de UI puros y reutilizables, sin
+6. **`src/features/admin`** — panel de administración en tiempo real
+   (`/admin`): snapshot inicial de `GET /api/admin/metrics`, luego SSE
+   `GET /api/admin/events` reducido por `adminReducer` (`snapshot` reemplaza,
+   `delta` fusiona, con los mismos topes que el Gateway). Reconecta con
+   backoff (1 s a 30 s) y un snapshot nuevo. Como `EventSource` no expone el
+   status HTTP, tras cualquier error o evento `closed` el hook consulta el
+   snapshot REST y su status decide: 401 sesión terminada, 403 deja el
+   panel con un mensaje, 503 o red reintenta.
+7. **`src/components`** — componentes de UI puros y reutilizables, sin
    conocimiento del Gateway.
-7. **`src/routes`** — enrutado (React Router): login, formulario de
-   escaneo, histórico, detalle/reporte de un escaneo.
-8. **`src/main.tsx` / `src/App.tsx`** — arranque de la aplicación: monta el
+8. **`src/routes`** — enrutado (React Router): login, formulario de
+   escaneo, histórico, detalle/reporte de un escaneo y `/admin`
+   (`AdminRoute`: un usuario sin rol `admin` es redirigido a "Escanear" y el
+   enlace de navegación solo se muestra a administradores).
+9. **`src/main.tsx` / `src/App.tsx`** — arranque de la aplicación: monta el
    router, el provider de la librería de fetching, y el guard de
    autenticación.
 

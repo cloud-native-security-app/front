@@ -41,16 +41,28 @@ An admin-only real-time panel at `/admin`, fed by `GET /api/admin/metrics` (JSON
 
 | ID | Task | Done |
 |---|---|---|
-| AP-01 | Feature document | [ ] |
-| AP-02 | `role` in session/me, `isAdmin`, `/admin` guard, nav link for admins | [ ] |
-| AP-03 | API layer, reducer and data hook (fake `EventSource`) | [ ] |
-| AP-04 | Presentational components, copy, styles | [ ] |
-| AP-05 | Route wiring, contract-server mock, Playwright `admin-panel.spec.ts` | [ ] |
-| AP-06 | Docs and close-out | [ ] |
+| AP-01 | Feature document | [x] 4ba24c7 |
+| AP-02 | `role` in session/me (`parseRole`), `AdminRoute` guard, nav link for admins | [x] e9d98ad |
+| AP-03 | API layer, reducer and data hook (fake `EventSource`); the contract-server admin feed was added here because the API tests need it | [x] 90f1801 |
+| AP-04 | Presentational components, copy, styles | [x] 04dcc29 |
+| AP-05 | Route wiring, Playwright `admin-panel.spec.ts` (mock endpoints in AP-03) | [x] 4b5b20b |
+| AP-06 | Docs (README, architecture, security-scope, verification, decisions D-15) and close-out | [x] docs commit on top of 4b5b20b |
 
 ## Evidence
 
-(filled as tasks close)
+- Route: delegated direct, single writer; no sub-agents.
+- RED AP-02: `vitest run` on guards/auth/routes -> 4 files failed, 7 tests failed (`parseRole`, `role` in `getMe`, `AdminRoute` missing, no admin link). GREEN: 46 files, 264 tests.
+- RED AP-03: `vitest run tests/features/admin tests/api/admin.test.ts` -> 3 files failed to load (modules missing). GREEN: 24 tests (reducer 9, hook 9 with fake `EventSource`/`fetch`/timers, API and guards 6). Full suite 49 files, 288 tests.
+- RED AP-04: 15 tests failed (`AdminPanelView`/`AdminPanel` not exported). GREEN: 33 admin tests; full suite 51 files, 303 tests.
+- AP-05: spec written first. Runs surfaced two real defects, fixed before the commit: the heading lost focus when the data arrived (the container now owns the section and heading), and the fourth nav link overflowed at 390 px (`.app-header__nav` now wraps). Final: `admin-panel.spec.ts` 6 passed (live updates, non-admin redirect, 403 mid-session, 503 then fresh snapshot, axe `color-contrast` and no horizontal scroll at 390 px in light and dark).
+- Final: `CI=true npm run verify` exit 0 (prettier, eslint, tsc, vitest 51 files / 303 tests, build, playwright 45 passed).
+- Conservative choices: unknown role is `user`; 403 does not end the session; `actor_sub` is not rendered; the event payload is shown as sent inside a collapsed `<details>`; only the newest finding is announced in the live region.
+
+## Known gaps
+
+- The nav link stays visible after a mid-session role loss until the page is reloaded (the session role is a snapshot); the panel itself is blocked at once.
+- The delta carries no `since` for a scan: a scan first seen in a delta uses the event time, so it can differ slightly from the Gateway's own tracking time until the next snapshot.
+- The real Gateway was not run against this panel (KAP-11 covers the compose end-to-end check); the contract server mirrors `gateway/odd/tasks/admin-realtime-feed.md`.
 
 ## Next step
 
