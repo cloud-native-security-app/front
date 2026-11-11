@@ -9,11 +9,19 @@
 export type ScanStatus =
   "PENDIENTE" | "EN_PROGRESO" | "COMPLETADO" | "FALLIDO" | "CANCELADO";
 
+/** Role of the session (`GET /api/me`); anything unknown is treated as `user`. */
+export type Role = "user" | "admin";
+
 /** `GET /api/me` — perfil de la sesión activa. */
 export interface MeResponse {
   sub: string;
   email: string;
   name: string;
+  /**
+   * Only decides whether the admin UI is shown; the Gateway enforces it on
+   * `/api/admin/*` (403). Normalized by `getMe`: missing or unknown is `user`.
+   */
+  role: Role;
 }
 
 /**

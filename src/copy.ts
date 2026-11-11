@@ -44,6 +44,7 @@ export const NAV_LABEL = "Secciones";
 export const SECTION_SCAN = "Escanear";
 export const SECTION_HISTORY = "Historial";
 export const SECTION_TARGETS = "Objetivos";
+export const SECTION_ADMIN = "Administración";
 
 export const LOGOUT_LABEL = "Cerrar sesión";
 

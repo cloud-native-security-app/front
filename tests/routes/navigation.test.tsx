@@ -85,6 +85,27 @@ describe("sectioned navigation", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows_the_admin_link_only_to_admins", async () => {
+    await loginAsSyntheticUser({ role: "admin" });
+    renderAt("/escanear");
+    await sectionHeading("Escanear");
+    const nav = screen.getByRole("navigation", { name: "Secciones" });
+    expect(
+      within(nav)
+        .getAllByRole("link")
+        .map((l) => l.textContent),
+    ).toEqual(["Escanear", "Historial", "Objetivos", "Administración"]);
+  });
+
+  it("redirects_a_regular_user_from_admin_and_hides_the_link", async () => {
+    await loginAsSyntheticUser();
+    renderAt("/admin");
+    await sectionHeading("Escanear");
+    expect(
+      screen.queryByRole("link", { name: "Administración" }),
+    ).not.toBeInTheDocument();
+  });
+
   it.each([
     ["/escanear", "Escanear"],
     ["/historial", "Historial"],

@@ -91,6 +91,7 @@ export function createSyntheticSession(
     sub: identity?.sub ?? `test-user-${syntheticUserCounter}`,
     email: identity?.email ?? `test-user-${syntheticUserCounter}@example.test`,
     name: identity?.name ?? `Analista de prueba ${syntheticUserCounter}`,
+    role: identity?.role === "admin" ? "admin" : "user",
   };
   const token = randomUUID();
   store.sessions.set(token, profile);

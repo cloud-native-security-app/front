@@ -22,6 +22,7 @@ export type {
   CreateNetworkCredentialInput,
   MeResponse,
   NetworkCredential,
+  Role,
   ScanHistoryEntry,
   ScanOutcomeEvent,
   ScanPort,

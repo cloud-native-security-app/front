@@ -3,6 +3,7 @@
  * authenticated sections (feature `sectioned-navigation`).
  */
 
+export { AdminRoute } from "./AdminRoute";
 export { AppHeader } from "./AppHeader";
 export { AuthenticatedRoutes } from "./AuthenticatedRoutes";
 export { SECTION_PATHS, sectionOf } from "./paths";

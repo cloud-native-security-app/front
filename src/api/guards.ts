@@ -9,6 +9,7 @@
 import type {
   MeResponse,
   NetworkCredential,
+  Role,
   ScanHistoryEntry,
   ScanOutcomeEvent,
   ScanPort,
@@ -46,7 +47,18 @@ export function isScanStatus(value: unknown): value is ScanStatus {
   );
 }
 
-export function isMeResponse(value: unknown): value is MeResponse {
+/**
+ * Fail-closed role parsing: only the exact string `"admin"` grants admin; a
+ * missing (older Gateway) or unknown value is `"user"`, never an error.
+ */
+export function parseRole(value: unknown): Role {
+  return value === "admin" ? "admin" : "user";
+}
+
+/** Shape check of `/api/me`; `role` is optional on the wire (see `parseRole`). */
+export function isMeResponse(
+  value: unknown,
+): value is Omit<MeResponse, "role"> & { role?: unknown } {
   return (
     isRecord(value) &&
     isString(value["sub"]) &&

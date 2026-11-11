@@ -5,7 +5,7 @@
  */
 
 import { gatewayBaseUrl } from "./config";
-import { isMeResponse } from "./guards";
+import { isMeResponse, parseRole } from "./guards";
 import { mapCommonErrorStatus, parseJson, performRequest } from "./httpClient";
 import type { ApiResult, MeResponse } from "./types";
 
@@ -44,7 +44,8 @@ export async function getMe(): Promise<ApiResult<MeResponse>> {
   if (!parsed.ok || !isMeResponse(parsed.value)) {
     return { ok: false, error: { kind: "unexpected", status: result.status } };
   }
-  return { ok: true, value: parsed.value };
+  const { sub, email, name, role } = parsed.value;
+  return { ok: true, value: { sub, email, name, role: parseRole(role) } };
 }
 
 /**
