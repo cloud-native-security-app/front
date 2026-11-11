@@ -53,6 +53,24 @@ describe("AdminPanel", () => {
     ).toHaveTextContent("5");
   });
 
+  it("keeps_one_focusable_section_heading_across_loading_and_data", async () => {
+    fetchMock.mockResolvedValueOnce(
+      new Response(JSON.stringify(makeSnapshot()), { status: 200 }),
+    );
+    renderPanel();
+    const heading = screen.getByRole("heading", {
+      level: 2,
+      name: "Administración",
+    });
+    expect(heading).toHaveAttribute("data-section-heading");
+    expect(heading).toHaveAttribute("tabindex", "-1");
+
+    await screen.findByRole("region", { name: "Indicadores" });
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Administración" }),
+    ).toBe(heading);
+  });
+
   it("on_403_it_shows_a_clear_message_with_a_way_out_and_no_admin_data", async () => {
     fetchMock.mockResolvedValueOnce(new Response("no", { status: 403 }));
     renderPanel();

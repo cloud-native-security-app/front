@@ -1,14 +1,12 @@
 /**
  * Presentational admin panel (feature `admin-panel`): receives the snapshot
- * and the connection status, knows nothing about `src/api`.
+ * and the connection status, knows nothing about `src/api`. The section and
+ * its heading belong to the container so the heading (the focus target after
+ * navigating) is never remounted when the data arrives.
  */
 
 import type { AdminSnapshot } from "../../api";
-import {
-  ADMIN_CONNECTION_LABEL,
-  SECTION_ADMIN,
-  adminConnectionMessage,
-} from "../../copy";
+import { ADMIN_CONNECTION_LABEL, adminConnectionMessage } from "../../copy";
 import type { AdminFeedStatus } from "./useAdminFeed";
 import { CriticalFindingsFeed } from "./CriticalFindingsFeed";
 import { EventLog } from "./EventLog";
@@ -29,10 +27,7 @@ export function AdminPanelView({
   status: ViewStatus;
 }) {
   return (
-    <section aria-label={SECTION_ADMIN} className="admin-panel">
-      <h2 tabIndex={-1} data-section-heading>
-        {SECTION_ADMIN}
-      </h2>
+    <div className="admin-panel">
       <p role="status" aria-label={ADMIN_CONNECTION_LABEL} data-tone="neutral">
         {adminConnectionMessage(status)}
       </p>
@@ -40,6 +35,6 @@ export function AdminPanelView({
       <ScansInFlightList scans={snapshot.scans_in_flight} />
       <CriticalFindingsFeed findings={snapshot.critical_findings} />
       <EventLog events={snapshot.recent_events} />
-    </section>
+    </div>
   );
 }

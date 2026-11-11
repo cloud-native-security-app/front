@@ -1,6 +1,7 @@
 /**
  * Routes of the authenticated app (feature `sectioned-navigation`): header
- * plus the three sections. `/` and any unknown path go to "Escanear". The
+ * plus the three sections and, for admins only, `/admin` (feature
+ * `admin-panel`, behind `AdminRoute`). `/` and any unknown path go to "Escanear". The
  * report is a sub-route of the history (`/historial/:scanId`) that replaces
  * the table and links back to it, so it can be linked, reloaded and navigated with back/forward. After a change of
  * section, focus moves to that section's heading (SNV-04).
@@ -17,6 +18,7 @@ import {
   useParams,
 } from "react-router-dom";
 
+import { AdminPanel } from "../features/admin";
 import { NetworkCredentialsManager } from "../features/credentials";
 import { HistoryTable } from "../features/history";
 import { ReportView } from "../features/report";
@@ -27,6 +29,7 @@ import {
 } from "../features/scan";
 import { BACK_TO_HISTORY_LABEL, SECTION_HISTORY } from "../copy";
 import { AppHeader } from "./AppHeader";
+import { AdminRoute } from "./AdminRoute";
 import { SkipLink } from "./SkipLink";
 import { SECTION_PATHS, sectionOf } from "./paths";
 
@@ -91,6 +94,14 @@ export function AuthenticatedRoutes() {
           <Route
             path={SECTION_PATHS.targets}
             element={<NetworkCredentialsManager />}
+          />
+          <Route
+            path={SECTION_PATHS.admin}
+            element={
+              <AdminRoute>
+                <AdminPanel scanPath={SECTION_PATHS.scan} />
+              </AdminRoute>
+            }
           />
           <Route
             path="*"

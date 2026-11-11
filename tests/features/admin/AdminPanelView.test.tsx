@@ -18,16 +18,6 @@ describe("AdminPanelView", () => {
     cleanup();
   });
 
-  it("has_a_section_heading_that_receives_focus_on_navigation", () => {
-    renderView();
-    const heading = screen.getByRole("heading", {
-      level: 2,
-      name: "Administración",
-    });
-    expect(heading).toHaveAttribute("data-section-heading");
-    expect(heading).toHaveAttribute("tabindex", "-1");
-  });
-
   it("renders_every_kpi_tile_with_its_label_and_value", () => {
     renderView(
       makeSnapshot({

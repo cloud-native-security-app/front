@@ -776,6 +776,8 @@ form.credential-form {
 
 .app-header__nav {
   display: flex;
+  /* Four links for admins: wrap instead of overflowing narrow screens. */
+  flex-wrap: wrap;
   gap: var(--space-2);
   flex: 1 1 auto;
 }
