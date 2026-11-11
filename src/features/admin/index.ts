@@ -12,3 +12,5 @@ export {
 export type { AdminAction, AdminState } from "./adminReducer";
 export { useAdminFeed } from "./useAdminFeed";
 export type { AdminFeed, AdminFeedStatus } from "./useAdminFeed";
+export { AdminPanel } from "./AdminPanel";
+export { AdminPanelView } from "./AdminPanelView";
