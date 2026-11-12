@@ -13,3 +13,16 @@ export function formatTime(isoDate: string): string {
   const parsed = new Date(isoDate);
   return Number.isNaN(parsed.getTime()) ? isoDate : parsed.toLocaleTimeString();
 }
+
+/** `HH:MM` (24 h, local time) of an ISO minute, for chart axes and tables. */
+export function formatMinuteLabel(minute: string): string {
+  const date = new Date(minute);
+  if (Number.isNaN(date.getTime())) {
+    return minute;
+  }
+  return date.toLocaleTimeString("es", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}

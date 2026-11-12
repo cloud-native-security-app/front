@@ -283,3 +283,33 @@ export function adminHiddenScans(count: number): string {
 export function adminEventCount(shown: number, total: number): string {
   return `Mostrando ${String(shown)} de ${String(total)}`;
 }
+
+/** Per-minute charts of the admin panel (feature `admin-panel`). */
+export const ADMIN_CHARTS_SECTION_LABEL = "Gráficos por minuto";
+export const ADMIN_CHART_EVENTS_TITLE = "Eventos por minuto";
+export const ADMIN_CHART_SCANS_TITLE =
+  "Escaneos completados y fallidos por minuto";
+export const ADMIN_CHART_FINDINGS_TITLE =
+  "Hallazgos críticos por severidad y minuto";
+export const ADMIN_CHART_EMPTY_MESSAGE = "Sin datos en los últimos 15 minutos.";
+export const ADMIN_CHART_LEGEND_LABEL = "Leyenda";
+export const ADMIN_CHART_TABLE_TOGGLE = "Ver como tabla";
+export const ADMIN_CHART_MINUTE_COLUMN = "Minuto";
+export const ADMIN_CHART_KEYBOARD_HINT =
+  "Usa las flechas izquierda y derecha para recorrer los minutos.";
+export const ADMIN_EVENT_TYPE_SERIES_LABEL = {
+  "scan.requested": "Escaneo solicitado",
+  "scan.started": "Escaneo iniciado",
+  "scan.completed": "Escaneo completado",
+  "auth.login": "Inicio de sesión",
+  "ratelimit.hit": "Límite de tasa",
+  other: "Otros",
+} as const;
+export const ADMIN_SCAN_OUTCOME_LABEL = {
+  completed: "Completados",
+  failed: "Fallidos",
+} as const;
+export const ADMIN_SEVERITY_LABEL = {
+  critical: "Crítica",
+  high: "Alta",
+} as const;
