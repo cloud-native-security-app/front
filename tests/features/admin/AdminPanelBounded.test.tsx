@@ -13,7 +13,8 @@ describe("AdminPanelView bounded lists", () => {
     cleanup();
   });
 
-  it("renders_the_three_lists_in_keyboard_scrollable_regions", () => {
+  it("renders_the_three_lists_in_keyboard_scrollable_regions", async () => {
+    const user = userEvent.setup();
     render(
       <AdminPanelView
         status="live"
@@ -26,11 +27,12 @@ describe("AdminPanelView bounded lists", () => {
         })}
       />,
     );
-    for (const name of [
-      "Lista desplazable de escaneos",
-      "Lista desplazable de hallazgos",
-      "Lista desplazable de eventos",
-    ]) {
+    for (const [tab, name] of [
+      ["Escaneos en curso", "Lista desplazable de escaneos"],
+      ["Hallazgos críticos", "Lista desplazable de hallazgos"],
+      ["Registro de eventos", "Lista desplazable de eventos"],
+    ] as const) {
+      await user.click(screen.getByRole("tab", { name: tab }));
       const region = screen.getByRole("region", { name });
       expect(region).toHaveAttribute("tabindex", "0");
     }
@@ -79,6 +81,7 @@ describe("AdminPanelView bounded lists", () => {
     );
     const log = () =>
       screen.getByRole("region", { name: "Registro de eventos" });
+    await user.click(screen.getByRole("tab", { name: "Registro de eventos" }));
 
     await user.click(
       within(log()).getByRole("button", { name: "Pausar registro" }),
