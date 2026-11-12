@@ -217,8 +217,16 @@
   stroke-linejoin: round;
 }
 
+/* An open data table gives its card the whole row; the other charts move down. */
+.chart:has(> .chart__table[open]) {
+  grid-column: 1 / -1;
+}
+
+/* The plot keeps a readable size when its card spans the full row. */
 .chart__plot-wrap {
   position: relative;
+  width: 100%;
+  max-width: 32rem;
 }
 
 .chart__plot {

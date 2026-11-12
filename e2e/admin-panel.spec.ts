@@ -494,36 +494,57 @@ test.describe("per_minute_charts", () => {
     expect(await bars.count()).toBeGreaterThanOrEqual(barsBefore);
   });
 
-  test("opening_a_chart_table_keeps_every_chart_inside_its_card", async ({
+  test("opening_a_chart_table_gives_its_card_the_full_row_and_moves_the_others_down", async ({
     page,
     context,
   }) => {
     await openAdmin(page, context);
     const figures = page.getByRole("figure");
-    const boxesBefore = await figures.evaluateAll((els) =>
-      els.map((el) => el.getBoundingClientRect().toJSON() as DOMRect),
-    );
-    await page
+    const measure = () =>
+      figures.evaluateAll((els) => {
+        const grid = els[0].parentElement!.getBoundingClientRect();
+        return {
+          grid: grid.toJSON() as DOMRect,
+          charts: els.map((el) => ({
+            card: el.getBoundingClientRect().toJSON() as DOMRect,
+            plot: el
+              .querySelector(".chart__plot > svg")!
+              .getBoundingClientRect()
+              .toJSON() as DOMRect,
+          })),
+        };
+      });
+    const before = await measure();
+    const toggle = page
       .getByRole("figure", { name: "Eventos por minuto" })
-      .getByText("Ver como tabla")
-      .click();
+      .getByText("Ver como tabla");
+
+    await toggle.click();
     await expect(
       page.getByRole("table", { name: "Eventos por minuto" }),
     ).toBeVisible();
-    const layout = await figures.evaluateAll((els) =>
-      els.map((el) => ({
-        card: el.getBoundingClientRect().toJSON() as DOMRect,
-        plot: el
-          .querySelector(".chart__plot > svg")!
-          .getBoundingClientRect()
-          .toJSON() as DOMRect,
-      })),
+    const open = await measure();
+    const [events, ...others] = open.charts;
+    expect(events.card.width).toBeCloseTo(open.grid.width, 0);
+    expect(events.plot.right).toBeLessThanOrEqual(events.card.right);
+    expect(events.plot.width).toBeLessThanOrEqual(
+      before.charts[0].plot.width * 2,
     );
-    layout.forEach(({ card, plot }, i) => {
-      expect(card.width).toBeCloseTo(boxesBefore[i].width, 0);
+    const tableScroll = await page
+      .getByRole("region", { name: "Eventos por minuto (tabla)" })
+      .evaluate((el) => el.scrollWidth - el.clientWidth);
+    expect(tableScroll).toBeLessThanOrEqual(0);
+    for (const { card, plot } of others) {
+      expect(card.top).toBeGreaterThanOrEqual(events.card.bottom);
       expect(plot.right).toBeLessThanOrEqual(card.right);
-      expect(plot.height).toBeCloseTo(
-        layout[(i + 1) % layout.length].plot.height,
+    }
+
+    await toggle.click();
+    const closed = await measure();
+    closed.charts.forEach(({ card }, i) => {
+      expect(card.width).toBeCloseTo(before.charts[i].card.width, 0);
+      expect(card.top - closed.grid.top).toBeCloseTo(
+        before.charts[i].card.top - before.grid.top,
         0,
       );
     });
