@@ -43,6 +43,7 @@ import {
   handleAdminEvents,
   handleAdminMetrics,
   resetAdminFeed,
+  setAdminSeries,
   type EmitRequest,
   closeAdminStreams,
 } from "./adminFeed.ts";
@@ -526,6 +527,8 @@ async function handleAdminTestControl(
   } else if (pathname === "/__test__/admin/status") {
     const status = record["status"];
     forceAdminStatus(store.admin, typeof status === "number" ? status : null);
+  } else if (pathname === "/__test__/admin/series") {
+    setAdminSeries(store.admin, record["enabled"] !== false);
   } else if (pathname === "/__test__/admin/reset") {
     resetAdminFeed(store.admin);
   } else {

@@ -18,7 +18,7 @@ test.describe.configure({ mode: "serial" });
 
 async function adminControl(
   request: APIRequestContext,
-  action: "emit" | "status" | "reset" | "burst",
+  action: "emit" | "status" | "reset" | "burst" | "series",
   data: object = {},
 ): Promise<void> {
   const response = await request.post(`/__test__/admin/${action}`, { data });
@@ -332,4 +332,189 @@ test("a_revoked_role_removes_the_admin_link_and_leaves_/admin_without_reloading"
       () => (window as unknown as { __noReload?: boolean }).__noReload,
     ),
   ).toBe(true);
+});
+
+test.describe("per_minute_charts", () => {
+  /** The charts bucket by client minute: avoid straddling a rotation. */
+  async function clearOfMinuteBoundary(page: Page): Promise<void> {
+    const remaining = await page.evaluate(() => 60_000 - (Date.now() % 60_000));
+    if (remaining < 8000) {
+      await page.waitForTimeout(remaining + 500);
+    }
+  }
+
+  async function openAdmin(
+    page: Page,
+    context: BrowserContext,
+    size = { width: 1280, height: 900 },
+  ): Promise<void> {
+    await page.setViewportSize(size);
+    await login(context, "admin");
+    await page.goto("/admin");
+    await expect(
+      page.getByRole("status", { name: "Estado de la conexión" }),
+    ).toHaveText("En vivo");
+    await clearOfMinuteBoundary(page);
+  }
+
+  const barHeight = (page: Page, key: string): Promise<number> =>
+    page
+      .getByRole("figure", { name: "Eventos por minuto" })
+      .locator(`[data-bar][data-col="14"][data-key="${key}"]`)
+      .evaluate((el) => (el as SVGGraphicsElement).getBBox().height);
+
+  test("the_three_charts_show_the_seeded_series_and_the_current_minute_bar_grows_with_deltas", async ({
+    page,
+    context,
+    request,
+  }) => {
+    await openAdmin(page, context);
+    const section = page.getByRole("region", { name: "Gráficos por minuto" });
+    await expect(section.getByRole("figure")).toHaveCount(3);
+    await expect(
+      section
+        .getByRole("figure", { name: "Eventos por minuto" })
+        .locator("[data-bar]"),
+    ).not.toHaveCount(0);
+    await expect(
+      section.getByText("Sin datos en los últimos 15 minutos."),
+    ).toHaveCount(0);
+
+    const events = section.getByRole("figure", { name: "Eventos por minuto" });
+    await adminControl(request, "emit", { event_type: "scan.completed" });
+    const bar = events.locator(
+      '[data-bar][data-col="14"][data-key="scan.completed"]',
+    );
+    await expect(bar).toHaveCount(1);
+    const one = await barHeight(page, "scan.completed");
+
+    for (let i = 0; i < 3; i += 1) {
+      await adminControl(request, "emit", { event_type: "scan.completed" });
+    }
+    await expect
+      .poll(() => barHeight(page, "scan.completed"))
+      .toBeGreaterThan(one);
+
+    await adminControl(request, "emit", { event_type: "scan.failed" });
+    await adminControl(request, "emit", {
+      event_type: "finding.critical",
+      scan_id: "scan-chart",
+      severity: "high",
+    });
+    await expect(
+      section
+        .getByRole("figure", {
+          name: "Hallazgos críticos por severidad y minuto",
+        })
+        .locator('[data-bar][data-col="14"][data-key="high"]'),
+    ).toHaveCount(1);
+    await expect(
+      section
+        .getByRole("figure", {
+          name: "Escaneos completados y fallidos por minuto",
+        })
+        .locator('[data-bar][data-col="14"][data-key="failed"]'),
+    ).toHaveCount(1);
+  });
+
+  test("a_tooltip_follows_the_pointer_and_the_keyboard", async ({
+    page,
+    context,
+    request,
+  }) => {
+    await adminControl(request, "emit", { event_type: "scan.completed" });
+    await openAdmin(page, context);
+    const figure = page.getByRole("figure", { name: "Eventos por minuto" });
+    const tooltip = figure.getByTestId("chart-tooltip");
+    await expect(tooltip).toHaveCount(0);
+
+    await figure.locator('[data-hit="14"]').hover();
+    await expect(tooltip).toBeVisible();
+    await expect(tooltip).toContainText("Escaneo completado");
+    await page.mouse.move(0, 0);
+    await expect(tooltip).toHaveCount(0);
+
+    await figure.getByRole("group", { name: /flechas/ }).focus();
+    await expect(tooltip).toBeVisible();
+    const before = await tooltip.locator("strong").first().textContent();
+    await page.keyboard.press("ArrowLeft");
+    await expect(tooltip.locator("strong").first()).not.toHaveText(
+      before ?? "",
+    );
+    await page.keyboard.press("Escape");
+    await expect(tooltip).toHaveCount(0);
+  });
+
+  test("an_older_backend_without_series_leaves_the_panel_working_with_empty_charts", async ({
+    page,
+    context,
+    request,
+  }) => {
+    await adminControl(request, "series", { enabled: false });
+    await openAdmin(page, context);
+    await expect(
+      page.getByRole("region", { name: "Indicadores" }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Sin datos en los últimos 15 minutos."),
+    ).toHaveCount(3);
+    await adminControl(request, "emit", { event_type: "scan.completed" });
+    await expect(
+      page.getByRole("table", { name: "Escaneos en curso" }),
+    ).toBeVisible();
+  });
+
+  test("the_page_height_stays_constant_while_a_burst_moves_the_charts", async ({
+    page,
+    context,
+    request,
+  }) => {
+    await openAdmin(page, context);
+    await adminControl(request, "burst", { events: 120, scans: 80 });
+    await expect(page.getByText(/^y \d+ más$/)).toBeVisible();
+    const height = () =>
+      page.evaluate(() => document.documentElement.scrollHeight);
+    const before = await height();
+    const bars = page
+      .getByRole("figure", { name: "Eventos por minuto" })
+      .locator("[data-bar]");
+    const barsBefore = await bars.count();
+
+    await adminControl(request, "burst", { events: 150, scans: 120 });
+    await expect
+      .poll(() =>
+        page
+          .getByRole("figure", { name: "Eventos por minuto" })
+          .locator('[data-bar][data-col="14"][data-key="ratelimit.hit"]')
+          .count(),
+      )
+      .toBe(1);
+
+    expect(Math.abs((await height()) - before)).toBeLessThanOrEqual(8);
+    expect(await bars.count()).toBeGreaterThanOrEqual(barsBefore);
+  });
+
+  for (const theme of ["light", "dark"] as const) {
+    test(`the_charts_pass_axe_with_their_tables_open_in_${theme}`, async ({
+      page,
+      context,
+      request,
+    }) => {
+      await adminControl(request, "emit", { event_type: "scan.failed" });
+      await adminControl(request, "emit", {
+        event_type: "finding.critical",
+        scan_id: "s",
+      });
+      await page.addInitScript((value) => {
+        window.localStorage.setItem("theme", value);
+      }, theme);
+      await openAdmin(page, context);
+      await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+      for (const summary of await page.getByText("Ver como tabla").all()) {
+        await summary.click();
+      }
+      const results = await new AxeBuilder({ page }).analyze();
+      expect(results.violations.map((v) => v.id)).toEqual([]);
+    });
+  }
 });

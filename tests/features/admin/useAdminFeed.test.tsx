@@ -13,6 +13,7 @@ import {
   makeEvent,
   makeFinding,
   makeKpis,
+  makeSeries,
   makeSnapshot,
 } from "./fixtures";
 
@@ -312,5 +313,39 @@ describe("useAdminFeed", () => {
     renderHook(() => useAdminFeed(onForbidden));
     await flush();
     expect(onForbidden).not.toHaveBeenCalled();
+  });
+
+  it("rotates_the_series_window_at_each_minute_boundary_of_the_injected_clock", async () => {
+    let now = Date.parse("2026-11-11T23:15:30Z");
+    respond(200, makeSnapshot({ series: makeSeries() }));
+    const { result } = renderHook(() =>
+      useAdminFeed(undefined, { now: () => now }),
+    );
+    await flush();
+    expect(result.current.snapshot?.series?.buckets[14]?.minute).toBe(
+      "2026-11-11T23:15:00Z",
+    );
+
+    now += 31_000;
+    await advance(31_000);
+    expect(result.current.snapshot?.series?.buckets[14]?.minute).toBe(
+      "2026-11-11T23:16:00Z",
+    );
+
+    now += 60_000;
+    await advance(60_000);
+    expect(result.current.snapshot?.series?.buckets[14]?.minute).toBe(
+      "2026-11-11T23:17:00Z",
+    );
+  });
+
+  it("stops_ticking_after_unmount", async () => {
+    respond(200, makeSnapshot({ series: makeSeries() }));
+    const { unmount } = renderHook(() =>
+      useAdminFeed(undefined, { now: () => 0 }),
+    );
+    await flush();
+    unmount();
+    expect(vi.getTimerCount()).toBe(0);
   });
 });

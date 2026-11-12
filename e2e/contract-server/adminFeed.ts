@@ -10,6 +10,8 @@
  *   in-flight scan each) plus `ratelimit.hit` events up to `events` in total
  * - `POST /__test__/admin/status` force 403/503 for every admin route and
  *   end live streams with a `closed` event (`{ "status": null }` clears it)
+ * - `POST /__test__/admin/series` `{ "enabled": false }` drops `series` from
+ *   the snapshot (an older backend); `true` brings it back
  * - `POST /__test__/admin/reset`  back to the seed snapshot
  * - `POST /__test__/session/role` (in `server.ts`) changes the role of the
  *   calling session; a downgrade ends live streams with a `closed` event
@@ -26,6 +28,7 @@ import type {
   AdminEventEntry,
   AdminKpis,
   AdminScanChange,
+  AdminSeries,
   AdminSnapshot,
 } from "../../src/api/types";
 
@@ -36,6 +39,63 @@ export interface AdminFeedState {
   forcedStatus: number | null;
   streams: Map<ServerResponse, Write>;
   counter: number;
+  /** Source of `snapshot.series`: the window is rebuilt from these. */
+  seriesEvents: SeriesEvent[];
+  seriesEnabled: boolean;
+}
+
+interface SeriesEvent {
+  at: number;
+  type: string;
+  severity?: string;
+}
+
+const MINUTE = 60_000;
+
+/** The Gateway's window: 15 one-minute buckets ending at the current UTC minute. */
+function buildSeries(events: SeriesEvent[], now: number): AdminSeries {
+  const newest = Math.floor(now / MINUTE) * MINUTE;
+  const buckets = Array.from({ length: 15 }, (_, i) => {
+    const start = newest - (14 - i) * MINUTE;
+    const by_type: Record<string, number> = {};
+    const findings_by_severity: Record<string, number> = {};
+    for (const event of events) {
+      if (Math.min(Math.floor(event.at / MINUTE) * MINUTE, newest) !== start) {
+        continue;
+      }
+      by_type[event.type] = (by_type[event.type] ?? 0) + 1;
+      if (event.severity) {
+        findings_by_severity[event.severity] =
+          (findings_by_severity[event.severity] ?? 0) + 1;
+      }
+    }
+    return {
+      minute: new Date(start).toISOString().replace(".000Z", "Z"),
+      by_type,
+      findings_by_severity,
+    };
+  });
+  return { bucket_seconds: 60, buckets };
+}
+
+function seedSeriesEvents(): SeriesEvent[] {
+  const now = Date.now();
+  return [
+    { at: now - 3 * MINUTE, type: "scan.completed" },
+    { at: now - 3 * MINUTE, type: "scan.completed" },
+    { at: now - 2 * MINUTE, type: "scan.failed" },
+    { at: now - 2 * MINUTE, type: "auth.login" },
+    { at: now - 5 * MINUTE, type: "finding.critical", severity: "high" },
+  ];
+}
+
+/** Puts the current series in the snapshot (or removes it when disabled). */
+function refreshSeries(state: AdminFeedState): void {
+  const snapshot = { ...state.snapshot };
+  delete snapshot.series;
+  state.snapshot = state.seriesEnabled
+    ? { ...snapshot, series: buildSeries(state.seriesEvents, Date.now()) }
+    : snapshot;
 }
 
 function seedSnapshot(): AdminSnapshot {
@@ -82,17 +142,22 @@ function seedSnapshot(): AdminSnapshot {
 }
 
 export function createAdminFeedState(): AdminFeedState {
-  return {
+  const state: AdminFeedState = {
     snapshot: seedSnapshot(),
     forcedStatus: null,
     streams: new Map(),
     counter: 0,
+    seriesEvents: seedSeriesEvents(),
+    seriesEnabled: true,
   };
+  refreshSeries(state);
+  return state;
 }
 
 export interface EmitRequest {
   event_type: string;
   scan_id?: string;
+  severity?: string;
   port?: number | null;
   protocol?: string | null;
   cve_id?: string | null;
@@ -144,8 +209,18 @@ export function emitAdminEvent(
     occurred_at: now,
     source: "contract-server",
     ...(request.scan_id ? { scan_id: request.scan_id } : {}),
-    payload: {},
+    payload:
+      request.event_type === "finding.critical"
+        ? { severity: request.severity ?? "critical" }
+        : {},
   };
+  state.seriesEvents.push({
+    at: Date.now(),
+    type: request.event_type,
+    ...(request.event_type === "finding.critical"
+      ? { severity: request.severity ?? "critical" }
+      : {}),
+  });
   const finding: AdminCriticalFinding | null =
     request.event_type === "finding.critical"
       ? {
@@ -155,7 +230,7 @@ export function emitAdminEvent(
           port: request.port ?? null,
           protocol: request.protocol ?? null,
           cve_id: request.cve_id ?? null,
-          severity: "critical",
+          severity: request.severity ?? "critical",
           confidence: "confirmed",
         }
       : null;
@@ -193,6 +268,7 @@ export function emitAdminEvent(
       : previous.critical_findings,
     recent_events: [event, ...previous.recent_events].slice(0, 100),
   };
+  refreshSeries(state);
   for (const write of state.streams.values()) {
     write("delta", delta);
   }
@@ -241,8 +317,16 @@ export function closeAdminStreams(state: AdminFeedState): void {
   state.streams.clear();
 }
 
+export function setAdminSeries(state: AdminFeedState, enabled: boolean): void {
+  state.seriesEnabled = enabled;
+  refreshSeries(state);
+}
+
 export function resetAdminFeed(state: AdminFeedState): void {
   state.snapshot = seedSnapshot();
+  state.seriesEvents = seedSeriesEvents();
+  state.seriesEnabled = true;
+  refreshSeries(state);
   forceAdminStatus(state, null);
   state.counter = 0;
 }
@@ -280,6 +364,7 @@ export function handleAdminMetrics(
   if (!authorize(role, state, res)) {
     return;
   }
+  refreshSeries(state);
   res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
   res.end(JSON.stringify(state.snapshot));
 }
@@ -301,6 +386,7 @@ export function handleAdminEvents(
   const write: Write = (event, data) => {
     res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
   };
+  refreshSeries(state);
   write("snapshot", state.snapshot);
   state.streams.set(res, write);
   req.on("close", () => {

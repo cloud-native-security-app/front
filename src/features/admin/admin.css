@@ -120,3 +120,212 @@
 .admin-region__more {
   margin: var(--space-2) 0 0;
 }
+
+/* Per-minute charts (AP-06). Fixed geometry: a burst never moves the page. */
+.chart-grid {
+  display: grid;
+  row-gap: 0;
+  grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr));
+  gap: var(--space-3);
+}
+
+/* Title, legend, plot and table line up across the cards of a row. */
+.chart {
+  display: grid;
+  grid-row: span 4;
+  grid-template-rows: subgrid;
+  margin: 0;
+  padding: var(--space-3);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  min-width: 0;
+}
+
+.chart__title {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.chart__legend {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: start;
+  gap: 2px var(--space-3);
+  margin: var(--space-1) 0 var(--space-2);
+  padding: 0;
+  list-style: none;
+  font-size: 0.8rem;
+  color: var(--color-text-muted);
+}
+
+.chart__legend li,
+.chart__tooltip li {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+
+/* One tone class per series: the only place a series color is applied. */
+.chart-tone--series-1 {
+  --chart-tone: var(--chart-series-1);
+}
+.chart-tone--series-2 {
+  --chart-tone: var(--chart-series-2);
+}
+.chart-tone--series-3 {
+  --chart-tone: var(--chart-series-3);
+}
+.chart-tone--series-4 {
+  --chart-tone: var(--chart-series-4);
+}
+.chart-tone--series-5 {
+  --chart-tone: var(--chart-series-5);
+}
+.chart-tone--other {
+  --chart-tone: var(--chart-other);
+}
+.chart-tone--status-good {
+  --chart-tone: var(--chart-status-good);
+}
+.chart-tone--status-serious {
+  --chart-tone: var(--chart-status-serious);
+}
+.chart-tone--status-critical {
+  --chart-tone: var(--chart-status-critical);
+}
+
+.chart-key {
+  width: 0.8rem;
+  height: 0.8rem;
+  flex: none;
+}
+
+.chart-key__fill {
+  fill: var(--chart-tone);
+}
+
+.chart-key__stroke {
+  fill: none;
+  stroke: var(--chart-tone);
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.chart__plot-wrap {
+  position: relative;
+}
+
+.chart__plot {
+  position: relative;
+  border-radius: var(--radius);
+}
+
+.chart__plot:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.chart__plot > svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.chart__grid {
+  stroke: var(--color-border);
+  stroke-width: 1;
+}
+
+.chart__axis {
+  stroke: var(--color-control-border);
+  stroke-width: 1;
+}
+
+.chart__tick,
+.chart__value,
+.chart__empty {
+  font-family: var(--font-sans);
+  font-size: 10px;
+  fill: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.chart__value {
+  fill: var(--color-text);
+  font-weight: 600;
+}
+
+.chart__empty {
+  font-size: 11px;
+}
+
+.chart__bar {
+  fill: var(--chart-tone);
+}
+
+.chart__active {
+  fill: var(--color-border);
+  opacity: 0.6;
+}
+
+.chart__hit {
+  fill: transparent;
+}
+
+.chart__tooltip {
+  position: absolute;
+  top: 0;
+  transform: translateX(0);
+  white-space: nowrap;
+  min-width: 8.5rem;
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-control-border);
+  border-radius: var(--radius);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.2);
+  font-size: 0.8rem;
+  color: var(--color-text);
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* In the right half the tooltip opens leftwards so it never leaves the card. */
+.chart__tooltip--end {
+  transform: translateX(-100%);
+}
+
+.chart__tooltip ul {
+  display: grid;
+  gap: 2px;
+  margin: var(--space-1) 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chart__tooltip li span {
+  color: var(--color-text-muted);
+}
+
+.chart__table {
+  margin-top: var(--space-2);
+  font-size: 0.8rem;
+}
+
+.chart__table summary {
+  cursor: pointer;
+  color: var(--color-text-muted);
+}
+
+.chart__table-scroll {
+  max-height: 12rem;
+  overflow: auto;
+  margin-top: var(--space-2);
+}
+
+.chart__table table {
+  width: 100%;
+}

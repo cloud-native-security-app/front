@@ -55,6 +55,24 @@
   --color-status-border: light-dark(#3a8a5c, #34d399);
   --color-status-text: light-dark(#1f5c3a, #a7f3d0);
 
+  /*
+   * Chart tokens (feature `admin-panel`, AP-06; dataviz method). Categorical
+   * slots 1-5 in fixed order, one color per event type (validated with
+   * validate_palette.js against --color-surface: light #ffffff, dark
+   * #131b2c). Status colors are reserved for series that MEAN good/bad and
+   * always travel with an icon + label; they are the same in both modes.
+   * Text never wears these colors: it uses the text tokens above.
+   */
+  --chart-series-1: light-dark(#2a78d6, #3987e5);
+  --chart-series-2: light-dark(#eb6834, #d95926);
+  --chart-series-3: light-dark(#1baf7a, #199e70);
+  --chart-series-4: light-dark(#eda100, #c98500);
+  --chart-series-5: light-dark(#e87ba4, #d55181);
+  --chart-other: #898781;
+  --chart-status-good: #0ca30c;
+  --chart-status-serious: #ec835a;
+  --chart-status-critical: #d03b3b;
+
   --font-sans:
     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial,
     sans-serif, "Apple Color Emoji", "Segoe UI Emoji";

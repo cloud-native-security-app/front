@@ -12,6 +12,7 @@ import {
   makeEvent,
   makeFinding,
   makeKpis,
+  makeSeries,
   makeSnapshot,
 } from "./fixtures";
 
@@ -191,6 +192,65 @@ describe("adminReducer", () => {
       delta(makeDelta({ seq: 7, event: makeEvent("dup") })),
     );
     expect(next).toBe(base);
+  });
+});
+
+describe("adminReducer series", () => {
+  const at = Date.parse("2026-11-11T23:15:30Z");
+
+  it("snapshot_replaces_the_series", () => {
+    const first = makeSnapshot({
+      series: makeSeries({ 14: { by_type: { a: 1 } } }),
+    });
+    const second = makeSnapshot({ series: makeSeries() });
+    const state = adminReducer(
+      adminReducer(undefined, snap(first)),
+      snap(second),
+    );
+    expect(state?.series).toEqual(second.series);
+  });
+
+  it("a_delta_adds_one_to_the_bucket_of_its_event_minute", () => {
+    const base = makeSnapshot({ series: makeSeries() });
+    const state = adminReducer(
+      base,
+      delta(
+        makeDelta({
+          event: makeEvent("a", {
+            event_type: "scan.failed",
+            occurred_at: "2026-11-11T23:15:05Z",
+          }),
+        }),
+      ),
+    );
+    expect(state?.series?.buckets[14]?.by_type).toEqual({ "scan.failed": 1 });
+    expect(base.series?.buckets[14]?.by_type).toEqual({});
+  });
+
+  it("a_delta_without_event_or_without_series_leaves_series_alone", () => {
+    const withSeries = makeSnapshot({ series: makeSeries() });
+    expect(adminReducer(withSeries, delta(makeDelta()))?.series).toBe(
+      withSeries.series,
+    );
+    const without = adminReducer(
+      makeSnapshot(),
+      delta(makeDelta({ event: makeEvent("a") })),
+    );
+    expect(without?.series).toBeUndefined();
+  });
+
+  it("a_tick_rotates_the_window_and_is_a_no_op_within_the_minute", () => {
+    const base = makeSnapshot({ series: makeSeries() });
+    expect(adminReducer(base, { type: "tick", now: at })).toBe(base);
+    const next = adminReducer(base, { type: "tick", now: at + 60_000 });
+    expect(next?.series?.buckets[14]?.minute).toBe("2026-11-11T23:16:00Z");
+    expect(next?.series?.buckets[0]?.minute).toBe("2026-11-11T23:02:00Z");
+  });
+
+  it("a_tick_without_series_or_state_does_nothing", () => {
+    const base = makeSnapshot();
+    expect(adminReducer(base, { type: "tick", now: at })).toBe(base);
+    expect(adminReducer(undefined, { type: "tick", now: at })).toBeUndefined();
   });
 });
 
