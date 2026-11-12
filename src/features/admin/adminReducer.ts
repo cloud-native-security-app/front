@@ -5,6 +5,7 @@
  */
 
 import type { AdminDelta, AdminSnapshot } from "../../api";
+import { applySeriesEvent, rotateSeries } from "./series";
 
 export const MAX_RECENT_EVENTS = 100;
 export const MAX_CRITICAL_FINDINGS = 50;
@@ -15,6 +16,8 @@ export type AdminState = AdminSnapshot | undefined;
 export type AdminAction =
   | { type: "snapshot"; snapshot: AdminSnapshot }
   | { type: "delta"; delta: AdminDelta }
+  /** One-minute clock tick: rotates the series window to the minute of `now`. */
+  | { type: "tick"; now: number }
   /** Drops all data (e.g. the admin role was revoked). */
   | { type: "reset" };
 
@@ -69,6 +72,9 @@ function applyDelta(state: AdminSnapshot, delta: AdminDelta): AdminSnapshot {
     scans_in_flight: applyScanChange(state, delta),
     critical_findings: findings,
     recent_events: events,
+    ...(state.series && delta.event
+      ? { series: applySeriesEvent(state.series, delta.event) }
+      : {}),
   };
 }
 
@@ -81,6 +87,13 @@ export function adminReducer(
       return action.snapshot;
     case "reset":
       return undefined;
+    case "tick": {
+      if (!state?.series) {
+        return state;
+      }
+      const series = rotateSeries(state.series, action.now);
+      return series === state.series ? state : { ...state, series };
+    }
     case "delta":
       // No snapshot yet, or a duplicate/out-of-order delta: nothing to merge.
       if (!state || action.delta.seq <= state.seq) {

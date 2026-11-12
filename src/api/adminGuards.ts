@@ -12,6 +12,8 @@ import type {
   AdminInFlightScan,
   AdminKpis,
   AdminScanChange,
+  AdminSeries,
+  AdminSeriesBucket,
   AdminSnapshot,
   AdminStreamClosed,
 } from "./types";
@@ -102,6 +104,28 @@ function isScanChange(value: unknown): value is AdminScanChange {
   );
 }
 
+function isCountMap(value: unknown): boolean {
+  return isRec(value) && Object.values(value).every((n) => isNum(n) && n >= 0);
+}
+
+function isSeriesBucket(value: unknown): value is AdminSeriesBucket {
+  return (
+    isRec(value) &&
+    isStr(value["minute"]) &&
+    isCountMap(value["by_type"]) &&
+    isCountMap(value["findings_by_severity"])
+  );
+}
+
+function isSeries(value: unknown): value is AdminSeries {
+  return (
+    isRec(value) &&
+    isNum(value["bucket_seconds"]) &&
+    value["bucket_seconds"] > 0 &&
+    isArrayOf(value["buckets"], isSeriesBucket)
+  );
+}
+
 export function isAdminSnapshot(value: unknown): value is AdminSnapshot {
   return (
     isRec(value) &&
@@ -111,7 +135,11 @@ export function isAdminSnapshot(value: unknown): value is AdminSnapshot {
     isAdminKpis(value["kpis"]) &&
     isArrayOf(value["scans_in_flight"], isInFlightScan) &&
     isArrayOf(value["critical_findings"], isCriticalFinding) &&
-    isArrayOf(value["recent_events"], isEventEntry)
+    isArrayOf(value["recent_events"], isEventEntry) &&
+    // Older backends send no series: accepted, the charts show an empty state.
+    (value["series"] === undefined ||
+      value["series"] === null ||
+      isSeries(value["series"]))
   );
 }
 

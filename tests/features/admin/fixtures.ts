@@ -1,5 +1,7 @@
 /** Builders of gateway admin payloads (wire shapes of `src/api/types.ts`). */
 import type {
+  AdminSeries,
+  AdminSeriesBucket,
   AdminCriticalFinding,
   AdminDelta,
   AdminEventEntry,
@@ -75,5 +77,27 @@ export function makeDelta(overrides: Partial<AdminDelta> = {}): AdminDelta {
     scan_change: null,
     critical_finding: null,
     ...overrides,
+  };
+}
+
+export function makeBucket(
+  minute: string,
+  overrides: Partial<AdminSeriesBucket> = {},
+): AdminSeriesBucket {
+  return { minute, by_type: {}, findings_by_severity: {}, ...overrides };
+}
+
+/** 15 buckets ending at 23:15Z; `overrides` maps bucket index to its content. */
+export function makeSeries(
+  overrides: Record<number, Partial<AdminSeriesBucket>> = {},
+): AdminSeries {
+  return {
+    bucket_seconds: 60,
+    buckets: Array.from({ length: 15 }, (_, i) =>
+      makeBucket(
+        `2026-11-11T23:${String(i + 1).padStart(2, "0")}:00Z`,
+        overrides[i],
+      ),
+    ),
   };
 }

@@ -23,6 +23,7 @@ import {
   type AdminSnapshot,
 } from "../../api";
 import { adminReducer, type AdminAction } from "./adminReducer";
+import { BUCKET_SECONDS } from "./series";
 
 export type AdminFeedStatus =
   | "connecting"
@@ -38,6 +39,14 @@ export interface AdminFeed {
   snapshot: AdminSnapshot | undefined;
 }
 
+export interface AdminFeedOptions {
+  /** Clock in epoch ms; injected by tests (default `Date.now`). */
+  now?: () => number;
+}
+
+/** The tick fires just after the minute changes, never just before. */
+const TICK_MARGIN_MS = 100;
+
 export const RECONNECT_BASE_MS = 1000;
 export const RECONNECT_MAX_MS = 30_000;
 
@@ -45,13 +54,41 @@ export const RECONNECT_MAX_MS = 30_000;
  * `onForbidden` runs once per 403 (the feed stops after it, so there is no
  * loop); the caller uses it to refresh the session role.
  */
-export function useAdminFeed(onForbidden?: () => void): AdminFeed {
+export function useAdminFeed(
+  onForbidden?: () => void,
+  options: AdminFeedOptions = {},
+): AdminFeed {
   const [snapshot, dispatch] = useReducer(adminReducer, undefined);
   const [status, setStatus] = useState<AdminFeedStatus>("connecting");
   const forbiddenRef = useRef(onForbidden);
   useEffect(() => {
     forbiddenRef.current = onForbidden;
   }, [onForbidden]);
+
+  const nowRef = useRef(options.now ?? Date.now);
+  useEffect(() => {
+    nowRef.current = options.now ?? Date.now;
+  }, [options.now]);
+
+  // One-minute tick: rotates the charts' window (the reducer ignores it
+  // without a series, and a late tick in a throttled tab catches up).
+  useEffect(() => {
+    const minuteMs = BUCKET_SECONDS * 1000;
+    let timer: ReturnType<typeof setTimeout>;
+    function schedule(): void {
+      timer = setTimeout(
+        () => {
+          dispatch({ type: "tick", now: nowRef.current() });
+          schedule();
+        },
+        minuteMs - (nowRef.current() % minuteMs) + TICK_MARGIN_MS,
+      );
+    }
+    schedule();
+    return () => {
+      clearTimeout(timer);
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;

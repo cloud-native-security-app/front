@@ -215,6 +215,23 @@ export interface AdminEventEntry {
   payload: unknown;
 }
 
+/** Counts per key; a missing key means 0. */
+export type AdminCountMap = Record<string, number>;
+
+export interface AdminSeriesBucket {
+  /** Start of the minute, UTC (`2026-11-11T23:01:00Z`). */
+  minute: string;
+  by_type: AdminCountMap;
+  /** Only `finding.critical`, by `payload.severity` (`high` | `critical`). */
+  findings_by_severity: AdminCountMap;
+}
+
+/** Per-minute window, oldest bucket first, ending at the current minute. */
+export interface AdminSeries {
+  bucket_seconds: number;
+  buckets: AdminSeriesBucket[];
+}
+
 export interface AdminSnapshot {
   seq: number;
   generated_at: string;
@@ -223,6 +240,8 @@ export interface AdminSnapshot {
   scans_in_flight: AdminInFlightScan[];
   critical_findings: AdminCriticalFinding[];
   recent_events: AdminEventEntry[];
+  /** Absent (or `null`) when the backend predates the time series. */
+  series?: AdminSeries | null;
 }
 
 export type AdminScanChangeStatus = "requested" | "running" | "finished";
