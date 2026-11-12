@@ -2,7 +2,7 @@
  * Sectioned navigation (feature `sectioned-navigation`): sections reachable
  * by click and by deep link (the `vite preview` server falls back to
  * `index.html`, like `nginx.conf.template`), browser back/forward, header
- * identity, scanning a saved target without typing, and focus handling.
+ * identity (inside the user menu), scanning a saved target without typing, and focus handling.
  */
 import { expect, test } from "@playwright/test";
 
@@ -25,6 +25,7 @@ test("the_header_shows_the_user_and_the_nav_marks_the_current_section", async ({
 
   await expect(page).toHaveURL(/\/escanear$/);
   const banner = page.getByRole("banner");
+  await banner.getByRole("button", { name: "Menú de usuario" }).click();
   await expect(banner).toContainText("Ada Analista");
   await expect(banner).toContainText("sections-e2e@example.test");
   await expect(

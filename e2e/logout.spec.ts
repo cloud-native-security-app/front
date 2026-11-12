@@ -34,6 +34,7 @@ test("clic_en_cerrar_sesion_termina_mostrando_el_estado_anonimo", async ({
   await expect(
     page.getByRole("heading", { name: "Security Scan App" }),
   ).toBeVisible();
+  await page.getByRole("button", { name: "Menú de usuario" }).click();
   const logoutButton = page.getByRole("button", { name: "Cerrar sesión" });
   await expect(logoutButton).toBeVisible();
 

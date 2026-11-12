@@ -62,6 +62,7 @@ test("no_section_scrolls_sideways_at_390_and_actions_stay_clickable", async ({
   await expect(page.getByText(/^Estado: /)).toContainText("Completado");
   expect(await overflow(page)).toBeLessThanOrEqual(0);
 
+  await page.getByRole("button", { name: "Menú de usuario" }).click();
   await page.getByRole("link", { name: "Historial" }).click();
   const viewReport = page.getByRole("button", {
     name: `Ver reporte de ${TARGET}`,

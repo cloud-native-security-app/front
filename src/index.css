@@ -756,13 +756,13 @@ form.credential-form {
   color: var(--color-text-muted);
 }
 
-/* Authenticated header and section navigation (feature `sectioned-navigation`). */
+/* Authenticated header and section navigation (feature `sectioned-navigation`).
+   One row at every width (AP-01b): title, links (desktop) and a menu button
+   that discloses identity, theme toggle and logout. */
 .app-header {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3) var(--space-5);
+  gap: var(--space-5);
   padding-bottom: var(--space-3);
   margin-bottom: var(--space-5);
   border-bottom: 1px solid var(--color-border);
@@ -773,19 +773,28 @@ form.credential-form {
   padding: 0;
   border: 0;
   font-size: 1.35rem;
+  white-space: nowrap;
+}
+
+.app-header__nav,
+.app-header__panel-nav {
+  display: flex;
+  gap: var(--space-2);
 }
 
 .app-header__nav {
-  display: flex;
-  /* Four links for admins: wrap instead of overflowing narrow screens. */
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  /* Own row at every width: the links never compete with the user block. */
-  order: 3;
-  flex: 1 0 100%;
+  flex: 1 1 auto;
+  min-inline-size: 0;
 }
 
-.app-header__nav a {
+.app-header__panel-nav {
+  display: none;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.app-header__nav a,
+.app-header__panel-nav a {
   white-space: nowrap;
   padding: var(--space-1) var(--space-3);
   border-radius: var(--radius);
@@ -794,31 +803,49 @@ form.credential-form {
   text-decoration: none;
 }
 
-.app-header__nav a:hover {
+.app-header__nav a:hover,
+.app-header__panel-nav a:hover {
   color: var(--color-text);
   border-color: var(--color-border);
 }
 
-.app-header__nav a[aria-current="page"] {
+.app-header__nav a[aria-current="page"],
+.app-header__panel-nav a[aria-current="page"] {
   color: var(--color-text);
   border-color: var(--color-accent);
   background-color: var(--color-surface);
 }
 
-.app-header__user {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  /* Stays flush right even when it wraps onto its own row. */
+.app-header__menu {
+  position: relative;
   margin-inline-start: auto;
-  min-inline-size: 0;
-  max-inline-size: 100%;
+  flex: none;
+}
+
+.app-header__panel {
+  position: absolute;
+  inset-block-start: calc(100% + var(--space-2));
+  inset-inline-end: 0;
+  z-index: 10;
+  box-sizing: border-box;
+  inline-size: 20rem;
+  max-inline-size: calc(100vw - 2rem);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.app-header__panel[hidden] {
+  display: none;
 }
 
 .app-header__identity {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
   font-size: 0.85rem;
   line-height: 1.3;
   color: var(--color-text-muted);
@@ -833,24 +860,30 @@ form.credential-form {
   white-space: nowrap;
 }
 
-.app-header__identity span {
-  max-inline-size: 18rem;
-}
-
 .app-header__identity strong {
   color: var(--color-text);
 }
 
-.app-header__user button {
+.app-header__actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.app-header__panel button,
+.app-header__menu-button {
   padding: var(--space-1) var(--space-3);
   font-size: 0.85rem;
   /* The global `button` rule pins buttons to the flex start (meant for
-     column forms); in this row they must sit on the shared center line. */
+     column forms); here they must sit on the shared center line. */
   align-self: center;
+  white-space: nowrap;
 }
 
-/* Fixed square icon button: width never depends on the current theme. */
-.app-header__user .theme-toggle,
+/* Fixed square icon buttons: width never depends on the current theme. */
+.app-header__menu-button,
+.app-header__panel .theme-toggle,
 .home-page .theme-toggle {
   display: inline-flex;
   align-items: center;
@@ -867,19 +900,18 @@ form.credential-form {
   display: block;
 }
 
-.app-header__user button:not(.theme-toggle) {
-  white-space: nowrap;
-}
-
 .theme-toggle:hover:not(:disabled) {
   color: var(--color-accent);
 }
 
 @media (max-width: 639px) {
-  /* Narrow screens: keep the name, drop the (long) email so the controls
-     stay on one compact line. */
-  .app-header__identity > span {
+  /* Narrow screens: the links move from the header into the menu panel. */
+  .app-header__nav {
     display: none;
+  }
+
+  .app-header__panel-nav {
+    display: flex;
   }
 }
 
