@@ -2,7 +2,8 @@
  * The three per-minute charts of the admin panel (feature `admin-panel`,
  * AP-06), placed between the KPIs and the lists:
  * - events per minute: stacked columns by event type (identity -> categorical
- *   colors, fixed per type; the long tail folds into "Otros");
+ *   colors, fixed per type; the long tail folds into "Otros"; critical
+ *   findings are left out, they have the third chart);
  * - scans completed vs failed: grouped columns, one axis (the two series MEAN
  *   good/bad -> status tokens, with check/cross icons);
  * - critical findings by severity: stacked columns (status tokens: serious =

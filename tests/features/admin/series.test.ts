@@ -188,8 +188,13 @@ describe("foldEventTypes", () => {
     expect(rows[0]).toEqual({
       "scan.completed": 3,
       "auth.login": 1,
-      [OTHER_KEY]: 7,
+      [OTHER_KEY]: 6,
     });
+  });
+
+  it("leaves_critical_findings_out_because_they_have_their_own_chart", () => {
+    const rows = foldEventTypes([{ "finding.critical": 11 }, {}]);
+    expect(rows).toEqual([{}, {}]);
   });
 
   it("gives_a_type_the_same_key_regardless_of_the_other_volumes", () => {
