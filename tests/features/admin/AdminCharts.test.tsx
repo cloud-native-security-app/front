@@ -37,7 +37,7 @@ describe("AdminCharts", () => {
     ).toEqual([6, 2, 2]);
   });
 
-  it("folds_low_volume_types_into_otros_and_keeps_status_series_labeled", () => {
+  it("folds_low_volume_types_into_otros_without_the_critical_findings", () => {
     render(<AdminCharts series={series} />);
     const events = screen.getByRole("table", { name: "Eventos por minuto" });
     const headers = within(events)
@@ -48,7 +48,8 @@ describe("AdminCharts", () => {
     const cells = within(last)
       .getAllByRole("cell")
       .map((c) => c.textContent);
-    expect(cells[headers.indexOf("Otros") - 1]).toBe("6");
+    // scan.failed 1 + audit.recorded 2; the 3 findings live in the severity chart.
+    expect(cells[headers.indexOf("Otros") - 1]).toBe("3");
     const severity = screen.getByRole("table", {
       name: "Hallazgos críticos por severidad y minuto",
     });

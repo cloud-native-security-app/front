@@ -138,13 +138,19 @@ export type StackRow = Partial<Record<StackKey, number>>;
  * One row per bucket: counts of the main types under their own key, every
  * other type summed under `other`. The key depends on the type only, never on
  * its volume, so a color never moves between series. Zero counts are omitted.
+ * Critical findings are left out: they have their own chart, and one scan can
+ * emit dozens of them, which would swamp "Otros".
  */
+export const EVENT_CHART_EXCLUDED_TYPES: ReadonlySet<string> = new Set([
+  "finding.critical",
+]);
+
 export function foldEventTypes(buckets: AdminCountMap[]): StackRow[] {
   const main = new Set<string>(CHART_EVENT_TYPES);
   return buckets.map((counts) => {
     const row: StackRow = {};
     for (const [type, count] of Object.entries(counts)) {
-      if (count <= 0) {
+      if (count <= 0 || EVENT_CHART_EXCLUDED_TYPES.has(type)) {
         continue;
       }
       const key = main.has(type) ? (type as StackKey) : OTHER_KEY;
