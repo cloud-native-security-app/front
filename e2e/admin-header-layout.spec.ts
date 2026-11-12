@@ -1,13 +1,12 @@
 /**
- * E2E of the admin header layout (plan `admin-panel-improvements`, AP-01):
- * with the fourth "Administración" link plus the user block, the header items
- * must not overlap, wrap their text or overflow the viewport at any width.
+ * E2E of the admin header (plan `admin-panel-improvements`, AP-01b): a single
+ * row at every width. Desktop: title, section links and a menu button at the
+ * right end. Mobile: title and menu button, the links live inside the menu.
+ * The menu holds identity, theme toggle and logout.
  */
 import { expect, test, type Locator } from "@playwright/test";
 
 const WIDTHS = [1280, 1024, 768, 375];
-// A realistic long institutional address: the user block is what competes
-// with the four links for space.
 const LONG_EMAIL =
   "administrador.largo.apellido@universidad-ejemplo.example.test";
 
@@ -35,7 +34,7 @@ function overlaps(a: Box, b: Box): boolean {
 }
 
 for (const width of WIDTHS) {
-  test(`admin_header_fits_without_overlap_at_${width}px`, async ({
+  test(`admin_header_is_one_row_with_a_menu_at_${width}px`, async ({
     page,
     context,
   }) => {
@@ -51,75 +50,141 @@ for (const width of WIDTHS) {
     await page.goto("/escanear");
 
     const header = page.locator("header.app-header");
-    const links = page
-      .getByRole("navigation", { name: "Secciones" })
-      .getByRole("link");
-    await expect(links).toHaveCount(4);
+    const menuButton = header.getByRole("button", { name: "Menú de usuario" });
+    await expect(menuButton).toBeVisible();
+    await expect(menuButton).toHaveAttribute("aria-expanded", "false");
 
-    const items: [string, Locator][] = [
-      ["title", header.locator("h1")],
-      ...(await links.all()).map((l, i): [string, Locator] => [`link-${i}`, l]),
-      ["theme", header.locator(".theme-toggle")],
-      ["identity", header.locator(".app-header__identity")],
-      ["logout", header.locator(".app-header__user button:not(.theme-toggle)")],
-    ];
-    const boxes = new Map<string, Box>();
-    for (const [name, loc] of items) boxes.set(name, await box(loc));
+    // Closed: only title, (desktop) links and the menu button are visible.
+    const nav = header.getByRole("navigation", { name: "Secciones" });
+    const headerBox = await box(header);
+    const buttonBox = await box(menuButton);
+    const titleBox = await box(header.locator("h1"));
+    const styles = await header.evaluate((el) => {
+      const cs = getComputedStyle(el);
+      return {
+        padding:
+          parseFloat(cs.paddingTop) +
+          parseFloat(cs.paddingBottom) +
+          parseFloat(cs.borderBottomWidth),
+      };
+    });
+    // One row: the header is no taller than the menu button plus its padding
+    // and the (one-line) title allowance.
+    expect(headerBox.height, "header is one row").toBeLessThan(
+      Math.max(buttonBox.height, titleBox.height) + styles.padding + 8,
+    );
+    expect(
+      headerBox.x + headerBox.width - (buttonBox.x + buttonBox.width),
+      "menu button is flush with the right edge",
+    ).toBeLessThanOrEqual(2);
 
-    // No overflow of the page or of the header.
     const scroll = await page.evaluate(() => ({
       doc: document.documentElement.scrollWidth,
       inner: window.innerWidth,
     }));
     expect(scroll.doc, "page scrollWidth").toBeLessThanOrEqual(scroll.inner);
-    const headerBox = await box(header);
-    for (const [name, b] of boxes) {
-      expect(b.x, `${name} left`).toBeGreaterThanOrEqual(headerBox.x - 0.5);
-      expect(b.x + b.width, `${name} right`).toBeLessThanOrEqual(
-        headerBox.x + headerBox.width + 0.5,
-      );
+
+    const items: [string, Locator][] = [
+      ["title", header.locator("h1")],
+      ["menu", menuButton],
+    ];
+    if (width >= 640) {
+      const links = nav.getByRole("link");
+      await expect(links).toHaveCount(4);
+      (await links.all()).forEach((l, i) => items.push([`link-${i}`, l]));
+      const lineHeight = await links.first().evaluate((el) => {
+        const cs = getComputedStyle(el);
+        return parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.5;
+      });
+      for (const l of await links.all()) {
+        expect((await box(l)).height, "link on one line").toBeLessThan(
+          lineHeight * 2,
+        );
+      }
+    } else {
+      await expect(nav).toHaveCount(0);
+      await expect(header.getByRole("link")).toHaveCount(0);
     }
-
-    // Every link renders on one line.
-    const lineHeight = await links.first().evaluate((el) => {
-      const cs = getComputedStyle(el);
-      return parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.5;
-    });
-    for (const [name, b] of boxes) {
-      if (!name.startsWith("link-")) continue;
-      expect(b.height, `${name} height`).toBeLessThan(lineHeight * 2);
-    }
-
-    // Observed defect: the links claim the whole first row, so the user block
-    // fell to a second row, left-aligned under the title. It must sit on the
-    // right edge of the header, beside the title or on a row of its own.
-    const logout = boxes.get("logout")!;
-    expect(
-      headerBox.x + headerBox.width - (logout.x + logout.width),
-      "logout is flush with the header's right edge",
-    ).toBeLessThanOrEqual(2);
-
-    // The name and email never wrap onto a second line.
-    const identity = boxes.get("identity")!;
-    const identityLine = await header
-      .locator(".app-header__identity strong")
-      .evaluate((el) => parseFloat(getComputedStyle(el).lineHeight) || 20);
-    const lines = width < 640 ? 1 : 2;
-    expect(identity.height, "identity height").toBeLessThan(
-      identityLine * lines * 1.6,
-    );
-
-    // No two items overlap.
+    const boxes = new Map<string, Box>();
+    for (const [name, loc] of items) boxes.set(name, await box(loc));
     const names = [...boxes.keys()];
     for (let i = 0; i < names.length; i++) {
       for (let j = i + 1; j < names.length; j++) {
-        const a = names[i]!;
-        const b = names[j]!;
         expect(
-          overlaps(boxes.get(a)!, boxes.get(b)!),
-          `${a} overlaps ${b}`,
+          overlaps(boxes.get(names[i]!)!, boxes.get(names[j]!)!),
+          `${names[i]} overlaps ${names[j]}`,
         ).toBe(false);
       }
     }
+
+    // Open: identity (ellipsized inside the panel), theme toggle, logout.
+    await menuButton.click();
+    await expect(menuButton).toHaveAttribute("aria-expanded", "true");
+    const panel = page.locator(
+      `#${await menuButton.getAttribute("aria-controls")}`,
+    );
+    await expect(panel).toBeVisible();
+    await expect(panel).toContainText("Analista Con Nombre Largo");
+    await expect(panel).toContainText(LONG_EMAIL);
+    await expect(panel.locator(".theme-toggle")).toBeVisible();
+    await expect(
+      panel.getByRole("button", { name: "Cerrar sesión" }),
+    ).toBeVisible();
+    if (width < 640) {
+      await expect(
+        panel.getByRole("navigation", { name: "Secciones" }).getByRole("link"),
+      ).toHaveCount(4);
+    }
+    const panelBox = await box(panel);
+    expect(panelBox.x, "panel inside viewport (left)").toBeGreaterThanOrEqual(
+      -0.5,
+    );
+    expect(
+      panelBox.x + panelBox.width,
+      "panel inside viewport (right)",
+    ).toBeLessThanOrEqual(width + 0.5);
+    const email = panel.getByText(LONG_EMAIL);
+    expect(
+      await email.evaluate((el) => getComputedStyle(el).textOverflow),
+      "email is ellipsized",
+    ).toBe("ellipsis");
+    expect((await box(email)).height, "email on one line").toBeLessThan(26);
+    expect(
+      await page.evaluate(() => document.documentElement.scrollWidth),
+    ).toBeLessThanOrEqual(width);
+    // The open panel does not push the header taller.
+    expect((await box(header)).height).toBeCloseTo(headerBox.height, 0);
+
+    // Escape closes and returns focus to the button.
+    await page.keyboard.press("Escape");
+    await expect(panel).toBeHidden();
+    await expect(menuButton).toHaveAttribute("aria-expanded", "false");
+    await expect(menuButton).toBeFocused();
+
+    // Outside click closes.
+    await menuButton.click();
+    await expect(panel).toBeVisible();
+    await page.mouse.click(5, 790);
+    await expect(panel).toBeHidden();
   });
 }
+
+test("menu_is_reachable_by_keyboard_in_order_and_closes_on_link_selection", async ({
+  page,
+  context,
+}) => {
+  await page.setViewportSize({ width: 375, height: 800 });
+  await context.request.post("/__test__/session", {
+    data: { email: LONG_EMAIL, name: "Ada", role: "admin" },
+  });
+  await page.goto("/escanear");
+  const menuButton = page.getByRole("button", { name: "Menú de usuario" });
+  await menuButton.focus();
+  await page.keyboard.press("Enter");
+  await expect(menuButton).toHaveAttribute("aria-expanded", "true");
+  await page.keyboard.press("Tab");
+  await expect(page.getByRole("link", { name: "Escanear" })).toBeFocused();
+  await page.getByRole("link", { name: "Historial" }).click();
+  await expect(page).toHaveURL(/\/historial$/);
+  await expect(menuButton).toHaveAttribute("aria-expanded", "false");
+});

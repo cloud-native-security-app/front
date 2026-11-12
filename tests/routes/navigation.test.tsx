@@ -80,6 +80,9 @@ describe("sectioned navigation", () => {
         .getAllByRole("link")
         .map((l) => l.textContent),
     ).toEqual(["Escanear", "Historial", "Objetivos"]);
+    await userEvent.click(
+      within(banner).getByRole("button", { name: "Menú de usuario" }),
+    );
     expect(
       within(banner).getByRole("button", { name: "Cerrar sesión" }),
     ).toBeInTheDocument();

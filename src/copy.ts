@@ -46,6 +46,7 @@ export const SECTION_HISTORY = "Historial";
 export const SECTION_TARGETS = "Objetivos";
 export const SECTION_ADMIN = "Administración";
 
+export const USER_MENU_LABEL = "Menú de usuario";
 export const LOGOUT_LABEL = "Cerrar sesión";
 
 /** Scan form: the target is picked from the saved targets, never typed. */

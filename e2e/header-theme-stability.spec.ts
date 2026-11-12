@@ -15,6 +15,7 @@ test.beforeEach(async ({ context, page }) => {
 test("header_top_row_stays_stable_across_theme_cycles", async ({ page }) => {
   await page.goto("/");
   const header = page.locator(".app-header");
+  await header.getByRole("button", { name: "Menú de usuario" }).click();
   const toggle = header.locator(".theme-toggle");
   const logout = header.getByRole("button", { name: "Cerrar sesión" });
   await expect(toggle).toBeVisible();
