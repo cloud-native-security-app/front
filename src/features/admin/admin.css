@@ -134,6 +134,8 @@
   display: grid;
   grid-row: span 4;
   grid-template-rows: subgrid;
+  /* One shrinkable column: an open table scrolls instead of widening the plot. */
+  grid-template-columns: minmax(0, 1fr);
   margin: 0;
   padding: var(--space-3);
   background-color: var(--color-surface);

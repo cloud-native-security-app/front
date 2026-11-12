@@ -494,6 +494,41 @@ test.describe("per_minute_charts", () => {
     expect(await bars.count()).toBeGreaterThanOrEqual(barsBefore);
   });
 
+  test("opening_a_chart_table_keeps_every_chart_inside_its_card", async ({
+    page,
+    context,
+  }) => {
+    await openAdmin(page, context);
+    const figures = page.getByRole("figure");
+    const boxesBefore = await figures.evaluateAll((els) =>
+      els.map((el) => el.getBoundingClientRect().toJSON() as DOMRect),
+    );
+    await page
+      .getByRole("figure", { name: "Eventos por minuto" })
+      .getByText("Ver como tabla")
+      .click();
+    await expect(
+      page.getByRole("table", { name: "Eventos por minuto" }),
+    ).toBeVisible();
+    const layout = await figures.evaluateAll((els) =>
+      els.map((el) => ({
+        card: el.getBoundingClientRect().toJSON() as DOMRect,
+        plot: el
+          .querySelector(".chart__plot > svg")!
+          .getBoundingClientRect()
+          .toJSON() as DOMRect,
+      })),
+    );
+    layout.forEach(({ card, plot }, i) => {
+      expect(card.width).toBeCloseTo(boxesBefore[i].width, 0);
+      expect(plot.right).toBeLessThanOrEqual(card.right);
+      expect(plot.height).toBeCloseTo(
+        layout[(i + 1) % layout.length].plot.height,
+        0,
+      );
+    });
+  });
+
   for (const theme of ["light", "dark"] as const) {
     test(`the_charts_pass_axe_with_their_tables_open_in_${theme}`, async ({
       page,
