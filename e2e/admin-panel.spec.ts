@@ -11,13 +11,14 @@ import {
   test,
   type APIRequestContext,
   type BrowserContext,
+  type Page,
 } from "@playwright/test";
 
 test.describe.configure({ mode: "serial" });
 
 async function adminControl(
   request: APIRequestContext,
-  action: "emit" | "status" | "reset",
+  action: "emit" | "status" | "reset" | "burst",
   data: object = {},
 ): Promise<void> {
   const response = await request.post(`/__test__/admin/${action}`, { data });
@@ -213,3 +214,91 @@ for (const theme of ["light", "dark"] as const) {
     await page.screenshot({ path: `test-results/admin-390-${theme}.png` });
   });
 }
+
+test.describe("bounded_panel_under_a_burst_of_events", () => {
+  const pageHeight = (page: Page): Promise<number> =>
+    page.evaluate(() => document.documentElement.scrollHeight);
+
+  test("the_page_height_stays_constant_and_the_lists_scroll_inside_regions", async ({
+    page,
+    context,
+    request,
+  }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    // Fill the lists first, so the baseline already has full regions.
+    await adminControl(request, "burst", { events: 120, scans: 80 });
+    await login(context, "admin");
+    await page.goto("/admin");
+    await expect(
+      page.getByRole("status", { name: "Estado de la conexión" }),
+    ).toHaveText("En vivo");
+    const before = await pageHeight(page);
+
+    await adminControl(request, "burst", { events: 150, scans: 120 });
+    await expect(page.getByText(/^y \d+ más$/)).toBeVisible();
+
+    const after = await pageHeight(page);
+    expect(Math.abs(after - before)).toBeLessThanOrEqual(8);
+    for (const name of [
+      "Lista desplazable de eventos",
+      "Lista desplazable de escaneos",
+    ]) {
+      const region = page.getByRole("region", { name });
+      await expect(region).toHaveAttribute("tabindex", "0");
+      const { scroll, client } = await region.evaluate((el) => ({
+        scroll: el.scrollHeight,
+        client: el.clientHeight,
+      }));
+      expect(scroll).toBeGreaterThan(client);
+    }
+  });
+
+  test("pausing_freezes_the_log_and_resume_shows_the_latest", async ({
+    page,
+    context,
+    request,
+  }) => {
+    await login(context, "admin");
+    await page.goto("/admin");
+    const log = page.getByRole("region", { name: "Registro de eventos" });
+    await expect(log.getByRole("row")).toHaveCount(2);
+
+    await log.getByRole("button", { name: "Pausar registro" }).click();
+    await adminControl(request, "burst", { events: 5, scans: 0 });
+    await expect(log.getByText("5 eventos nuevos")).toBeVisible();
+    await expect(log.getByRole("row")).toHaveCount(2);
+    // KPIs keep following the feed while the log is frozen.
+    await expect(
+      page
+        .getByRole("region", { name: "Indicadores" })
+        .getByText(/Límites de tasa alcanzados/)
+        .locator(".."),
+    ).toContainText("8");
+
+    await adminControl(request, "burst", { events: 2, scans: 0 });
+    await expect(log.getByText("7 eventos nuevos")).toBeVisible();
+
+    await log.getByRole("button", { name: "Reanudar registro" }).click();
+    await expect(log.getByRole("row")).toHaveCount(9);
+    await expect(log.getByText(/eventos nuevos/)).toHaveCount(0);
+  });
+
+  test("the_bounded_regions_pass_axe_in_light_and_dark", async ({
+    page,
+    context,
+    request,
+  }) => {
+    await adminControl(request, "burst", { events: 120, scans: 80 });
+    await login(context, "admin");
+    for (const theme of ["light", "dark"] as const) {
+      await page.addInitScript((value) => {
+        window.localStorage.setItem("theme", value);
+      }, theme);
+      await page.goto("/admin");
+      await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+      await expect(page.getByText(/^y \d+ más$/)).toBeVisible();
+      const results = await new AxeBuilder({ page }).analyze();
+      expect(results.violations.map((v) => v.id)).toEqual([]);
+    }
+  });
+});

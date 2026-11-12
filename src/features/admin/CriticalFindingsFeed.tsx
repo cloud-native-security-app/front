@@ -9,6 +9,7 @@ import { useState } from "react";
 import type { AdminCriticalFinding } from "../../api";
 import {
   ADMIN_FINDINGS_LIVE_LABEL,
+  ADMIN_FINDINGS_REGION_LABEL,
   ADMIN_FINDINGS_TITLE,
   ADMIN_NO_FINDINGS_MESSAGE,
   CONFIDENCE_CONFIRMED_LABEL,
@@ -65,35 +66,42 @@ export function CriticalFindingsFeed({
       {findings.length === 0 ? (
         <p>{ADMIN_NO_FINDINGS_MESSAGE}</p>
       ) : (
-        <ol className="finding-list" aria-label={ADMIN_FINDINGS_TITLE}>
-          {findings.map((finding) => (
-            <li
-              key={finding.event_id}
-              className="finding-card"
-              data-severity={finding.severity}
-            >
-              <div className="finding-card-header">
-                <span
-                  className="severity-badge"
-                  data-severity={finding.severity}
-                >
-                  {severityLabel(finding.severity)}
-                </span>
-                <strong>{finding.cve_id ?? "—"}</strong>
-                <span>{findingLocation(finding.port, finding.protocol)}</span>
-                <span className="finding-card-source">
-                  {confidenceLabel(finding.confidence)}
-                </span>
-              </div>
-              <p className="finding-card-source">
-                {finding.scan_id} ·{" "}
-                <time dateTime={finding.occurred_at}>
-                  {formatTime(finding.occurred_at)}
-                </time>
-              </p>
-            </li>
-          ))}
-        </ol>
+        <div
+          className="admin-region"
+          role="region"
+          tabIndex={0}
+          aria-label={ADMIN_FINDINGS_REGION_LABEL}
+        >
+          <ol className="finding-list" aria-label={ADMIN_FINDINGS_TITLE}>
+            {findings.map((finding) => (
+              <li
+                key={finding.event_id}
+                className="finding-card"
+                data-severity={finding.severity}
+              >
+                <div className="finding-card-header">
+                  <span
+                    className="severity-badge"
+                    data-severity={finding.severity}
+                  >
+                    {severityLabel(finding.severity)}
+                  </span>
+                  <strong>{finding.cve_id ?? "—"}</strong>
+                  <span>{findingLocation(finding.port, finding.protocol)}</span>
+                  <span className="finding-card-source">
+                    {confidenceLabel(finding.confidence)}
+                  </span>
+                </div>
+                <p className="finding-card-source">
+                  {finding.scan_id} ·{" "}
+                  <time dateTime={finding.occurred_at}>
+                    {formatTime(finding.occurred_at)}
+                  </time>
+                </p>
+              </li>
+            ))}
+          </ol>
+        </div>
       )}
     </section>
   );

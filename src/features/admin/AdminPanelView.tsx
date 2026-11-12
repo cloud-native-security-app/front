@@ -12,6 +12,7 @@ import { CriticalFindingsFeed } from "./CriticalFindingsFeed";
 import { EventLog } from "./EventLog";
 import { KpiTiles } from "./KpiTiles";
 import { ScansInFlightList } from "./ScansInFlightList";
+import { usePausedEvents } from "./usePausedEvents";
 import "./admin.css";
 
 type ViewStatus = Extract<
@@ -26,6 +27,7 @@ export function AdminPanelView({
   snapshot: AdminSnapshot;
   status: ViewStatus;
 }) {
+  const log = usePausedEvents(snapshot.recent_events);
   return (
     <div className="admin-panel">
       <p role="status" aria-label={ADMIN_CONNECTION_LABEL} data-tone="neutral">
@@ -34,7 +36,12 @@ export function AdminPanelView({
       <KpiTiles kpis={snapshot.kpis} windowSeconds={snapshot.window_seconds} />
       <ScansInFlightList scans={snapshot.scans_in_flight} />
       <CriticalFindingsFeed findings={snapshot.critical_findings} />
-      <EventLog events={snapshot.recent_events} />
+      <EventLog
+        events={log.events}
+        paused={log.paused}
+        pending={log.pending}
+        onTogglePause={log.toggle}
+      />
     </div>
   );
 }

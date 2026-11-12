@@ -263,6 +263,23 @@ export const ADMIN_EVENT_COLUMNS = {
   detail: "Detalle",
 } as const;
 export const ADMIN_EVENT_DETAIL_LABEL = "Ver carga";
+export const ADMIN_EVENTS_PAUSE_LABEL = "Pausar registro";
+export const ADMIN_EVENTS_RESUME_LABEL = "Reanudar registro";
+/** Events received while the log is paused (frozen on screen). */
+export function adminPendingEvents(count: number): string {
+  return count === 1 ? "1 evento nuevo" : `${String(count)} eventos nuevos`;
+}
+/**
+ * Accessible names of the fixed-height scroll regions (keyboard scrollable).
+ * They differ from the section titles so each region name stays unique.
+ */
+export const ADMIN_SCANS_REGION_LABEL = "Lista desplazable de escaneos";
+export const ADMIN_FINDINGS_REGION_LABEL = "Lista desplazable de hallazgos";
+export const ADMIN_EVENTS_REGION_LABEL = "Lista desplazable de eventos";
+/** Scans in flight not rendered because only the newest are shown. */
+export function adminHiddenScans(count: number): string {
+  return `y ${String(count)} más`;
+}
 export function adminEventCount(shown: number, total: number): string {
   return `Mostrando ${String(shown)} de ${String(total)}`;
 }

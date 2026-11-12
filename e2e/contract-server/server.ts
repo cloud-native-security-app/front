@@ -37,6 +37,7 @@ import type {
   ScanHistoryEntry,
 } from "../../src/api/types";
 import {
+  emitAdminBurst,
   emitAdminEvent,
   forceAdminStatus,
   handleAdminEvents,
@@ -484,6 +485,10 @@ async function handleAdminTestControl(
       return;
     }
     emitAdminEvent(store.admin, record as unknown as EmitRequest);
+  } else if (pathname === "/__test__/admin/burst") {
+    const count = (key: string): number =>
+      typeof record[key] === "number" ? record[key] : 0;
+    emitAdminBurst(store.admin, count("events"), count("scans"));
   } else if (pathname === "/__test__/admin/status") {
     const status = record["status"];
     forceAdminStatus(store.admin, typeof status === "number" ? status : null);
