@@ -10,6 +10,7 @@
 import type { ReactNode } from "react";
 import { Link } from "react-router-dom";
 
+import { useSessionRefresh } from "../../auth";
 import {
   ADMIN_CONNECTION_LABEL,
   ADMIN_FORBIDDEN_MESSAGE,
@@ -24,7 +25,10 @@ import { useAdminFeed } from "./useAdminFeed";
 
 /** `scanPath` is where "back" leads (the routing layer owns the paths). */
 export function AdminPanel({ scanPath }: { scanPath: string }) {
-  const { status, snapshot } = useAdminFeed();
+  const refreshSession = useSessionRefresh();
+  const { status, snapshot } = useAdminFeed(() => {
+    void refreshSession();
+  });
 
   let body: ReactNode;
   if (status === "forbidden") {

@@ -11,4 +11,5 @@ export { LoginButton } from "./LoginButton";
 export { SessionExpiredNotice } from "./SessionExpiredNotice";
 export { LogoutButton } from "./LogoutButton";
 export { SessionContext } from "./sessionContext";
+export { useSessionRefresh } from "./sessionRefreshContext";
 export type { SessionState, SessionStatus } from "./sessionTypes";

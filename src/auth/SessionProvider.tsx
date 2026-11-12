@@ -1,6 +1,7 @@
 /**
  * Provee el estado de sesión de toda la app (ver docs/architecture.md,
- * capa 2: "src/auth"). Llama a `getMe()` una sola vez al montar (RF-01) y
+ * capa 2: "src/auth"). Llama a `getMe()` al montar (RF-01), de nuevo solo
+ * cuando alguien invoca `refresh()` (p. ej. un 403 del panel admin), y
  * se suscribe a `onUnauthorized` de `src/api` para limpiar el estado en
  * memoria ante un 401/403 ocurrido en **cualquier** llamada posterior de
  * `src/api` — no solo la de montaje (ver `docs/decisions.md`, feature
@@ -11,10 +12,17 @@
  * público que el propio Gateway decide devolver.
  */
 
-import { useEffect, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 
 import { getMe, onUnauthorized } from "../api";
 import { SessionContext } from "./sessionContext";
+import { SessionRefreshContext } from "./sessionRefreshContext";
 import {
   ANONYMOUS_SESSION,
   EXPIRED_SESSION,
@@ -24,6 +32,28 @@ import type { SessionState } from "./sessionTypes";
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<SessionState>(LOADING_SESSION);
+  const mounted = useRef(true);
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  // Re-reads the profile (role included). A 401 already reaches the
+  // `onUnauthorized` subscription below; any other failure (network, 5xx)
+  // keeps the current user, and nothing here retries.
+  const refresh = useCallback(async () => {
+    const result = await getMe();
+    if (result.ok && mounted.current) {
+      setSession((previous) =>
+        previous.status === "authenticated"
+          ? { status: "authenticated", user: result.value }
+          : previous,
+      );
+    }
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -65,7 +95,9 @@ export function SessionProvider({ children }: { children: ReactNode }) {
 
   return (
     <SessionContext.Provider value={session}>
-      {children}
+      <SessionRefreshContext.Provider value={refresh}>
+        {children}
+      </SessionRefreshContext.Provider>
     </SessionContext.Provider>
   );
 }

@@ -44,6 +44,7 @@ import {
   handleAdminMetrics,
   resetAdminFeed,
   type EmitRequest,
+  closeAdminStreams,
 } from "./adminFeed.ts";
 import {
   applyEventToRecord,
@@ -462,6 +463,39 @@ function handleScanEvents(
   });
 }
 
+/**
+ * Test-only: changes the role of the calling session (cookie), as if the
+ * identity provider revoked it. A downgrade makes the admin routes answer 403
+ * and ends the live admin streams like the Gateway's role revalidation.
+ */
+async function handleTestSetRole(
+  store: ContractServerStore,
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> {
+  const token = requireSessionToken(store, req, res);
+  if (!token) {
+    return;
+  }
+  let role: unknown;
+  try {
+    role = (JSON.parse(await readRequestBody(req)) as { role?: unknown }).role;
+  } catch {
+    role = undefined;
+  }
+  const profile = store.sessions.get(token);
+  if (!profile || (role !== "admin" && role !== "user")) {
+    writeText(res, 400, "se esperaba role admin|user");
+    return;
+  }
+  store.sessions.set(token, { ...profile, role });
+  if (role !== "admin") {
+    closeAdminStreams(store.admin);
+  }
+  res.writeHead(204);
+  res.end();
+}
+
 async function handleAdminTestControl(
   store: ContractServerStore,
   req: IncomingMessage,
@@ -533,6 +567,11 @@ async function handleRequest(
 
   if (method === "POST" && pathname === "/__test__/session") {
     handleTestCreateSession(store, req, res);
+    return;
+  }
+
+  if (method === "POST" && pathname === "/__test__/session/role") {
+    await handleTestSetRole(store, req, res);
     return;
   }
 

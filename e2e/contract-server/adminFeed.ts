@@ -11,6 +11,8 @@
  * - `POST /__test__/admin/status` force 403/503 for every admin route and
  *   end live streams with a `closed` event (`{ "status": null }` clears it)
  * - `POST /__test__/admin/reset`  back to the seed snapshot
+ * - `POST /__test__/session/role` (in `server.ts`) changes the role of the
+ *   calling session; a downgrade ends live streams with a `closed` event
  *
  * State is global to the server process (not per session), so specs that use
  * it run serially and reset in `beforeEach`.
@@ -227,6 +229,11 @@ export function forceAdminStatus(
   if (status === null) {
     return;
   }
+  closeAdminStreams(state);
+}
+
+/** Ends every live stream with the Gateway's role-revalidation `closed`. */
+export function closeAdminStreams(state: AdminFeedState): void {
   for (const [res, write] of state.streams) {
     write("closed", { reason: "role_revalidation_failed" });
     res.end();
