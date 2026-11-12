@@ -8,13 +8,13 @@
  * (backoff 1 s doubling to 30 s, reset when a stream `snapshot` arrives) and
  * start over with `getAdminMetrics()`, whose status decides:
  * - 401: stop (the session flow in `src/auth` takes over);
- * - 403: stop and drop the data (no longer an admin);
+ * - 403: stop, drop the data and let the session re-read the role;
  * - 503 (role not verifiable) and network errors: keep retrying.
  * A successful reconnect always yields a fresh snapshot (the Gateway sends
  * one first), so no event is replayed or merged across a gap.
  */
 
-import { useEffect, useReducer, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 
 import {
   getAdminMetrics,
@@ -41,9 +41,17 @@ export interface AdminFeed {
 export const RECONNECT_BASE_MS = 1000;
 export const RECONNECT_MAX_MS = 30_000;
 
-export function useAdminFeed(): AdminFeed {
+/**
+ * `onForbidden` runs once per 403 (the feed stops after it, so there is no
+ * loop); the caller uses it to refresh the session role.
+ */
+export function useAdminFeed(onForbidden?: () => void): AdminFeed {
   const [snapshot, dispatch] = useReducer(adminReducer, undefined);
   const [status, setStatus] = useState<AdminFeedStatus>("connecting");
+  const forbiddenRef = useRef(onForbidden);
+  useEffect(() => {
+    forbiddenRef.current = onForbidden;
+  }, [onForbidden]);
 
   useEffect(() => {
     let cancelled = false;
@@ -83,6 +91,7 @@ export function useAdminFeed(): AdminFeed {
             // Leave no admin data on screen once the role is gone.
             dispatch({ type: "reset" });
             setStatus("forbidden");
+            forbiddenRef.current?.();
             return;
           case "unavailable":
             scheduleReconnect("unavailable");

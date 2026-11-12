@@ -302,3 +302,34 @@ test.describe("bounded_panel_under_a_burst_of_events", () => {
     }
   });
 });
+
+test("a_revoked_role_removes_the_admin_link_and_leaves_/admin_without_reloading", async ({
+  page,
+  context,
+}) => {
+  await login(context, "admin");
+  await page.goto("/admin");
+  await expect(page.getByRole("region", { name: "Indicadores" })).toBeVisible();
+  const sections = page.getByRole("navigation", { name: "Secciones" });
+  await expect(
+    sections.getByRole("link", { name: "Administración" }),
+  ).toBeVisible();
+  await page.evaluate(() => {
+    (window as unknown as { __noReload: boolean }).__noReload = true;
+  });
+
+  const revoke = await context.request.post("/__test__/session/role", {
+    data: { role: "user" },
+  });
+  expect(revoke.status()).toBe(204);
+
+  await expect(page).toHaveURL(/\/escanear$/, { timeout: 15_000 });
+  await expect(
+    sections.getByRole("link", { name: "Administración" }),
+  ).toHaveCount(0);
+  expect(
+    await page.evaluate(
+      () => (window as unknown as { __noReload?: boolean }).__noReload,
+    ),
+  ).toBe(true);
+});

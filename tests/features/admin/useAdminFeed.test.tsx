@@ -276,4 +276,41 @@ describe("useAdminFeed", () => {
     await advance(120_000);
     expect(fetchMock).toHaveBeenCalledTimes(1);
   });
+
+  it("calls_onForbidden_exactly_once_when_the_metrics_answer_403", async () => {
+    const onForbidden = vi.fn();
+    respond(403);
+    const { result } = renderHook(() => useAdminFeed(onForbidden));
+
+    await flush();
+    expect(result.current.status).toBe("forbidden");
+    expect(onForbidden).toHaveBeenCalledTimes(1);
+
+    await advance(60_000);
+    expect(onForbidden).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls_onForbidden_once_after_a_closed_event_leads_to_a_403", async () => {
+    const onForbidden = vi.fn();
+    respond(200, makeSnapshot({ seq: 1 }));
+    renderHook(() => useAdminFeed(onForbidden));
+    await flush();
+    expect(onForbidden).not.toHaveBeenCalled();
+
+    respond(403);
+    act(() => {
+      latestSource().emit("closed", { reason: "role_revalidation_failed" });
+    });
+    await advance(1000);
+
+    expect(onForbidden).toHaveBeenCalledTimes(1);
+  });
+
+  it("does_not_call_onForbidden_on_a_503", async () => {
+    const onForbidden = vi.fn();
+    respond(503);
+    renderHook(() => useAdminFeed(onForbidden));
+    await flush();
+    expect(onForbidden).not.toHaveBeenCalled();
+  });
 });
