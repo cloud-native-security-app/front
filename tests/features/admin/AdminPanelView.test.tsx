@@ -86,7 +86,7 @@ describe("AdminPanelView", () => {
     expect(screen.getByText("Todavía no hay eventos.")).toBeInTheDocument();
   });
 
-  it("renders_critical_findings_newest_first_with_port_or_host", () => {
+  it("renders_critical_findings_newest_first_with_port_or_host", async () => {
     renderView(
       makeSnapshot({
         critical_findings: [
@@ -96,6 +96,9 @@ describe("AdminPanelView", () => {
       }),
     );
 
+    await userEvent.click(
+      screen.getByRole("tab", { name: "Hallazgos críticos" }),
+    );
     const feed = screen.getByRole("list", { name: "Hallazgos críticos" });
     const items = within(feed).getAllByRole("listitem");
     expect(items).toHaveLength(2);
@@ -105,9 +108,12 @@ describe("AdminPanelView", () => {
     expect(items[1]).toHaveTextContent("CVE-2024-6387");
   });
 
-  it("announces_only_the_newest_new_finding_in_a_polite_live_region", () => {
+  it("announces_only_the_newest_new_finding_in_a_polite_live_region", async () => {
     const { rerender } = renderView(
       makeSnapshot({ critical_findings: [makeFinding("a")] }),
+    );
+    await userEvent.click(
+      screen.getByRole("tab", { name: "Hallazgos críticos" }),
     );
     const region = screen.getByRole("status", {
       name: "Avisos de hallazgos críticos",
@@ -146,8 +152,11 @@ describe("AdminPanelView", () => {
     expect(region).toHaveTextContent("CVE-1");
   });
 
-  it("describes_a_host_level_finding_in_the_announcement", () => {
+  it("describes_a_host_level_finding_in_the_announcement", async () => {
     const { rerender } = renderView();
+    await userEvent.click(
+      screen.getByRole("tab", { name: "Hallazgos críticos" }),
+    );
     rerender(
       <AdminPanelView
         status="live"
@@ -173,6 +182,9 @@ describe("AdminPanelView", () => {
           makeEvent("3", { event_type: "scan.completed" }),
         ],
       }),
+    );
+    await userEvent.click(
+      screen.getByRole("tab", { name: "Registro de eventos" }),
     );
     const log = screen.getByRole("region", { name: "Registro de eventos" });
     expect(within(log).getAllByRole("row")).toHaveLength(4);

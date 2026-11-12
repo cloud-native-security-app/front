@@ -269,6 +269,17 @@ export const ADMIN_EVENTS_RESUME_LABEL = "Reanudar registro";
 export function adminPendingEvents(count: number): string {
   return count === 1 ? "1 evento nuevo" : `${String(count)} eventos nuevos`;
 }
+/** Accessible name of the tablist that groups the lists below the charts. */
+export const ADMIN_TABS_LABEL = "Actividad del panel";
+/** Read after the tab title: "Hallazgos críticos, 3 nuevos". */
+export function adminUnseenSuffix(count: number): string {
+  const amount = count > 99 ? "más de 99" : String(count);
+  return `, ${amount} ${count === 1 ? "nuevo" : "nuevos"}`;
+}
+/** Visible badge of a tab: capped so it never widens the tab. */
+export function adminUnseenBadge(count: number): string {
+  return count > 99 ? "99+" : String(count);
+}
 /**
  * Accessible names of the fixed-height scroll regions (keyboard scrollable).
  * They differ from the section titles so each region name stays unique.

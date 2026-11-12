@@ -39,6 +39,13 @@ async function login(
   expect(response.ok()).toBe(true);
 }
 
+/** Selects an admin tab by its title; an unseen count may follow it. */
+async function openTab(page: Page, title: string): Promise<void> {
+  const tab = page.getByRole("tab", { name: new RegExp(`^${title}(,|$)`) });
+  await tab.click();
+  await expect(tab).toHaveAttribute("aria-selected", "true");
+}
+
 test.beforeEach(async ({ request }) => {
   await adminControl(request, "reset");
 });
@@ -88,6 +95,7 @@ test("an_admin_sees_the_panel_and_live_updates_without_reloading", async ({
     protocol: "tcp",
     cve_id: "CVE-2025-0001",
   });
+  await openTab(page, "Hallazgos críticos");
   const feed = page.getByRole("list", { name: "Hallazgos críticos" });
   await expect(feed.getByRole("listitem").first()).toContainText(
     "Puerto 8080/tcp",
@@ -103,6 +111,7 @@ test("an_admin_sees_the_panel_and_live_updates_without_reloading", async ({
   await expect(feed.getByRole("listitem").first()).toContainText("Host");
   await expect(feed.getByRole("listitem").first()).not.toContainText(/puerto/i);
 
+  await openTab(page, "Registro de eventos");
   const log = page.getByRole("region", { name: "Registro de eventos" });
   await log
     .getByRole("combobox", { name: "Tipo de evento" })
@@ -197,6 +206,7 @@ for (const theme of ["light", "dark"] as const) {
     await login(context, "admin");
     await page.goto("/admin");
     await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+    await openTab(page, "Hallazgos críticos");
     await expect(
       page.getByRole("list", { name: "Hallazgos críticos" }),
     ).toBeVisible();
@@ -239,10 +249,11 @@ test.describe("bounded_panel_under_a_burst_of_events", () => {
 
     const after = await pageHeight(page);
     expect(Math.abs(after - before)).toBeLessThanOrEqual(8);
-    for (const name of [
-      "Lista desplazable de eventos",
-      "Lista desplazable de escaneos",
-    ]) {
+    for (const [tab, name] of [
+      ["Registro de eventos", "Lista desplazable de eventos"],
+      ["Escaneos en curso", "Lista desplazable de escaneos"],
+    ] as const) {
+      await openTab(page, tab);
       const region = page.getByRole("region", { name });
       await expect(region).toHaveAttribute("tabindex", "0");
       const { scroll, client } = await region.evaluate((el) => ({
@@ -260,6 +271,7 @@ test.describe("bounded_panel_under_a_burst_of_events", () => {
   }) => {
     await login(context, "admin");
     await page.goto("/admin");
+    await openTab(page, "Registro de eventos");
     const log = page.getByRole("region", { name: "Registro de eventos" });
     await expect(log.getByRole("row")).toHaveCount(2);
 
@@ -301,6 +313,146 @@ test.describe("bounded_panel_under_a_burst_of_events", () => {
       expect(results.violations.map((v) => v.id)).toEqual([]);
     }
   });
+});
+
+test.describe("admin_tabs", () => {
+  async function openAdmin(page: Page, context: BrowserContext): Promise<void> {
+    await login(context, "admin");
+    await page.goto("/admin");
+    await expect(
+      page.getByRole("status", { name: "Estado de la conexión" }),
+    ).toHaveText("En vivo");
+  }
+
+  test("the_keyboard_moves_between_tabs_with_arrows_home_and_end", async ({
+    page,
+    context,
+  }) => {
+    await openAdmin(page, context);
+    const list = page.getByRole("tablist", { name: "Actividad del panel" });
+    const tabs = list.getByRole("tab");
+    await expect(tabs).toHaveCount(3);
+    await expect(tabs.nth(0)).toHaveAttribute("aria-selected", "true");
+
+    await tabs.nth(0).focus();
+    await page.keyboard.press("ArrowRight");
+    await expect(tabs.nth(1)).toBeFocused();
+    await expect(tabs.nth(1)).toHaveAttribute("aria-selected", "true");
+    await expect(
+      page.getByRole("list", { name: "Hallazgos críticos" }),
+    ).toBeVisible();
+
+    await page.keyboard.press("End");
+    await expect(tabs.nth(2)).toBeFocused();
+    await page.keyboard.press("ArrowRight");
+    await expect(tabs.nth(0)).toBeFocused();
+    await page.keyboard.press("ArrowLeft");
+    await expect(tabs.nth(2)).toBeFocused();
+    await expect(
+      page.getByRole("region", { name: "Registro de eventos" }),
+    ).toBeVisible();
+    await page.keyboard.press("Home");
+    await expect(tabs.nth(0)).toBeFocused();
+    await expect(tabs.nth(0)).toHaveAttribute("aria-selected", "true");
+    await expect(tabs.nth(1)).toHaveAttribute("tabindex", "-1");
+  });
+
+  test("a_finding_emitted_on_another_tab_shows_a_count_that_selecting_the_tab_clears", async ({
+    page,
+    context,
+    request,
+  }) => {
+    await openAdmin(page, context);
+    await adminControl(request, "emit", {
+      event_type: "finding.critical",
+      scan_id: "scan-unseen-1",
+    });
+    await adminControl(request, "emit", {
+      event_type: "finding.critical",
+      scan_id: "scan-unseen-2",
+    });
+
+    const findings = page.getByRole("tab", {
+      name: "Hallazgos críticos, 2 nuevos",
+    });
+    await expect(findings).toBeVisible();
+    await expect(findings).toContainText("2");
+    // The log also received the events; the selected tab shows no count.
+    await expect(
+      page.getByRole("tab", { name: "Registro de eventos, 2 nuevos" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("tab", { name: "Escaneos en curso", exact: true }),
+    ).toBeVisible();
+
+    await findings.click();
+    const selected = page.getByRole("tab", {
+      name: "Hallazgos críticos",
+      exact: true,
+    });
+    await expect(selected).toHaveAttribute("aria-selected", "true");
+    await expect(selected).toHaveText("Hallazgos críticos");
+  });
+
+  test("the_log_keeps_its_pause_and_filter_across_tab_switches", async ({
+    page,
+    context,
+    request,
+  }) => {
+    await openAdmin(page, context);
+    await openTab(page, "Registro de eventos");
+    const log = page.getByRole("region", { name: "Registro de eventos" });
+    await log.getByRole("button", { name: "Pausar registro" }).click();
+    await openTab(page, "Escaneos en curso");
+    await adminControl(request, "burst", { events: 3, scans: 0 });
+    await expect(
+      page.getByRole("tab", { name: "Registro de eventos, 3 nuevos" }),
+    ).toBeVisible();
+    await openTab(page, "Registro de eventos");
+    await expect(
+      log.getByRole("button", { name: "Reanudar registro" }),
+    ).toBeVisible();
+    await expect(log.getByText("3 eventos nuevos")).toBeVisible();
+  });
+
+  test("the_tabs_scroll_inside_the_list_and_never_the_page_at_375px", async ({
+    page,
+    context,
+  }) => {
+    await page.setViewportSize({ width: 375, height: 800 });
+    await openAdmin(page, context);
+    const overflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - window.innerWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(0);
+  });
+
+  for (const theme of ["light", "dark"] as const) {
+    test(`the_tabs_pass_axe_with_an_unseen_badge_in_${theme}`, async ({
+      page,
+      context,
+      request,
+    }) => {
+      await page.addInitScript((value) => {
+        window.localStorage.setItem("theme", value);
+      }, theme);
+      await openAdmin(page, context);
+      await expect(page.locator("html")).toHaveAttribute("data-theme", theme);
+      await adminControl(request, "emit", {
+        event_type: "finding.critical",
+        scan_id: "scan-axe",
+      });
+      await expect(
+        page.getByRole("tab", { name: "Hallazgos críticos, 1 nuevo" }),
+      ).toBeVisible();
+
+      const results = await new AxeBuilder({ page }).analyze();
+      expect(results.violations.map((v) => v.id)).toEqual([]);
+      await openTab(page, "Hallazgos críticos");
+      const second = await new AxeBuilder({ page }).analyze();
+      expect(second.violations.map((v) => v.id)).toEqual([]);
+    });
+  }
 });
 
 test("a_revoked_role_removes_the_admin_link_and_leaves_/admin_without_reloading", async ({

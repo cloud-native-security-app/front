@@ -5,8 +5,67 @@
  * `data-label` rules there.
  */
 
-.admin-panel > section {
+.admin-panel > section,
+.admin-panel > .admin-tabs {
   margin-top: var(--space-4);
+}
+
+/* Horizontal tabs (AP-10): the list scrolls sideways on narrow screens. */
+.admin-tabs__list {
+  display: flex;
+  gap: var(--space-1);
+  overflow-x: auto;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.admin-tabs__panel > section {
+  margin-top: var(--space-3);
+}
+
+/* Reset the global filled-accent `button`: tabs are flat until selected. */
+.admin-tabs__tab {
+  flex: none;
+  align-self: auto;
+  white-space: nowrap;
+  color: var(--color-text);
+  background-color: transparent;
+  border: 1px solid transparent;
+  border-bottom: 3px solid transparent;
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.admin-tabs__tab:hover:not(:disabled) {
+  background-color: var(--color-surface);
+  border-color: var(--color-border);
+  border-bottom-color: transparent;
+}
+
+.admin-tabs__tab[aria-selected="true"] {
+  background-color: var(--color-surface);
+  border-color: var(--color-border);
+  border-bottom-color: var(--color-accent);
+}
+
+/* Inside the scrolling list an outer outline would be clipped. */
+.admin-tabs__tab:focus-visible {
+  outline-offset: -3px;
+}
+
+/* Both badge spans stay `display: inline`: any other display makes browsers
+   put a space before the comma of the accessible name ("título , 3 nuevos"). */
+.admin-tabs__badge {
+  margin-left: var(--space-2);
+  padding: 0.1em var(--space-2);
+  font-size: 0.8rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-accent-contrast);
+  background-color: var(--color-accent);
+  border-radius: 999px;
+}
+
+/* Spoken suffix of the badge: zero-size text, still in the name. */
+.admin-tabs__badge-spoken {
+  font-size: 0;
 }
 
 /* Off-screen but available to assistive tech (live region, table captions). */
