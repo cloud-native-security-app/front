@@ -83,3 +83,40 @@
 .admin-panel td {
   overflow-wrap: anywhere;
 }
+
+/*
+ * Lists never grow the page: each one scrolls inside a fixed-height region
+ * (AP-02). The region is focusable so keyboard users can scroll it.
+ */
+.admin-panel {
+  --admin-region-height: calc(var(--space-6) * 8);
+}
+
+.admin-region {
+  max-height: var(--admin-region-height);
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.admin-region:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+.admin-region thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  border-bottom: none;
+  box-shadow: inset 0 -1px 0 var(--color-border);
+}
+
+.admin-region .finding-list {
+  margin: 0;
+  padding: var(--space-3);
+}
+
+.admin-region__more {
+  margin: var(--space-2) 0 0;
+}

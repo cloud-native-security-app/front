@@ -6,6 +6,8 @@
  * there). Not part of the real Gateway, and documented here to avoid
  * confusing them:
  * - `POST /__test__/admin/emit`   push one synthetic event (builds the delta)
+ * - `POST /__test__/admin/burst`  push `scans` scan.requested events (one new
+ *   in-flight scan each) plus `ratelimit.hit` events up to `events` in total
  * - `POST /__test__/admin/status` force 403/503 for every admin route and
  *   end live streams with a `closed` event (`{ "status": null }` clears it)
  * - `POST /__test__/admin/reset`  back to the seed snapshot
@@ -193,6 +195,27 @@ export function emitAdminEvent(
     write("delta", delta);
   }
   return delta;
+}
+
+/**
+ * Emits `scans` `scan.requested` events (one new in-flight scan each) and
+ * fills up to `events` total events with `ratelimit.hit`.
+ */
+export function emitAdminBurst(
+  state: AdminFeedState,
+  events: number,
+  scans: number,
+): void {
+  for (let i = 0; i < events; i += 1) {
+    if (i < scans) {
+      emitAdminEvent(state, {
+        event_type: "scan.requested",
+        scan_id: `burst-scan-${String(state.counter)}`,
+      });
+    } else {
+      emitAdminEvent(state, { event_type: "ratelimit.hit" });
+    }
+  }
 }
 
 /** Forces a status on admin routes; 403/503 also end live streams with `closed`. */

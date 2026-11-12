@@ -12,14 +12,30 @@ import {
   ADMIN_EVENTS_TITLE,
   ADMIN_EVENT_COLUMNS,
   ADMIN_EVENT_DETAIL_LABEL,
+  ADMIN_EVENTS_PAUSE_LABEL,
+  ADMIN_EVENTS_REGION_LABEL,
+  ADMIN_EVENTS_RESUME_LABEL,
   ADMIN_EVENT_FILTER_LABEL,
   ADMIN_NO_EVENTS_FOR_FILTER_MESSAGE,
   ADMIN_NO_EVENTS_MESSAGE,
   adminEventCount,
+  adminPendingEvents,
 } from "../../copy";
 import { formatTime } from "./formatters";
 
-export function EventLog({ events }: { events: AdminEventEntry[] }) {
+export function EventLog({
+  events,
+  paused,
+  pending,
+  onTogglePause,
+}: {
+  /** What to render: the live log, or the frozen one while paused. */
+  events: AdminEventEntry[];
+  paused: boolean;
+  /** Events received while paused, not shown yet. */
+  pending: number;
+  onTogglePause: () => void;
+}) {
   const [filter, setFilter] = useState("");
   const selectId = useId();
   const titleId = useId();
@@ -35,6 +51,14 @@ export function EventLog({ events }: { events: AdminEventEntry[] }) {
   return (
     <section aria-labelledby={titleId}>
       <h3 id={titleId}>{ADMIN_EVENTS_TITLE}</h3>
+      <div className="event-log__filter">
+        <button type="button" aria-pressed={paused} onClick={onTogglePause}>
+          {paused ? ADMIN_EVENTS_RESUME_LABEL : ADMIN_EVENTS_PAUSE_LABEL}
+        </button>
+        {paused && (
+          <span className="field-help">{adminPendingEvents(pending)}</span>
+        )}
+      </div>
       {events.length === 0 ? (
         <p>{ADMIN_NO_EVENTS_MESSAGE}</p>
       ) : (
@@ -62,48 +86,55 @@ export function EventLog({ events }: { events: AdminEventEntry[] }) {
           {visible.length === 0 ? (
             <p>{ADMIN_NO_EVENTS_FOR_FILTER_MESSAGE}</p>
           ) : (
-            <table>
-              <caption className="visually-hidden">
-                {ADMIN_EVENTS_TITLE}
-              </caption>
-              <thead>
-                <tr>
-                  <th scope="col">{ADMIN_EVENT_COLUMNS.time}</th>
-                  <th scope="col">{ADMIN_EVENT_COLUMNS.type}</th>
-                  <th scope="col">{ADMIN_EVENT_COLUMNS.source}</th>
-                  <th scope="col">{ADMIN_EVENT_COLUMNS.scan}</th>
-                  <th scope="col">{ADMIN_EVENT_COLUMNS.detail}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visible.map((event) => (
-                  <tr key={event.event_id}>
-                    <td data-label={ADMIN_EVENT_COLUMNS.time}>
-                      <time dateTime={event.occurred_at}>
-                        {formatTime(event.occurred_at)}
-                      </time>
-                    </td>
-                    <td data-label={ADMIN_EVENT_COLUMNS.type}>
-                      {event.event_type}
-                    </td>
-                    <td data-label={ADMIN_EVENT_COLUMNS.source}>
-                      {event.source}
-                    </td>
-                    <td data-label={ADMIN_EVENT_COLUMNS.scan}>
-                      {event.scan_id ?? "—"}
-                    </td>
-                    <td data-label={ADMIN_EVENT_COLUMNS.detail}>
-                      <details>
-                        <summary>{ADMIN_EVENT_DETAIL_LABEL}</summary>
-                        <pre className="event-log__payload">
-                          {JSON.stringify(event.payload, null, 2)}
-                        </pre>
-                      </details>
-                    </td>
+            <div
+              className="admin-region"
+              role="region"
+              tabIndex={0}
+              aria-label={ADMIN_EVENTS_REGION_LABEL}
+            >
+              <table>
+                <caption className="visually-hidden">
+                  {ADMIN_EVENTS_TITLE}
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">{ADMIN_EVENT_COLUMNS.time}</th>
+                    <th scope="col">{ADMIN_EVENT_COLUMNS.type}</th>
+                    <th scope="col">{ADMIN_EVENT_COLUMNS.source}</th>
+                    <th scope="col">{ADMIN_EVENT_COLUMNS.scan}</th>
+                    <th scope="col">{ADMIN_EVENT_COLUMNS.detail}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {visible.map((event) => (
+                    <tr key={event.event_id}>
+                      <td data-label={ADMIN_EVENT_COLUMNS.time}>
+                        <time dateTime={event.occurred_at}>
+                          {formatTime(event.occurred_at)}
+                        </time>
+                      </td>
+                      <td data-label={ADMIN_EVENT_COLUMNS.type}>
+                        {event.event_type}
+                      </td>
+                      <td data-label={ADMIN_EVENT_COLUMNS.source}>
+                        {event.source}
+                      </td>
+                      <td data-label={ADMIN_EVENT_COLUMNS.scan}>
+                        {event.scan_id ?? "—"}
+                      </td>
+                      <td data-label={ADMIN_EVENT_COLUMNS.detail}>
+                        <details>
+                          <summary>{ADMIN_EVENT_DETAIL_LABEL}</summary>
+                          <pre className="event-log__payload">
+                            {JSON.stringify(event.payload, null, 2)}
+                          </pre>
+                        </details>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </>
       )}
