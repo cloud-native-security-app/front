@@ -200,3 +200,41 @@ describe("ReportDetails focus (SNV-04)", () => {
     });
   });
 });
+
+describe("ReportDetails scan mode", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  function renderReport(mode?: "ssh" | "network") {
+    render(
+      <ReportDetails
+        scanId="s1"
+        report={REPORT}
+        mode={mode}
+        onExport={vi.fn()}
+      />,
+    );
+  }
+
+  it("network_scans_show_the_mode_and_the_unverified_patch_notice", () => {
+    renderReport("network");
+    expect(screen.getByText(/Modo de escaneo: Solo IP/)).toBeInTheDocument();
+    expect(screen.getByRole("note")).toHaveTextContent(
+      /Estado de parches no verificado/,
+    );
+    expect(screen.getByRole("note")).toHaveTextContent(/versión/);
+  });
+
+  it("ssh_scans_show_the_mode_without_the_notice", () => {
+    renderReport("ssh");
+    expect(screen.getByText(/Modo de escaneo: SSH/)).toBeInTheDocument();
+    expect(screen.queryByRole("note")).not.toBeInTheDocument();
+  });
+
+  it("an_unknown_mode_shows_neither", () => {
+    renderReport(undefined);
+    expect(screen.queryByText(/Modo de escaneo/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("note")).not.toBeInTheDocument();
+  });
+});

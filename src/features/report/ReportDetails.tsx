@@ -17,6 +17,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import type {
+  ScanMode,
   ScanResult,
   ScanVulnerability,
   VulnerabilitySeverity,
@@ -28,6 +29,9 @@ import {
   CONFIRMED_GROUP_TITLE,
   FINDING_DETAILS_LABEL,
   EXPORT_REPORT_LABEL,
+  REPORT_MODE_PREFIX,
+  REPORT_PATCH_STATE_NOT_VERIFIED,
+  SCAN_MODE_BADGE,
   NO_FINDINGS_FOR_FILTER_MESSAGE,
   SEVERITY_FILTER_HINT,
   SEVERITY_LABEL,
@@ -193,6 +197,11 @@ function FindingList({ findings }: { findings: ScanVulnerability[] }) {
 export interface ReportDetailsProps {
   scanId: string;
   report: ScanResult;
+  /**
+   * From the history entry (the report itself carries no mode). Absent means
+   * unknown: neither the mode line nor the patch notice is shown.
+   */
+  mode?: ScanMode;
   onExport: () => void;
 }
 
@@ -204,6 +213,7 @@ function formatScannedAt(isoDate: string): string {
 export function ReportDetails({
   scanId,
   report,
+  mode,
   onExport,
 }: ReportDetailsProps) {
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -264,6 +274,14 @@ export function ReportDetails({
         Reporte de {report.host}
       </h2>
       <p>Escaneado: {formatScannedAt(report.scanned_at)}</p>
+      {mode !== undefined && (
+        <p>{`${REPORT_MODE_PREFIX}: ${SCAN_MODE_BADGE[mode]}`}</p>
+      )}
+      {mode === "network" && (
+        <p role="note" className="field-help">
+          {REPORT_PATCH_STATE_NOT_VERIFIED}
+        </p>
+      )}
       <button type="button" onClick={onExport}>
         {EXPORT_REPORT_LABEL}
       </button>

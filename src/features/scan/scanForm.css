@@ -217,3 +217,36 @@ select.scan-console__input:focus-visible {
     opacity: 0.6;
   }
 }
+
+/* IP-only mode choice (NS-04): a plain radio group above the form. */
+.scan-console__modes {
+  margin: 0 0 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+}
+
+.scan-console__modes legend {
+  padding: 0 0.35rem;
+  font-weight: 600;
+}
+
+.scan-console__mode {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.35rem 0;
+  cursor: pointer;
+}
+
+.scan-console__mode input {
+  margin-top: 0.3rem;
+}
+
+.scan-console__mode label {
+  cursor: pointer;
+}
+
+.scan-console__mode p {
+  margin: 0;
+}
