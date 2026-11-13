@@ -17,7 +17,13 @@ function session(role: "admin" | "user" | undefined): SessionState {
     user:
       role === undefined
         ? undefined
-        : { sub: "1", email: "a@example.test", name: "A", role },
+        : {
+            sub: "1",
+            email: "a@example.test",
+            name: "A",
+            role,
+            can_network_scan: false,
+          },
   };
 }
 

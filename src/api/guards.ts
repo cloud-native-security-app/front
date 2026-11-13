@@ -9,8 +9,10 @@
 import type {
   MeResponse,
   NetworkCredential,
+  NetworkScanRejectionReason,
   Role,
   ScanHistoryEntry,
+  ScanMode,
   ScanOutcomeEvent,
   ScanPort,
   ScanResult,
@@ -47,6 +49,36 @@ export function isScanStatus(value: unknown): value is ScanStatus {
   );
 }
 
+const SCAN_MODES: readonly ScanMode[] = ["ssh", "network"];
+
+export function isScanMode(value: unknown): value is ScanMode {
+  return isString(value) && (SCAN_MODES as readonly string[]).includes(value);
+}
+
+const NETWORK_SCAN_REJECTION_REASONS: readonly NetworkScanRejectionReason[] = [
+  "target_loopback",
+  "target_link_local",
+  "target_unique_local",
+  "target_multicast",
+  "target_broadcast",
+  "target_unspecified",
+  "target_outside_allowed_ranges",
+];
+
+export function isNetworkScanRejectionReason(
+  value: unknown,
+): value is NetworkScanRejectionReason {
+  return (
+    isString(value) &&
+    (NETWORK_SCAN_REJECTION_REASONS as readonly string[]).includes(value)
+  );
+}
+
+/** Fail-closed: only a literal `true` shows the IP-only mode. */
+export function parseCanNetworkScan(value: unknown): boolean {
+  return value === true;
+}
+
 /**
  * Fail-closed role parsing: only the exact string `"admin"` grants admin; a
  * missing (older Gateway) or unknown value is `"user"`, never an error.
@@ -56,14 +88,20 @@ export function parseRole(value: unknown): Role {
 }
 
 /** Shape check of `/api/me`; `role` is optional on the wire (see `parseRole`). */
-export function isMeResponse(
-  value: unknown,
-): value is Omit<MeResponse, "role"> & { role?: unknown } {
+export function isMeResponse(value: unknown): value is Omit<
+  MeResponse,
+  "role" | "can_network_scan"
+> & {
+  role?: unknown;
+  can_network_scan?: boolean;
+} {
   return (
     isRecord(value) &&
     isString(value["sub"]) &&
     isString(value["email"]) &&
-    isString(value["name"])
+    isString(value["name"]) &&
+    (value["can_network_scan"] === undefined ||
+      typeof value["can_network_scan"] === "boolean")
   );
 }
 
@@ -81,7 +119,8 @@ export function isScanHistoryEntry(value: unknown): value is ScanHistoryEntry {
     isScanStatus(value["status"]) &&
     isString(value["requested_at"]) &&
     isString(value["updated_at"]) &&
-    (value["failure_reason"] === null || isString(value["failure_reason"]))
+    (value["failure_reason"] === null || isString(value["failure_reason"])) &&
+    (value["mode"] === undefined || isScanMode(value["mode"]))
   );
 }
 

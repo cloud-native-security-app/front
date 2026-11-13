@@ -62,6 +62,7 @@ describe("ProtectedRoute", () => {
         email: "analista@example.test",
         name: "Analista",
         role: "user",
+        can_network_scan: false,
       },
     });
 

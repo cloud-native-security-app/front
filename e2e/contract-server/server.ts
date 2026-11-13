@@ -35,6 +35,7 @@ import type {
   CreateNetworkCredentialInput,
   MeResponse,
   ScanHistoryEntry,
+  ScanMode,
 } from "../../src/api/types";
 import {
   emitAdminBurst,
@@ -123,6 +124,7 @@ function toHistoryEntry(record: ScanRecord): ScanHistoryEntry {
   return {
     scanId: record.scanId,
     target: record.target,
+    mode: record.mode,
     status: record.status,
     requested_at: record.requestedAt,
     updated_at: record.updatedAt,
@@ -212,6 +214,48 @@ function handleGetScanHistory(
   writeJson(res, 200, entries);
 }
 
+/** Fixed target that simulates "permission could not be confirmed" (503) in network mode. */
+const PERMISSION_UNAVAILABLE_TARGET = "192.0.2.50";
+
+/** Network-mode targets in this block answer `target_outside_allowed_ranges`. */
+const OUTSIDE_ALLOWED_PREFIX = "198.51.100.";
+
+function denylistReason(target: string): string | undefined {
+  if (target.startsWith("127.")) return "target_loopback";
+  if (target.startsWith("169.254.")) return "target_link_local";
+  if (/^(22[4-9]|23\d)\./.test(target)) return "target_multicast";
+  if (target === "255.255.255.255") return "target_broadcast";
+  if (target === "0.0.0.0") return "target_unspecified";
+  if (target.startsWith(OUTSIDE_ALLOWED_PREFIX)) {
+    return "target_outside_allowed_ranges";
+  }
+  return undefined;
+}
+
+/**
+ * Mirrors the Gateway order for `mode: "network"`: permission first (403,
+ * or 503 when it cannot be confirmed), then the target denylist (422 JSON).
+ */
+function rejectNetworkScan(
+  store: ContractServerStore,
+  token: string,
+  target: string,
+): { status: number; body: unknown } | undefined {
+  if (store.sessions.get(token)?.can_network_scan !== true) {
+    return { status: 403, body: { error: "network_scan_not_permitted" } };
+  }
+  if (target === PERMISSION_UNAVAILABLE_TARGET) {
+    return {
+      status: 503,
+      body: { error: "network_scan_permission_unavailable" },
+    };
+  }
+  const reason = denylistReason(target);
+  return reason
+    ? { status: 422, body: { error: "network_scan_target_rejected", reason } }
+    : undefined;
+}
+
 /** Objetivo fijo que simula "sin credencial de red configurada" (422). */
 const NO_CREDENTIAL_TARGET = "203.0.113.99";
 
@@ -246,12 +290,25 @@ async function handleSubmitScan(
     );
     return;
   }
-  if (target.trim() === NO_CREDENTIAL_TARGET) {
+  const rawMode = (parsedBody as Record<string, unknown>)["mode"];
+  if (rawMode !== undefined && rawMode !== "ssh" && rawMode !== "network") {
+    // axum rejects an unknown enum value with a plain-text 422.
+    writeText(res, 422, "mode desconocido: se esperaba ssh o network");
+    return;
+  }
+  const mode: ScanMode = rawMode === "network" ? "network" : "ssh";
+  if (mode === "network") {
+    const rejection = rejectNetworkScan(store, token, target.trim());
+    if (rejection) {
+      writeJson(res, rejection.status, rejection.body);
+      return;
+    }
+  } else if (target.trim() === NO_CREDENTIAL_TARGET) {
     // Como el Gateway real: sin credencial de red para el objetivo, 422.
     writeText(res, 422, "no hay credencial de red para el objetivo");
     return;
   }
-  const record = createScan(store, token, target);
+  const record = createScan(store, token, target, mode);
   writeJson(res, 200, { scanId: record.scanId });
 }
 
