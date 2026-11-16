@@ -19,7 +19,13 @@
 
 import { useEffect, useState } from "react";
 
-import { getReport, type ApiError, type ScanResult } from "../../api";
+import {
+  getReport,
+  getScanHistory,
+  type ApiError,
+  type ScanMode,
+  type ScanResult,
+} from "../../api";
 import {
   REPORT_LOADING_MESSAGE,
   REPORT_NOT_FOUND_MESSAGE,
@@ -37,7 +43,7 @@ type ReportState =
   | { status: "loading" }
   | { status: "not_ready" }
   | { status: "error"; message: string }
-  | { status: "loaded"; report: ScanResult };
+  | { status: "loaded"; report: ScanResult; mode: ScanMode | undefined };
 
 function describeReportError(error: ApiError): string {
   switch (error.kind) {
@@ -58,9 +64,10 @@ function describeReportError(error: ApiError): string {
 
 function toReportState(
   result: Awaited<ReturnType<typeof getReport>>,
+  mode: ScanMode | undefined,
 ): ReportState {
   if (result.ok) {
-    return { status: "loaded", report: result.value };
+    return { status: "loaded", report: result.value, mode };
   }
   if (result.error.kind === "not_ready") {
     return { status: "not_ready" };
@@ -86,11 +93,18 @@ export function ReportView({ scanId }: ReportViewProps) {
     // `HistoryTable`/`SessionProvider`): la llamada se dispara dentro del
     // efecto y el `setState` ocurre en el `.then()`, guardado por `active`
     // para no actualizar tras el desmontaje o un cambio de `scanId`.
-    void getReport(scanId).then((result) => {
-      if (active) {
-        setState(toReportState(result));
-      }
-    });
+    // The report carries no scan mode: it comes from the history entry. If
+    // the history cannot be read, the mode is simply unknown (nothing shown).
+    void Promise.all([getReport(scanId), getScanHistory()]).then(
+      ([result, history]) => {
+        if (active) {
+          const mode = history.ok
+            ? history.value.find((entry) => entry.scanId === scanId)?.mode
+            : undefined;
+          setState(toReportState(result, mode));
+        }
+      },
+    );
     return () => {
       active = false;
     };
@@ -121,6 +135,7 @@ export function ReportView({ scanId }: ReportViewProps) {
     <ReportDetails
       scanId={scanId}
       report={state.report}
+      mode={state.mode}
       onExport={() => downloadTextFile(buildReportExport(scanId, state.report))}
     />
   );

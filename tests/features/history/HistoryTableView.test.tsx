@@ -11,7 +11,7 @@
  * `getScanHistory`/`cancelScan` contra el servidor de contrato real) se
  * cubre en `HistoryTable.test.tsx`.
  */
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -311,5 +311,52 @@ describe("HistoryTableView", () => {
     );
 
     expect(onViewReport).toHaveBeenCalledWith("scan-completado");
+  });
+});
+
+describe("HistoryTableView scan mode", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  function renderWithModes() {
+    const base = BASE_ENTRIES[2] as ScanHistoryEntry;
+    render(
+      <HistoryTableView
+        entries={[
+          { ...base, scanId: "a", target: "10.1.0.1", mode: "ssh" },
+          { ...base, scanId: "b", target: "10.1.0.2", mode: "network" },
+          { ...base, scanId: "c", target: "10.1.0.3" },
+        ]}
+        rowStates={{}}
+        onCancel={vi.fn()}
+        onViewReport={vi.fn()}
+      />,
+    );
+  }
+
+  it("shows_a_mode_column", () => {
+    renderWithModes();
+    expect(
+      screen.getByRole("columnheader", { name: "Modo" }),
+    ).toBeInTheDocument();
+  });
+
+  it("labels_ssh_and_ip_only_scans", () => {
+    renderWithModes();
+    expect(screen.getByText("10.1.0.1").closest("tr")).toHaveTextContent("SSH");
+    expect(screen.getByText("10.1.0.2").closest("tr")).toHaveTextContent(
+      "Solo IP",
+    );
+  });
+
+  it("shows_a_dash_and_never_assumes_ssh_when_the_mode_is_unknown", () => {
+    renderWithModes();
+    const row = screen.getByText("10.1.0.3").closest("tr");
+    const cell = within(row as HTMLElement).getByRole("cell", {
+      name: /^—$/,
+    });
+    expect(cell).toHaveAttribute("data-label", "Modo");
+    expect(row).not.toHaveTextContent("SSH");
   });
 });

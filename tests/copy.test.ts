@@ -10,6 +10,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   PRODUCT_NAME,
+  failureReasonLine,
   PRODUCT_TITLE,
   networkErrorMessage,
   unexpectedErrorMessage,
@@ -45,5 +46,20 @@ describe("shared error copy", () => {
       "Ocurrió un error inesperado al cargar el histórico. Inténtalo más tarde.",
     );
     expect(unexpectedErrorMessage()).not.toMatch(/código|\d{3}/);
+  });
+});
+
+describe("failure reason line", () => {
+  it("translates_the_network_scan_reason_codes", () => {
+    expect(failureReasonLine("target_unreachable")).toMatch(/no respondió/i);
+    expect(failureReasonLine("nmap_timeout")).toMatch(/tiempo/i);
+    expect(failureReasonLine("nmap_io_error")).toMatch(/error/i);
+    expect(failureReasonLine("nmap_timeout")).not.toContain("nmap_timeout");
+  });
+
+  it("keeps_any_other_reason_verbatim", () => {
+    expect(failureReasonLine("cancelado por el usuario")).toBe(
+      "Motivo: cancelado por el usuario",
+    );
   });
 });

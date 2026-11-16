@@ -44,6 +44,7 @@ import type { ScanEventsSubscription } from "../../../src/api";
 import { MemoryRouter } from "react-router-dom";
 
 import { createNetworkCredential } from "../../../src/api";
+import { SessionProvider } from "../../../src/auth";
 import { ScanActivityProvider, ScanForm } from "../../../src/features/scan";
 import {
   clearNodeTestSessionCookies,
@@ -91,11 +92,13 @@ async function seedTargets(...targets: string[]): Promise<void> {
 
 function renderForm() {
   return render(
-    <MemoryRouter>
-      <ScanActivityProvider>
-        <ScanForm />
-      </ScanActivityProvider>
-    </MemoryRouter>,
+    <SessionProvider>
+      <MemoryRouter>
+        <ScanActivityProvider>
+          <ScanForm />
+        </ScanActivityProvider>
+      </MemoryRouter>
+    </SessionProvider>,
   );
 }
 

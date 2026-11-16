@@ -22,7 +22,29 @@ export interface MeResponse {
    * `/api/admin/*` (403). Normalized by `getMe`: missing or unknown is `user`.
    */
   role: Role;
+  /**
+   * Whether the account may start IP-only (`network`) scans. Only decides
+   * whether the mode choice is shown; the Gateway re-validates on every
+   * `POST /api/scans`. Normalized by `getMe`: missing or non-boolean is `false`.
+   */
+  can_network_scan: boolean;
 }
+
+/**
+ * How a scan reaches its target: `ssh` (stored SSH credential, patch state
+ * verified) or `network` (IP only, patch state not verified).
+ */
+export type ScanMode = "ssh" | "network";
+
+/** Reasons of a `422 network_scan_target_rejected` (Gateway denylist/allowlist). */
+export type NetworkScanRejectionReason =
+  | "target_loopback"
+  | "target_link_local"
+  | "target_unique_local"
+  | "target_multicast"
+  | "target_broadcast"
+  | "target_unspecified"
+  | "target_outside_allowed_ranges";
 
 /**
  * Entrada del histórico (`GET /api/scans`). `scanId` es opcional en el wire
@@ -36,6 +58,8 @@ export interface ScanHistoryEntry {
   updated_at: string;
   /** Always present in the wire format; `null` when there is no reason. */
   failure_reason: string | null;
+  /** Absent means unknown (older records): never assume `ssh`. */
+  mode?: ScanMode;
 }
 
 /** `POST /api/scans` — respuesta de éxito (200, no 201). */
@@ -154,6 +178,15 @@ export type ApiError =
   | { kind: "not_ready" }
   /** Upstream failure (502/504) of an endpoint that depends on another service. */
   | { kind: "unavailable" }
+  /** 403 `network_scan_not_permitted`: valid session, no IP-only permission. */
+  | { kind: "network_scan_not_permitted" }
+  /** 503 `network_scan_permission_unavailable`: the permission could not be confirmed. */
+  | { kind: "network_scan_unavailable" }
+  /** 422 `network_scan_target_rejected`; `reason` is `unknown` for a code this build does not know. */
+  | {
+      kind: "network_scan_target_rejected";
+      reason: NetworkScanRejectionReason | "unknown";
+    }
   | { kind: "conflict"; message: string }
   | { kind: "validation"; message: string }
   | { kind: "unexpected"; status: number };

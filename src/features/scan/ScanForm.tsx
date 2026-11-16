@@ -29,9 +29,23 @@ import "@fontsource/ibm-plex-mono/latin-400.css";
 import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 
-import { listNetworkCredentials, submitScan, type ApiError } from "../../api";
 import {
+  listNetworkCredentials,
+  submitScan,
+  type ApiError,
+  type ScanMode,
+} from "../../api";
+import { useSession } from "../../auth";
+import {
+  NETWORK_MODE_HELP,
   NO_SCAN_TARGETS_MESSAGE,
+  SCAN_IP_LABEL,
+  SCAN_IP_PLACEHOLDER,
+  SCAN_MODE_GROUP_LABEL,
+  SCAN_MODE_NETWORK_HINT,
+  SCAN_MODE_NETWORK_LABEL,
+  SCAN_MODE_SSH_HINT,
+  SCAN_MODE_SSH_LABEL,
   SCAN_IN_PROGRESS_LABEL,
   SCAN_QUEUED_MESSAGE,
   SCAN_TARGETS_LOADING_MESSAGE,
@@ -39,11 +53,9 @@ import {
   SCAN_TARGET_PLACEHOLDER,
   SECTION_SCAN,
   SECTION_TARGETS,
-  SESSION_EXPIRED_MESSAGE,
-  networkErrorMessage,
   targetsLoadErrorMessage,
-  unexpectedErrorMessage,
 } from "../../copy";
+import { describeSubmitError } from "./describeSubmitError";
 import "./scanForm.css";
 import { SECTION_PATHS } from "../../routes/paths";
 import { ScanStatusBadge } from "./ScanStatusBadge";
@@ -56,25 +68,6 @@ type SubmitState =
   | { status: "submitting" }
   | { status: "success"; scanId: string }
   | { status: "error"; message: string };
-
-function describeSubmitError(error: ApiError): string {
-  switch (error.kind) {
-    case "network":
-      return networkErrorMessage();
-    case "unauthorized":
-      return SESSION_EXPIRED_MESSAGE;
-    case "validation":
-      return "El servidor no aceptó esa IP. Revísala e inténtalo de nuevo.";
-    case "unexpected":
-      // 422: no hay credencial de red configurada para el objetivo.
-      if (error.status === 422) {
-        return "Primero agrega una credencial de red para esa IP.";
-      }
-      return unexpectedErrorMessage("al encolar el escaneo");
-    default:
-      return unexpectedErrorMessage("al encolar el escaneo");
-  }
-}
 
 type TargetsState =
   | { status: "loading" }
@@ -96,6 +89,11 @@ export function ScanForm() {
   const [targetsState, setTargetsState] = useState<TargetsState>({
     status: "loading",
   });
+  const { user } = useSession();
+  const canNetworkScan = user?.can_network_scan === true;
+  const [chosenMode, setChosenMode] = useState<ScanMode>("ssh");
+  // Without the permission the choice does not exist, whatever was chosen.
+  const mode: ScanMode = canNetworkScan ? chosenMode : "ssh";
   const [target, setTarget] = useState("");
   const [submitState, setSubmitState] = useState<SubmitState>({
     status: "idle",
@@ -130,6 +128,15 @@ export function ScanForm() {
   const validation = validateScanTarget(target);
   const isSubmitting = submitState.status === "submitting";
   const canSubmit = validation.valid && !isSubmitting;
+  const showForm =
+    mode === "network" ||
+    (targetsState.status === "loaded" && targetsState.targets.length > 0);
+
+  function chooseMode(next: ScanMode) {
+    setChosenMode(next);
+    setTarget("");
+    setSubmitState({ status: "idle" });
+  }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -137,7 +144,7 @@ export function ScanForm() {
       return;
     }
     setSubmitState({ status: "submitting" });
-    const result = await submitScan(validation.target);
+    const result = await submitScan(validation.target, mode);
     if (result.ok) {
       setSubmitState({ status: "success", scanId: result.value.scanId });
       trackScan(result.value.scanId, validation.target);
@@ -154,50 +161,125 @@ export function ScanForm() {
       <h2 className="scan-console__heading" tabIndex={-1} data-section-heading>
         {SECTION_SCAN}
       </h2>
-      {targetsState.status === "loading" && (
+      {canNetworkScan && (
+        <fieldset
+          className="scan-console__modes"
+          role="radiogroup"
+          disabled={isSubmitting}
+        >
+          <legend>{SCAN_MODE_GROUP_LABEL}</legend>
+          <div className="scan-console__mode">
+            <input
+              id="scan-mode-ssh"
+              type="radio"
+              name="scan-mode"
+              value="ssh"
+              aria-describedby="scan-mode-ssh-hint"
+              checked={mode === "ssh"}
+              onChange={() => chooseMode("ssh")}
+            />
+            <div>
+              <label htmlFor="scan-mode-ssh">{SCAN_MODE_SSH_LABEL}</label>
+              <p id="scan-mode-ssh-hint" className="field-help">
+                {SCAN_MODE_SSH_HINT}
+              </p>
+            </div>
+          </div>
+          <div className="scan-console__mode">
+            <input
+              id="scan-mode-network"
+              type="radio"
+              name="scan-mode"
+              value="network"
+              aria-describedby="scan-mode-network-hint"
+              checked={mode === "network"}
+              onChange={() => chooseMode("network")}
+            />
+            <div>
+              <label htmlFor="scan-mode-network">
+                {SCAN_MODE_NETWORK_LABEL}
+              </label>
+              <p id="scan-mode-network-hint" className="field-help">
+                {SCAN_MODE_NETWORK_HINT}
+              </p>
+            </div>
+          </div>
+        </fieldset>
+      )}
+      {mode === "ssh" && targetsState.status === "loading" && (
         <p role="status" data-tone="neutral">
           {SCAN_TARGETS_LOADING_MESSAGE}
         </p>
       )}
-      {targetsState.status === "error" && (
+      {mode === "ssh" && targetsState.status === "error" && (
         <p role="alert">{targetsState.message}</p>
       )}
-      {targetsState.status === "loaded" &&
+      {mode === "ssh" &&
+        targetsState.status === "loaded" &&
         targetsState.targets.length === 0 && (
           <p role="status" data-tone="neutral">
             {NO_SCAN_TARGETS_MESSAGE}{" "}
             <Link to={SECTION_PATHS.targets}>{SECTION_TARGETS}</Link>
           </p>
         )}
-      {targetsState.status === "loaded" && targetsState.targets.length > 0 && (
+      {showForm && (
         <form
           className="scan-console__form"
           onSubmit={(event) => void handleSubmit(event)}
         >
           <div className="scan-console__row">
-            <div className="scan-console__field">
-              <label className="scan-console__label" htmlFor="scan-target">
-                {SCAN_TARGET_LABEL}
-              </label>
-              <select
-                id="scan-target"
-                name="scan-target"
-                className="scan-console__input"
-                value={target}
-                disabled={isSubmitting}
-                onChange={(event) => {
-                  setTarget(event.target.value);
-                  setSubmitState({ status: "idle" });
-                }}
-              >
-                <option value="">{SCAN_TARGET_PLACEHOLDER}</option>
-                {targetsState.targets.map((saved) => (
-                  <option key={saved} value={saved}>
-                    {saved}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {mode === "network" ? (
+              <div className="scan-console__field">
+                <label className="scan-console__label" htmlFor="scan-ip">
+                  {SCAN_IP_LABEL}
+                </label>
+                <input
+                  id="scan-ip"
+                  name="scan-ip"
+                  type="text"
+                  className="scan-console__input"
+                  inputMode="decimal"
+                  autoComplete="off"
+                  spellCheck={false}
+                  placeholder={SCAN_IP_PLACEHOLDER}
+                  aria-describedby="scan-ip-help"
+                  value={target}
+                  disabled={isSubmitting}
+                  onChange={(event) => {
+                    setTarget(event.target.value);
+                    setSubmitState({ status: "idle" });
+                  }}
+                />
+                <p id="scan-ip-help" className="field-help">
+                  {NETWORK_MODE_HELP}
+                </p>
+              </div>
+            ) : (
+              <div className="scan-console__field">
+                <label className="scan-console__label" htmlFor="scan-target">
+                  {SCAN_TARGET_LABEL}
+                </label>
+                <select
+                  id="scan-target"
+                  name="scan-target"
+                  className="scan-console__input"
+                  value={target}
+                  disabled={isSubmitting}
+                  onChange={(event) => {
+                    setTarget(event.target.value);
+                    setSubmitState({ status: "idle" });
+                  }}
+                >
+                  <option value="">{SCAN_TARGET_PLACEHOLDER}</option>
+                  {targetsState.status === "loaded" &&
+                    targetsState.targets.map((saved) => (
+                      <option key={saved} value={saved}>
+                        {saved}
+                      </option>
+                    ))}
+                </select>
+              </div>
+            )}
             <button
               type="submit"
               className="scan-console__submit"

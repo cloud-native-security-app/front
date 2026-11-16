@@ -127,4 +127,34 @@ describe("ReportView", () => {
     expect(JSON.parse(await blob.text())).toMatchObject({ host: "10.2.0.32" });
     clickSpy.mockRestore();
   });
+
+  it("un_escaneo_de_solo_ip_muestra_el_modo_y_el_aviso_de_parches_no_verificados", async () => {
+    await loginAsSyntheticUser({ can_network_scan: true });
+    const submitted = await submitScan("10.2.0.40", "network");
+    if (!submitted.ok) {
+      throw new Error("setup del test falló: submitScan no fue exitoso");
+    }
+    await runToTerminalState(submitted.value.scanId);
+
+    render(<ReportView scanId={submitted.value.scanId} />);
+
+    expect(await screen.findByRole("note")).toHaveTextContent(
+      /Estado de parches no verificado/,
+    );
+    expect(screen.getByText(/Modo de escaneo: Solo IP/)).toBeInTheDocument();
+  });
+
+  it("un_escaneo_ssh_no_muestra_el_aviso", async () => {
+    await loginAsSyntheticUser();
+    const submitted = await submitScan("10.2.0.41");
+    if (!submitted.ok) {
+      throw new Error("setup del test falló: submitScan no fue exitoso");
+    }
+    await runToTerminalState(submitted.value.scanId);
+
+    render(<ReportView scanId={submitted.value.scanId} />);
+
+    await screen.findByText(/Modo de escaneo: SSH/);
+    expect(screen.queryByRole("note")).not.toBeInTheDocument();
+  });
 });

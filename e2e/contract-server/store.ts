@@ -12,6 +12,7 @@ import type {
   CreateNetworkCredentialInput,
   MeResponse,
   NetworkCredential,
+  ScanMode,
   ScanOutcomeEvent,
   ScanResult,
   ScanStatus,
@@ -21,6 +22,7 @@ export interface ScanRecord {
   scanId: string;
   sessionToken: string;
   target: string;
+  mode: ScanMode;
   status: ScanStatus;
   requestedAt: string;
   updatedAt: string;
@@ -95,6 +97,7 @@ export function createSyntheticSession(
     email: identity?.email ?? `test-user-${syntheticUserCounter}@example.test`,
     name: identity?.name ?? `Analista de prueba ${syntheticUserCounter}`,
     role: identity?.role === "admin" ? "admin" : "user",
+    can_network_scan: identity?.can_network_scan === true,
   };
   const token = randomUUID();
   store.sessions.set(token, profile);
@@ -222,6 +225,7 @@ export function createScan(
   store: ContractServerStore,
   sessionToken: string,
   target: string,
+  mode: ScanMode = "ssh",
 ): ScanRecord {
   const scanId = randomUUID();
   const now = new Date().toISOString();
@@ -230,6 +234,7 @@ export function createScan(
     scanId,
     sessionToken,
     target,
+    mode,
     status: "PENDIENTE",
     requestedAt: now,
     updatedAt: now,

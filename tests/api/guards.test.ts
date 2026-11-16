@@ -2,11 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import {
   isMeResponse,
+  isNetworkScanRejectionReason,
   isNetworkCredential,
   isNetworkCredentialArray,
   isScanHistoryEntryArray,
   isScanOutcomeEvent,
   isScanResult,
+  parseCanNetworkScan,
   parseRole,
 } from "../../src/api/guards";
 
@@ -240,5 +242,64 @@ describe("parseRole", () => {
     for (const value of [undefined, null, "", "ADMIN", "root", 1, {}]) {
       expect(parseRole(value)).toBe("user");
     }
+  });
+});
+
+describe("network scan fields", () => {
+  const BASE_ENTRY = {
+    target: "10.0.0.1",
+    status: "PENDIENTE",
+    requested_at: "2026-01-01T00:00:00Z",
+    updated_at: "2026-01-01T00:00:00Z",
+    failure_reason: null,
+  };
+
+  it("isMeResponse_tolera_can_network_scan_ausente_y_lo_acepta_booleano", () => {
+    const me = { sub: "1", email: "a@b.test", name: "A" };
+    expect(isMeResponse(me)).toBe(true);
+    expect(isMeResponse({ ...me, can_network_scan: true })).toBe(true);
+    expect(isMeResponse({ ...me, can_network_scan: false })).toBe(true);
+  });
+
+  it("isMeResponse_rechaza_can_network_scan_que_no_es_booleano", () => {
+    const me = { sub: "1", email: "a@b.test", name: "A" };
+    expect(isMeResponse({ ...me, can_network_scan: "yes" })).toBe(false);
+    expect(isMeResponse({ ...me, can_network_scan: null })).toBe(false);
+  });
+
+  it("parseCanNetworkScan_es_fail_closed", () => {
+    expect(parseCanNetworkScan(true)).toBe(true);
+    expect(parseCanNetworkScan(false)).toBe(false);
+    expect(parseCanNetworkScan(undefined)).toBe(false);
+    expect(parseCanNetworkScan("true")).toBe(false);
+  });
+
+  it("el_historico_acepta_mode_ssh_network_o_ausente", () => {
+    expect(isScanHistoryEntryArray([BASE_ENTRY])).toBe(true);
+    expect(isScanHistoryEntryArray([{ ...BASE_ENTRY, mode: "ssh" }])).toBe(
+      true,
+    );
+    expect(isScanHistoryEntryArray([{ ...BASE_ENTRY, mode: "network" }])).toBe(
+      true,
+    );
+  });
+
+  it("el_historico_rechaza_un_mode_desconocido_o_mal_tipado", () => {
+    expect(isScanHistoryEntryArray([{ ...BASE_ENTRY, mode: "udp" }])).toBe(
+      false,
+    );
+    expect(isScanHistoryEntryArray([{ ...BASE_ENTRY, mode: 1 }])).toBe(false);
+    expect(isScanHistoryEntryArray([{ ...BASE_ENTRY, mode: null }])).toBe(
+      false,
+    );
+  });
+
+  it("isNetworkScanRejectionReason_reconoce_solo_los_codigos_del_gateway", () => {
+    expect(isNetworkScanRejectionReason("target_loopback")).toBe(true);
+    expect(isNetworkScanRejectionReason("target_outside_allowed_ranges")).toBe(
+      true,
+    );
+    expect(isNetworkScanRejectionReason("target_new_thing")).toBe(false);
+    expect(isNetworkScanRejectionReason(undefined)).toBe(false);
   });
 });

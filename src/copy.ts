@@ -69,10 +69,62 @@ export function targetsLoadErrorMessage(
   }
 }
 
+/** Reason codes of IP-only (network) scans; any other reason is shown verbatim. */
+const FAILURE_REASON_TEXT: Record<string, string> = {
+  target_unreachable:
+    "el objetivo no respondió al escaneo de red. Revisa que la IP sea correcta y que sea alcanzable.",
+  nmap_timeout: "el escaneo superó el tiempo máximo y se detuvo.",
+  nmap_io_error: "ocurrió un error al ejecutar el escaneo de red.",
+};
+
 /** History: reason line under failed and cancelled scans. */
 export function failureReasonLine(reason: string): string {
-  return `Motivo: ${reason}`;
+  return `Motivo: ${Object.hasOwn(FAILURE_REASON_TEXT, reason) ? FAILURE_REASON_TEXT[reason] : reason}`;
 }
+
+/** Scan mode (SSH credentials or IP only): form, history and report. */
+export const SCAN_MODE_GROUP_LABEL = "Modo de escaneo";
+export const SCAN_MODE_SSH_LABEL = "Con credenciales SSH";
+export const SCAN_MODE_SSH_HINT =
+  "Usa la credencial guardada del objetivo y verifica el estado de los parches.";
+export const SCAN_MODE_NETWORK_LABEL = "Solo con la IP";
+export const SCAN_MODE_NETWORK_HINT =
+  "No necesita credenciales y no verifica el estado de los parches.";
+export const SCAN_IP_LABEL = "IP a escanear";
+export const SCAN_IP_PLACEHOLDER = "192.0.2.10";
+export const NETWORK_MODE_HELP =
+  "Solo necesitas la IP del objetivo: no hace falta configurar credenciales SSH. El estado de los parches no se verifica, así que los hallazgos se basan en la versión de los servicios detectados.";
+
+export const SCAN_MODE_BADGE = {
+  ssh: "SSH",
+  network: "Solo IP",
+} as const;
+export const SCAN_MODE_UNKNOWN_BADGE = "—";
+export const HISTORY_MODE_COLUMN = "Modo";
+export const REPORT_MODE_PREFIX = "Modo de escaneo";
+export const REPORT_PATCH_STATE_NOT_VERIFIED =
+  "Estado de parches no verificado: este escaneo se hizo solo con la IP, sin credenciales SSH. Los hallazgos se basan en la versión de los servicios y pueden incluir vulnerabilidades ya corregidas.";
+
+/** Refusals of `POST /api/scans` in IP-only mode. */
+export const NETWORK_SCAN_NOT_PERMITTED_MESSAGE =
+  "Tu cuenta no tiene permiso para escanear solo con la IP. Usa el modo con credenciales SSH o pide acceso a quien administra la aplicación.";
+export const NETWORK_SCAN_UNAVAILABLE_MESSAGE =
+  "No pudimos confirmar tu permiso para escanear solo con la IP. Inténtalo de nuevo en unos minutos.";
+export const NETWORK_SCAN_TARGET_REJECTED_MESSAGE = {
+  target_loopback:
+    "Esa IP es de loopback (127.0.0.0/8, ::1) y no se puede escanear.",
+  target_link_local:
+    "Esa IP es link-local (169.254.0.0/16, fe80::/10), como el servicio de metadatos de la nube, y no se puede escanear.",
+  target_unique_local:
+    "Esa IP es una dirección local única de IPv6 (fc00::/7) y no se puede escanear.",
+  target_multicast: "Esa IP es multicast y no se puede escanear.",
+  target_broadcast: "Esa IP es de broadcast y no se puede escanear.",
+  target_unspecified:
+    "Esa IP es una dirección sin especificar (0.0.0.0, ::) y no se puede escanear.",
+  target_outside_allowed_ranges:
+    "Esa IP está fuera de los rangos que se permite escanear solo con la IP.",
+  unknown: "El servidor rechazó esa IP: no se puede escanear solo con la IP.",
+} as const;
 
 export const CANCEL_CONFLICT_MESSAGE =
   "El escaneo ya no se puede cancelar: probablemente ya terminó o fue cancelado.";
