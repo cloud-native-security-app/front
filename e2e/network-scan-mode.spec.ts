@@ -43,10 +43,10 @@ test.describe("account allowed to scan by IP", () => {
     ).toBeChecked();
     await group.getByRole("radio", { name: "Solo con la IP" }).check();
 
-    await expect(page.getByText(/Solo necesitas la IP/)).toBeVisible();
+    await expect(page.getByText(/Solo necesitas el objetivo/)).toBeVisible();
     await expectNoAxeViolations(page, "scan form, IP only");
 
-    await page.getByLabel("IP a escanear").fill("192.0.2.10");
+    await page.getByLabel("IP, hostname o URL a escanear").fill("192.0.2.10");
     await page.getByRole("button", { name: "Escanear" }).click();
     await expect(page.getByText(/escaneo en cola/i)).toBeVisible();
     // The contract server advances a scan only while someone listens to it.
@@ -69,11 +69,58 @@ test.describe("account allowed to scan by IP", () => {
     await page.goto("/escanear");
     await page.getByRole("radio", { name: "Solo con la IP" }).check();
 
-    await page.getByLabel("IP a escanear").fill("127.0.0.1");
+    await page.getByLabel("IP, hostname o URL a escanear").fill("127.0.0.1");
     await page.getByRole("button", { name: "Escanear" }).click();
 
     await expect(page.getByRole("alert")).toHaveText(
       "Esa IP es de loopback (127.0.0.0/8, ::1) y no se puede escanear.",
+    );
+  });
+
+  test("scans_a_url_and_the_history_shows_the_hostname", async ({ page }) => {
+    await page.goto("/escanear");
+    await page.getByRole("radio", { name: "Solo con la IP" }).check();
+
+    await page
+      .getByLabel("IP, hostname o URL a escanear")
+      .fill("https://App.Example.test:8443/login");
+    await page.getByRole("button", { name: "Escanear" }).click();
+    await expect(page.getByText(/escaneo en cola/i)).toBeVisible();
+
+    await page.goto("/historial");
+    const row = page.locator("tr", { hasText: "app.example.test" });
+    await expect(row).toContainText("Solo IP");
+    await expect(row).not.toContainText("8443");
+    await expect(row).not.toContainText("https://");
+  });
+
+  test("a_name_that_does_not_resolve_shows_a_clear_message", async ({
+    page,
+  }) => {
+    await page.goto("/escanear");
+    await page.getByRole("radio", { name: "Solo con la IP" }).check();
+
+    await page
+      .getByLabel("IP, hostname o URL a escanear")
+      .fill("nothing.invalid");
+    await page.getByRole("button", { name: "Escanear" }).click();
+
+    await expect(page.getByRole("alert")).toHaveText(
+      "No se pudo resolver ese nombre de host. Revisa que esté bien escrito.",
+    );
+  });
+
+  test("a_name_that_resolves_to_a_denied_address_shows_a_clear_message", async ({
+    page,
+  }) => {
+    await page.goto("/escanear");
+    await page.getByRole("radio", { name: "Solo con la IP" }).check();
+
+    await page.getByLabel("IP, hostname o URL a escanear").fill("localhost");
+    await page.getByRole("button", { name: "Escanear" }).click();
+
+    await expect(page.getByRole("alert")).toHaveText(
+      "Ese nombre de host apunta a una dirección que no se puede escanear solo con la IP.",
     );
   });
 

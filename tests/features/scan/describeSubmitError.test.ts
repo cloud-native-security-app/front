@@ -12,6 +12,8 @@ const REASONS: Record<NetworkScanRejectionReason, RegExp> = {
   target_broadcast: /broadcast/i,
   target_unspecified: /sin especificar/i,
   target_outside_allowed_ranges: /fuera de los rangos/i,
+  target_unresolvable: /no se pudo resolver/i,
+  target_resolves_to_denied: /no se puede escanear/i,
 };
 
 describe("describeSubmitError", () => {
@@ -34,6 +36,17 @@ describe("describeSubmitError", () => {
         reason: "unknown",
       }),
     ).toMatch(/no se puede escanear solo con la IP/i);
+  });
+
+  it("maps_a_network_mode_400_to_a_generic_target_message", () => {
+    const message = describeSubmitError(
+      { kind: "validation", message: "x" },
+      "network",
+    );
+    expect(message).toMatch(/IP, hostname o URL/i);
+    expect(describeSubmitError({ kind: "validation", message: "x" })).toMatch(
+      /esa IP/i,
+    );
   });
 
   it("maps_403_to_a_permission_message", () => {

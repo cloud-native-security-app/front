@@ -68,7 +68,10 @@ async function chooseNetworkMode() {
 }
 
 async function submitIp(ip: string) {
-  await userEvent.type(await screen.findByLabelText("IP a escanear"), ip);
+  await userEvent.type(
+    await screen.findByLabelText("IP, hostname o URL a escanear"),
+    ip,
+  );
   await userEvent.click(screen.getByRole("button", { name: "Escanear" }));
 }
 
@@ -121,11 +124,13 @@ describe("ScanForm network mode", () => {
     renderForm();
     await chooseNetworkMode();
 
-    expect(await screen.findByLabelText("IP a escanear")).toBeInTheDocument();
+    expect(
+      await screen.findByLabelText("IP, hostname o URL a escanear"),
+    ).toBeInTheDocument();
     expect(
       screen.queryByLabelText("Objetivo a escanear"),
     ).not.toBeInTheDocument();
-    expect(screen.getByText(/Solo necesitas la IP/)).toBeInTheDocument();
+    expect(screen.getByText(/Solo necesitas el objetivo/)).toBeInTheDocument();
     expect(screen.getByText(/no se verifica/)).toBeInTheDocument();
     // No credential setup prompt in this mode, even with no saved targets.
     expect(screen.queryByText(/Agrega un objetivo/)).not.toBeInTheDocument();
@@ -143,6 +148,72 @@ describe("ScanForm network mode", () => {
     expect(history.ok && history.value.map((e) => [e.target, e.mode])).toEqual([
       ["192.0.2.10", "network"],
     ]);
+  });
+
+  it("a_url_is_sent_as_typed_and_the_history_records_the_lowercase_host", async () => {
+    await loginAsSyntheticUser({ can_network_scan: true });
+    renderForm();
+    await chooseNetworkMode();
+
+    await submitIp("https://App.Example.com:8443/login");
+
+    expect(await screen.findByText(/escaneo en cola/i)).toBeInTheDocument();
+    const history = await getScanHistory();
+    expect(history.ok && history.value.map((e) => [e.target, e.mode])).toEqual([
+      ["app.example.com", "network"],
+    ]);
+  });
+
+  it("describes_the_whole_host_scan_in_the_help_text", async () => {
+    await loginAsSyntheticUser({ can_network_scan: true });
+    renderForm();
+    await chooseNetworkMode();
+
+    expect(
+      await screen.findByText(/se escanea todo el host/i),
+    ).toBeInTheDocument();
+  });
+
+  it("does_not_send_a_url_with_credentials", async () => {
+    await loginAsSyntheticUser({ can_network_scan: true });
+    renderForm();
+    await chooseNetworkMode();
+
+    await userEvent.type(
+      await screen.findByLabelText("IP, hostname o URL a escanear"),
+      "https://user:pw@app.example.com",
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/credenciales/i);
+    expect(screen.getByRole("button", { name: "Escanear" })).toBeDisabled();
+  });
+
+  it("shows_the_unresolvable_message_from_the_gateway", async () => {
+    await loginAsSyntheticUser({ can_network_scan: true });
+    renderForm();
+    await chooseNetworkMode();
+
+    await submitIp("https://nothing.invalid");
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        /no se pudo resolver/i,
+      );
+    });
+  });
+
+  it("shows_the_denied_message_when_the_name_resolves_to_a_denied_address", async () => {
+    await loginAsSyntheticUser({ can_network_scan: true });
+    renderForm();
+    await chooseNetworkMode();
+
+    await submitIp("localhost");
+
+    await waitFor(() => {
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        /apunta a una dirección que no se puede escanear/i,
+      );
+    });
   });
 
   it("ssh_mode_keeps_sending_the_original_request", async () => {
@@ -172,7 +243,7 @@ describe("ScanForm network mode", () => {
     await chooseNetworkMode();
 
     await userEvent.type(
-      await screen.findByLabelText("IP a escanear"),
+      await screen.findByLabelText("IP, hostname o URL a escanear"),
       "999.1.1.1",
     );
 

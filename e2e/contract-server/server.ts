@@ -220,6 +220,34 @@ const PERMISSION_UNAVAILABLE_TARGET = "192.0.2.50";
 /** Network-mode targets in this block answer `target_outside_allowed_ranges`. */
 const OUTSIDE_ALLOWED_PREFIX = "198.51.100.";
 
+/**
+ * Host part of a network-mode target as the Gateway stores it: lowercase, no
+ * scheme, port, path or query (IPv6 literals keep their address only).
+ */
+function hostOfNetworkTarget(target: string): string {
+  const withoutScheme = target.replace(/^https?:\/\//i, "");
+  const authority = withoutScheme.split(/[/?#]/, 1)[0] ?? "";
+  const bracketed = /^\[([^\]]*)\]/.exec(authority);
+  if (bracketed) {
+    return (bracketed[1] ?? "").toLowerCase();
+  }
+  const isIpv6Literal = (authority.match(/:/g) ?? []).length > 1;
+  return (
+    isIpv6Literal ? authority : (authority.split(":", 1)[0] ?? "")
+  ).toLowerCase();
+}
+
+/** Names that do not resolve (RFC 2606 `.invalid`) and names that resolve to a denied address. */
+function nameReason(host: string): string | undefined {
+  if (host === "invalid" || host.endsWith(".invalid")) {
+    return "target_unresolvable";
+  }
+  if (host === "localhost" || host.endsWith(".localhost")) {
+    return "target_resolves_to_denied";
+  }
+  return undefined;
+}
+
 function denylistReason(target: string): string | undefined {
   if (target.startsWith("127.")) return "target_loopback";
   if (target.startsWith("169.254.")) return "target_link_local";
@@ -250,7 +278,8 @@ function rejectNetworkScan(
       body: { error: "network_scan_permission_unavailable" },
     };
   }
-  const reason = denylistReason(target);
+  const host = hostOfNetworkTarget(target);
+  const reason = nameReason(host) ?? denylistReason(host);
   return reason
     ? { status: 422, body: { error: "network_scan_target_rejected", reason } }
     : undefined;
@@ -308,7 +337,12 @@ async function handleSubmitScan(
     writeText(res, 422, "no hay credencial de red para el objetivo");
     return;
   }
-  const record = createScan(store, token, target, mode);
+  const record = createScan(
+    store,
+    token,
+    mode === "network" ? hostOfNetworkTarget(target.trim()) : target,
+    mode,
+  );
   writeJson(res, 200, { scanId: record.scanId });
 }
 

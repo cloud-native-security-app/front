@@ -3,9 +3,10 @@
  * from `ScanForm` so each `ApiError` kind is testable without rendering.
  */
 
-import type { ApiError } from "../../api";
+import type { ApiError, ScanMode } from "../../api";
 import {
   NETWORK_SCAN_NOT_PERMITTED_MESSAGE,
+  NETWORK_SCAN_TARGET_INVALID_MESSAGE,
   NETWORK_SCAN_TARGET_REJECTED_MESSAGE,
   NETWORK_SCAN_UNAVAILABLE_MESSAGE,
   SESSION_EXPIRED_MESSAGE,
@@ -13,7 +14,10 @@ import {
   unexpectedErrorMessage,
 } from "../../copy";
 
-export function describeSubmitError(error: ApiError): string {
+export function describeSubmitError(
+  error: ApiError,
+  mode: ScanMode = "ssh",
+): string {
   switch (error.kind) {
     case "network":
       return networkErrorMessage();
@@ -26,6 +30,9 @@ export function describeSubmitError(error: ApiError): string {
     case "network_scan_target_rejected":
       return NETWORK_SCAN_TARGET_REJECTED_MESSAGE[error.reason];
     case "validation":
+      if (mode === "network") {
+        return NETWORK_SCAN_TARGET_INVALID_MESSAGE;
+      }
       return "El servidor no aceptó esa IP. Revísala e inténtalo de nuevo.";
     case "unexpected":
       // 422: no hay credencial de red configurada para el objetivo.

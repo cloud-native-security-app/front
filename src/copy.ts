@@ -90,10 +90,10 @@ export const SCAN_MODE_SSH_HINT =
 export const SCAN_MODE_NETWORK_LABEL = "Solo con la IP";
 export const SCAN_MODE_NETWORK_HINT =
   "No necesita credenciales y no verifica el estado de los parches.";
-export const SCAN_IP_LABEL = "IP a escanear";
-export const SCAN_IP_PLACEHOLDER = "192.0.2.10";
+export const SCAN_IP_LABEL = "IP, hostname o URL a escanear";
+export const SCAN_IP_PLACEHOLDER = "192.0.2.10 o https://app.example.com:8443";
 export const NETWORK_MODE_HELP =
-  "Solo necesitas la IP del objetivo: no hace falta configurar credenciales SSH. El estado de los parches no se verifica, así que los hallazgos se basan en la versión de los servicios detectados.";
+  "Solo necesitas el objetivo (IP, hostname o URL, p. ej. https://host:puerto): no hace falta configurar credenciales SSH. Se escanea todo el host con los puertos por defecto, más el puerto de la URL si lo indicas. El estado de los parches no se verifica, así que los hallazgos se basan en la versión de los servicios detectados.";
 
 export const SCAN_MODE_BADGE = {
   ssh: "SSH",
@@ -123,8 +123,15 @@ export const NETWORK_SCAN_TARGET_REJECTED_MESSAGE = {
     "Esa IP es una dirección sin especificar (0.0.0.0, ::) y no se puede escanear.",
   target_outside_allowed_ranges:
     "Esa IP está fuera de los rangos que se permite escanear solo con la IP.",
-  unknown: "El servidor rechazó esa IP: no se puede escanear solo con la IP.",
+  target_unresolvable:
+    "No se pudo resolver ese nombre de host. Revisa que esté bien escrito.",
+  target_resolves_to_denied:
+    "Ese nombre de host apunta a una dirección que no se puede escanear solo con la IP.",
+  unknown:
+    "El servidor rechazó ese objetivo: no se puede escanear solo con la IP.",
 } as const;
+export const NETWORK_SCAN_TARGET_INVALID_MESSAGE =
+  "El servidor no aceptó ese objetivo. Revisa que sea una IP, hostname o URL (https://host:puerto) válidos.";
 
 export const CANCEL_CONFLICT_MESSAGE =
   "El escaneo ya no se puede cancelar: probablemente ya terminó o fue cancelado.";
