@@ -44,7 +44,9 @@ export type NetworkScanRejectionReason =
   | "target_multicast"
   | "target_broadcast"
   | "target_unspecified"
-  | "target_outside_allowed_ranges";
+  | "target_outside_allowed_ranges"
+  | "target_unresolvable"
+  | "target_resolves_to_denied";
 
 /**
  * Entrada del histórico (`GET /api/scans`). `scanId` es opcional en el wire

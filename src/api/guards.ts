@@ -63,6 +63,8 @@ const NETWORK_SCAN_REJECTION_REASONS: readonly NetworkScanRejectionReason[] = [
   "target_broadcast",
   "target_unspecified",
   "target_outside_allowed_ranges",
+  "target_unresolvable",
+  "target_resolves_to_denied",
 ];
 
 export function isNetworkScanRejectionReason(

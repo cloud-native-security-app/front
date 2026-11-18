@@ -296,6 +296,10 @@ describe("network scan fields", () => {
 
   it("isNetworkScanRejectionReason_reconoce_solo_los_codigos_del_gateway", () => {
     expect(isNetworkScanRejectionReason("target_loopback")).toBe(true);
+    expect(isNetworkScanRejectionReason("target_unresolvable")).toBe(true);
+    expect(isNetworkScanRejectionReason("target_resolves_to_denied")).toBe(
+      true,
+    );
     expect(isNetworkScanRejectionReason("target_outside_allowed_ranges")).toBe(
       true,
     );

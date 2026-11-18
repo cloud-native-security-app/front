@@ -61,6 +61,7 @@ import { SECTION_PATHS } from "../../routes/paths";
 import { ScanStatusBadge } from "./ScanStatusBadge";
 import { CONNECTION_STATUS_LABEL, isTerminalScanStatus } from "./scanStatus";
 import { useScanActivity } from "./scanActivityContext";
+import { validateNetworkScanTarget } from "./validateNetworkScanTarget";
 import { validateScanTarget } from "./validateScanTarget";
 
 type SubmitState =
@@ -125,7 +126,10 @@ export function ScanForm() {
 
   const isScanRunning =
     activity.status === "PENDIENTE" || activity.status === "EN_PROGRESO";
-  const validation = validateScanTarget(target);
+  const validation =
+    mode === "network"
+      ? validateNetworkScanTarget(target)
+      : validateScanTarget(target);
   const isSubmitting = submitState.status === "submitting";
   const canSubmit = validation.valid && !isSubmitting;
   const showForm =
@@ -151,7 +155,7 @@ export function ScanForm() {
     } else {
       setSubmitState({
         status: "error",
-        message: describeSubmitError(result.error),
+        message: describeSubmitError(result.error, mode),
       });
     }
   }
@@ -238,7 +242,7 @@ export function ScanForm() {
                   name="scan-ip"
                   type="text"
                   className="scan-console__input"
-                  inputMode="decimal"
+                  inputMode="url"
                   autoComplete="off"
                   spellCheck={false}
                   placeholder={SCAN_IP_PLACEHOLDER}
