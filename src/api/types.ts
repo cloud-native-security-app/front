@@ -128,7 +128,8 @@ export interface ScanResult {
 export type ScanOutcomeEvent =
   | { status: "started"; correlation_id: string }
   | { status: "completed"; correlation_id: string; result: ScanResult }
-  | { status: "failed"; correlation_id: string; reason: string };
+  | { status: "failed"; correlation_id: string; reason: string }
+  | { status: "cancelled"; correlation_id: string; reason: string };
 
 /**
  * Credencial de red de un usuario (`GET`/`POST /api/network-credentials`,

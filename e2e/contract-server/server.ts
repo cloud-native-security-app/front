@@ -375,8 +375,9 @@ function handleCancelScan(
   // Deja el guion consistente con la cancelación para cualquier suscriptor
   // SSE que siga escuchando (ver docs/architecture.md: RF-14 es una acción
   // aparte, pero el estado final debe reflejarse igual en tiempo real).
+  record.held = false;
   record.script = record.script.slice(0, record.nextEventIndex).concat({
-    status: "failed",
+    status: "cancelled",
     correlation_id: record.scanId,
     reason: "cancelado por el usuario",
   });
@@ -519,6 +520,9 @@ function handleScanEvents(
     if (stopped) {
       return;
     }
+    if (record.held && record.nextEventIndex >= 1) {
+      return;
+    }
     if (record.nextEventIndex >= record.script.length) {
       stopped = true;
       clearInterval(timer);
@@ -542,7 +546,11 @@ function handleScanEvents(
       return;
     }
 
-    if (event.status === "completed" || event.status === "failed") {
+    if (
+      event.status === "completed" ||
+      event.status === "failed" ||
+      event.status === "cancelled"
+    ) {
       stopped = true;
       clearInterval(timer);
       res.end();

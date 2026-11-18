@@ -10,7 +10,7 @@
  * `submitScan`, pero SSE aún no emitió nada).
  */
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import {
   subscribeToScanEvents,
@@ -18,6 +18,7 @@ import {
   type ScanOutcomeEvent,
   type ScanStatus,
 } from "../../api";
+import { isTerminalScanStatus } from "./scanStatus";
 
 export interface ScanEventsState {
   /** Estado más reciente del escaneo, en el vocabulario del histórico REST. */
@@ -39,11 +40,31 @@ export function scanOutcomeEventToStatus(event: ScanOutcomeEvent): ScanStatus {
       return "COMPLETADO";
     case "failed":
       return "FALLIDO";
+    case "cancelled":
+      return "CANCELADO";
   }
 }
 
-function initialState(): ScanEventsState {
-  return { status: "PENDIENTE", connectionStatus: "connecting" };
+export interface ScanEvents extends ScanEventsState {
+  /** `true` once the stream delivered at least one event for this scan. */
+  eventReceived: boolean;
+  /**
+   * Sets the status from outside the stream (cancel response, history
+   * polling). A terminal status is never overwritten.
+   */
+  applyStatus: (status: ScanStatus) => void;
+}
+
+interface InternalState extends ScanEventsState {
+  eventReceived: boolean;
+}
+
+function initialState(): InternalState {
+  return {
+    status: "PENDIENTE",
+    connectionStatus: "connecting",
+    eventReceived: false,
+  };
 }
 
 /**
@@ -53,14 +74,14 @@ function initialState(): ScanEventsState {
  * la suscripción en el cleanup del `useEffect` (sin fugas de `EventSource`
  * abiertos) y también al cambiar de `scanId`.
  */
-export function useScanEvents(scanId: string | undefined): ScanEventsState {
+export function useScanEvents(scanId: string | undefined): ScanEvents {
   // Reinicia el estado durante el render (no dentro del efecto: llamar a
   // `setState` de forma incondicional en el cuerpo de un efecto dispara
   // renders en cascada, ver regla `react-hooks/set-state-in-effect`) cuando
   // `scanId` cambia — patrón oficial de React para "ajustar estado cuando
   // cambia una prop" (https://react.dev/reference/react/useState#storing-information-from-previous-renders).
   const [trackedScanId, setTrackedScanId] = useState(scanId);
-  const [state, setState] = useState<ScanEventsState>(initialState);
+  const [state, setState] = useState<InternalState>(initialState);
   if (scanId !== trackedScanId) {
     setTrackedScanId(scanId);
     setState(initialState());
@@ -75,7 +96,11 @@ export function useScanEvents(scanId: string | undefined): ScanEventsState {
       (event) => {
         setState((previous) => ({
           ...previous,
-          status: scanOutcomeEventToStatus(event),
+          eventReceived: true,
+          // A late `started` must not undo a local CANCELADO.
+          status: isTerminalScanStatus(previous.status)
+            ? previous.status
+            : scanOutcomeEventToStatus(event),
         }));
       },
       (connectionStatus) => {
@@ -87,5 +112,13 @@ export function useScanEvents(scanId: string | undefined): ScanEventsState {
     };
   }, [scanId]);
 
-  return state;
+  const applyStatus = useCallback((status: ScanStatus) => {
+    setState((previous) =>
+      isTerminalScanStatus(previous.status)
+        ? previous
+        : { ...previous, status },
+    );
+  }, []);
+
+  return { ...state, applyStatus };
 }

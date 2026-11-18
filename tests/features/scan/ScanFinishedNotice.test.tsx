@@ -25,6 +25,7 @@ function activity(overrides: Partial<ScanActivity>): ScanActivity {
     connectionStatus: "open",
     finishedScanId: undefined,
     trackScan: () => {},
+    markScanCancelled: () => {},
     ...overrides,
   };
 }

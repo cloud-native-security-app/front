@@ -17,6 +17,8 @@ export interface ScanActivity {
   /** The tracked scan id once it reached a terminal state; otherwise `undefined`. */
   finishedScanId: string | undefined;
   trackScan: (scanId: string, target?: string) => void;
+  /** Marks `scanId` CANCELADO on the scan page; ignored unless it is the tracked scan. */
+  markScanCancelled: (scanId: string) => void;
 }
 
 export const ScanActivityContext = createContext<ScanActivity | undefined>(
@@ -36,3 +38,10 @@ export function useScanActivity(): ScanActivity {
 export function useFinishedScanId(): string | undefined {
   return useContext(ScanActivityContext)?.finishedScanId;
 }
+
+/** Tolerant variant for the history: a no-op when no provider is mounted. */
+export function useMarkScanCancelled(): (scanId: string) => void {
+  return useContext(ScanActivityContext)?.markScanCancelled ?? noop;
+}
+
+function noop(): void {}

@@ -11,5 +11,11 @@ export { validateScanTarget } from "./validateScanTarget";
 export type { TargetValidation } from "./validateScanTarget";
 export { ScanFinishedNotice } from "./ScanFinishedNotice";
 export { ScanActivityProvider } from "./ScanActivityProvider";
-export { useFinishedScanId, useScanActivity } from "./scanActivityContext";
+export {
+  useFinishedScanId,
+  useMarkScanCancelled,
+  useScanActivity,
+} from "./scanActivityContext";
 export type { ScanActivity } from "./scanActivityContext";
+export { describeCancelError } from "./describeCancelError";
+export { useScanStatusFallback } from "./useScanStatusFallback";

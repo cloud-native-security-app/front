@@ -6,6 +6,8 @@
  * provider owns the tracked scan id and its `useScanEvents` state, and
  * exposes `finishedScanId` (the tracked id once its status is terminal) so
  * the history can refetch immediately instead of waiting for the poll.
+ * `markScanCancelled` lets a cancel done outside the stream (scan page or
+ * history) update the state; `useScanStatusFallback` covers a dead stream.
  */
 
 import { useCallback, useMemo, useState, type ReactNode } from "react";
@@ -13,6 +15,7 @@ import { useCallback, useMemo, useState, type ReactNode } from "react";
 import { ScanActivityContext, type ScanActivity } from "./scanActivityContext";
 import { isTerminalScanStatus } from "./scanStatus";
 import { useScanEvents } from "./useScanEvents";
+import { useScanStatusFallback } from "./useScanStatusFallback";
 
 export function ScanActivityProvider({ children }: { children: ReactNode }) {
   const [tracked, setTracked] = useState<
@@ -23,7 +26,23 @@ export function ScanActivityProvider({ children }: { children: ReactNode }) {
   const trackScan = useCallback((id: string, label?: string) => {
     setTracked({ scanId: id, target: label });
   }, []);
-  const { status, connectionStatus } = useScanEvents(scanId);
+  const { status, connectionStatus, eventReceived, applyStatus } =
+    useScanEvents(scanId);
+  useScanStatusFallback({
+    scanId,
+    status,
+    connectionStatus,
+    eventReceived,
+    applyStatus,
+  });
+  const markScanCancelled = useCallback(
+    (id: string) => {
+      if (id === scanId) {
+        applyStatus("CANCELADO");
+      }
+    },
+    [scanId, applyStatus],
+  );
 
   const value = useMemo<ScanActivity>(
     () => ({
@@ -34,8 +53,9 @@ export function ScanActivityProvider({ children }: { children: ReactNode }) {
       finishedScanId:
         scanId && isTerminalScanStatus(status) ? scanId : undefined,
       trackScan,
+      markScanCancelled,
     }),
-    [scanId, target, status, connectionStatus, trackScan],
+    [scanId, target, status, connectionStatus, trackScan, markScanCancelled],
   );
 
   return (

@@ -29,7 +29,7 @@ export interface ScanEventsSubscription {
  * (`useScanEvents`, feature `realtime_status`).
  *
  * La suscripción se cierra a sí misma (`status: "closed"`) tras recibir un
- * evento terminal (`completed`/`failed`): el propio `EventSource` no
+ * evento terminal (`completed`/`failed`/`cancelled`): el propio `EventSource` no
  * distingue "el servidor terminó a propósito" de "se cortó la conexión" —
  * sin este cierre explícito seguiría reintentando indefinidamente contra
  * un stream que ya no tiene más eventos (ver
@@ -77,7 +77,11 @@ export function subscribeToScanEvents(
       return;
     }
     onEvent(parsed);
-    if (parsed.status === "completed" || parsed.status === "failed") {
+    if (
+      parsed.status === "completed" ||
+      parsed.status === "failed" ||
+      parsed.status === "cancelled"
+    ) {
       closedByUs = true;
       source.close();
       onStatusChange("closed");
