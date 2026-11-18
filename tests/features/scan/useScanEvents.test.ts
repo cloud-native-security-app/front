@@ -175,3 +175,38 @@ describe("useScanEvents (lógica de reducción real, sin mocks)", () => {
     );
   }, 10_000);
 });
+
+describe("cancelled event", () => {
+  useContractServer();
+
+  beforeEach(() => {
+    clearNodeTestSessionCookies();
+  });
+
+  it("maps_cancelled_to_CANCELADO", () => {
+    expect(
+      scanOutcomeEventToStatus({
+        status: "cancelled",
+        correlation_id: "c",
+        reason: "cancelado por el usuario",
+      }),
+    ).toBe("CANCELADO");
+  });
+
+  it("delivers_cancelled_and_closes_the_stream", async () => {
+    await loginAsSyntheticUser();
+    const submitted = await submitScan("10.50.0.1");
+    if (!submitted.ok) {
+      throw new Error("setup failed");
+    }
+    const { cancelScan } = await import("../../../src/api");
+    await cancelScan(submitted.value.scanId);
+
+    const { snapshots, connectionStatuses } = await watchScanEventsUntilClosed(
+      submitted.value.scanId,
+    );
+
+    expect(snapshots.at(-1)?.status).toBe("CANCELADO");
+    expect(connectionStatuses.at(-1)).toBe("closed");
+  });
+});

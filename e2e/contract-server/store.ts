@@ -42,6 +42,12 @@ export interface ScanRecord {
    * Se consume una sola vez.
    */
   dropConnectionOnce: boolean;
+  /**
+   * `true` for targets in 198.51.100.0/24: after `started` the stream waits
+   * (the scan stays running) until `POST /cancel` releases it with a
+   * `cancelled` event. Lets e2e tests cancel from the scan page.
+   */
+  held: boolean;
 }
 
 /**
@@ -243,6 +249,7 @@ export function createScan(
     result: undefined,
     failureReason: null,
     dropConnectionOnce: target.toLowerCase().includes("disconnect"),
+    held: target.startsWith("198.51.100."),
   };
   store.scans.set(scanId, record);
   return record;
@@ -271,6 +278,9 @@ export function applyEventToRecord(
   } else if (event.status === "completed") {
     record.status = "COMPLETADO";
     record.result = event.result;
+  } else if (event.status === "cancelled") {
+    record.status = "CANCELADO";
+    record.failureReason = event.reason;
   } else if (record.status !== "CANCELADO") {
     // A scan cancelled through `POST /cancel` keeps `CANCELADO` even if a
     // late `failed` event still reaches the script.

@@ -307,3 +307,18 @@ describe("network scan fields", () => {
     expect(isNetworkScanRejectionReason(undefined)).toBe(false);
   });
 });
+
+describe("isScanOutcomeEvent cancelled", () => {
+  it("accepts_cancelled_with_a_reason_and_rejects_it_without", () => {
+    expect(
+      isScanOutcomeEvent({
+        status: "cancelled",
+        correlation_id: "1",
+        reason: "cancelado por el usuario",
+      }),
+    ).toBe(true);
+    expect(
+      isScanOutcomeEvent({ status: "cancelled", correlation_id: "1" }),
+    ).toBe(false);
+  });
+});

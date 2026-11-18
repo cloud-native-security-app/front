@@ -30,6 +30,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 
 import {
+  cancelScan,
   listNetworkCredentials,
   submitScan,
   type ApiError,
@@ -55,6 +56,7 @@ import {
   SECTION_TARGETS,
   targetsLoadErrorMessage,
 } from "../../copy";
+import { describeCancelError } from "./describeCancelError";
 import { describeSubmitError } from "./describeSubmitError";
 import "./scanForm.css";
 import { SECTION_PATHS } from "../../routes/paths";
@@ -69,6 +71,10 @@ type SubmitState =
   | { status: "submitting" }
   | { status: "success"; scanId: string }
   | { status: "error"; message: string };
+
+type CancelState =
+  | { scanId: string | undefined; status: "idle" | "cancelling" }
+  | { scanId: string | undefined; status: "error"; message: string };
 
 type TargetsState =
   | { status: "loading" }
@@ -100,7 +106,11 @@ export function ScanForm() {
     status: "idle",
   });
   const activity = useScanActivity();
-  const { trackScan } = activity;
+  const { trackScan, markScanCancelled } = activity;
+  const [cancelState, setCancelState] = useState<CancelState>({
+    scanId: undefined,
+    status: "idle",
+  });
 
   useEffect(() => {
     let active = true;
@@ -159,6 +169,27 @@ export function ScanForm() {
       });
     }
   }
+
+  async function handleCancel(scanId: string) {
+    setCancelState({ scanId, status: "cancelling" });
+    const result = await cancelScan(scanId);
+    if (result.ok) {
+      setCancelState({ scanId, status: "idle" });
+      // The SSE `cancelled` event confirms it later; show it right away.
+      markScanCancelled(scanId);
+    } else {
+      setCancelState({
+        scanId,
+        status: "error",
+        message: describeCancelError(result.error),
+      });
+    }
+  }
+
+  const currentCancel: CancelState =
+    cancelState.scanId === activity.scanId
+      ? cancelState
+      : { scanId: activity.scanId, status: "idle" };
 
   return (
     <section className="scan-console" aria-label="Nueva solicitud de escaneo">
@@ -321,6 +352,19 @@ export function ScanForm() {
               role="progressbar"
               aria-label={SCAN_IN_PROGRESS_LABEL}
             />
+          )}
+          {isScanRunning && (
+            <button
+              type="button"
+              className="scan-console__cancel"
+              disabled={currentCancel.status === "cancelling"}
+              onClick={() => void handleCancel(activity.scanId as string)}
+            >
+              Cancelar escaneo
+            </button>
+          )}
+          {currentCancel.status === "error" && (
+            <p role="alert">{currentCancel.message}</p>
           )}
         </div>
       )}

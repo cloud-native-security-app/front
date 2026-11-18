@@ -49,12 +49,15 @@ import {
   type ScanStatus,
 } from "../../api";
 import {
-  CANCEL_CONFLICT_MESSAGE,
   SESSION_EXPIRED_MESSAGE,
   networkErrorMessage,
   unexpectedErrorMessage,
 } from "../../copy";
-import { useFinishedScanId } from "../scan";
+import {
+  describeCancelError,
+  useFinishedScanId,
+  useMarkScanCancelled,
+} from "../scan";
 import { HistoryTableView, type RowCancelState } from "./HistoryTableView";
 
 type HistoryState =
@@ -87,23 +90,6 @@ function describeHistoryError(error: ApiError): string {
   }
 }
 
-function describeCancelError(error: ApiError): string {
-  switch (error.kind) {
-    case "network":
-      return networkErrorMessage("para cancelar el escaneo");
-    case "unauthorized":
-      return SESSION_EXPIRED_MESSAGE;
-    case "not_found":
-      return "El escaneo ya no existe o no pertenece a tu sesión.";
-    case "conflict":
-      return CANCEL_CONFLICT_MESSAGE;
-    case "unexpected":
-      return unexpectedErrorMessage("al cancelar el escaneo");
-    default:
-      return unexpectedErrorMessage("al cancelar el escaneo");
-  }
-}
-
 function toHistoryState(
   result: Awaited<ReturnType<typeof getScanHistory>>,
 ): HistoryState {
@@ -122,6 +108,7 @@ export function HistoryTable({ onViewReport }: HistoryTableProps) {
     {},
   );
   const finishedScanId = useFinishedScanId();
+  const markScanCancelled = useMarkScanCancelled();
 
   useEffect(() => {
     // Patrón oficial de `useEffect` con una petición async (mismo que
@@ -173,6 +160,8 @@ export function HistoryTable({ onViewReport }: HistoryTableProps) {
     }));
     const result = await cancelScan(scanId);
     if (result.ok) {
+      // The scan page follows the active scan: tell it right away.
+      markScanCancelled(scanId);
       setRowStates((previous) => ({
         ...previous,
         [scanId]: { status: "idle" },

@@ -218,6 +218,7 @@ export function isScanOutcomeEvent(value: unknown): value is ScanOutcomeEvent {
     case "completed":
       return isScanResult(value["result"]);
     case "failed":
+    case "cancelled":
       return isString(value["reason"]);
     default:
       return false;
