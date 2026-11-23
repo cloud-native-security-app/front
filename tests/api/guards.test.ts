@@ -7,10 +7,13 @@ import {
   isNetworkCredentialArray,
   isScanHistoryEntryArray,
   isScanOutcomeEvent,
+  normalizeHistoryEntry,
+  parseEmailStatus,
   isScanResult,
   parseCanNetworkScan,
   parseRole,
 } from "../../src/api/guards";
+import type { ScanHistoryEntry } from "../../src/api";
 
 describe("isMeResponse", () => {
   it("acepta_un_shape_valido", () => {
@@ -292,6 +295,63 @@ describe("network scan fields", () => {
     expect(isScanHistoryEntryArray([{ ...BASE_ENTRY, mode: null }])).toBe(
       false,
     );
+  });
+
+  it("el_historico_acepta_email_status_valido_ausente_o_desconocido", () => {
+    for (const status of ["pending", "sent", "failed", "disabled"]) {
+      expect(
+        isScanHistoryEntryArray([{ ...BASE_ENTRY, email_status: status }]),
+      ).toBe(true);
+    }
+    expect(
+      isScanHistoryEntryArray([
+        {
+          ...BASE_ENTRY,
+          email_status: "sent",
+          emailed_at: "2026-01-01T00:00:00Z",
+        },
+      ]),
+    ).toBe(true);
+    expect(isScanHistoryEntryArray([BASE_ENTRY])).toBe(true);
+    // An unknown status never breaks the whole history.
+    for (const unknown of ["bounced", 1, null, true]) {
+      expect(
+        isScanHistoryEntryArray([{ ...BASE_ENTRY, email_status: unknown }]),
+      ).toBe(true);
+    }
+  });
+
+  it("parseEmailStatus_neutraliza_valores_desconocidos", () => {
+    expect(parseEmailStatus("sent")).toBe("sent");
+    expect(parseEmailStatus("failed")).toBe("failed");
+    expect(parseEmailStatus("bounced")).toBeUndefined();
+    expect(parseEmailStatus(null)).toBeUndefined();
+    expect(parseEmailStatus(undefined)).toBeUndefined();
+    expect(parseEmailStatus("toString")).toBeUndefined();
+  });
+
+  const wireEntry = (extra: Record<string, unknown>): ScanHistoryEntry =>
+    ({ ...BASE_ENTRY, ...extra }) as unknown as ScanHistoryEntry;
+
+  it("normalizeHistoryEntry_conserva_lo_valido_y_descarta_lo_desconocido", () => {
+    const sent = normalizeHistoryEntry(
+      wireEntry({ email_status: "sent", emailed_at: "2026-01-01T00:00:00Z" }),
+    );
+    expect(sent.email_status).toBe("sent");
+    expect(sent.emailed_at).toBe("2026-01-01T00:00:00Z");
+
+    const unknown = normalizeHistoryEntry(
+      wireEntry({
+        email_status: "bounced",
+        emailed_at: "2026-01-01T00:00:00Z",
+      }),
+    );
+    expect(unknown.email_status).toBeUndefined();
+    expect(unknown.emailed_at).toBeUndefined();
+
+    const absent = normalizeHistoryEntry(wireEntry({}));
+    expect(absent.email_status).toBeUndefined();
+    expect(absent.emailed_at).toBeUndefined();
   });
 
   it("isNetworkScanRejectionReason_reconoce_solo_los_codigos_del_gateway", () => {

@@ -48,6 +48,9 @@ export type NetworkScanRejectionReason =
   | "target_unresolvable"
   | "target_resolves_to_denied";
 
+/** Email delivery of the report of a completed scan (gateway D-22). */
+export type EmailStatus = "pending" | "sent" | "failed" | "disabled";
+
 /**
  * Entrada del histórico (`GET /api/scans`). `scanId` es opcional en el wire
  * format real (`skip_serializing_if`) — nunca asumir que siempre viene.
@@ -62,6 +65,13 @@ export interface ScanHistoryEntry {
   failure_reason: string | null;
   /** Absent means unknown (older records): never assume `ssh`. */
   mode?: ScanMode;
+  /**
+   * Only on completed scans, and absent on an older Gateway. Unknown wire
+   * values are dropped by `normalizeHistoryEntry`, never rejected.
+   */
+  email_status?: EmailStatus;
+  /** RFC 3339; only together with `email_status: "sent"`. */
+  emailed_at?: string;
 }
 
 /** `POST /api/scans` — respuesta de éxito (200, no 201). */

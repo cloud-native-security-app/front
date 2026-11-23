@@ -10,3 +10,5 @@ export type { ReportDetailsProps } from "./ReportDetails";
 export { buildReportExport } from "./buildReportExport";
 export type { ReportExportFile } from "./buildReportExport";
 export { downloadTextFile } from "./downloadTextFile";
+export { ReportEmailStatus } from "./ReportEmailStatus";
+export type { ReportEmailStatusProps } from "./ReportEmailStatus";
