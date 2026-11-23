@@ -5,6 +5,7 @@ import {
   MAX_CRITICAL_FINDINGS,
   MAX_IN_FLIGHT,
   MAX_RECENT_EVENTS,
+  MAX_SIEM_ALERTS,
   adminReducer,
 } from "../../../src/features/admin";
 import {
@@ -13,6 +14,7 @@ import {
   makeFinding,
   makeKpis,
   makeSeries,
+  makeSiemAlert,
   makeSnapshot,
 } from "./fixtures";
 
@@ -251,6 +253,46 @@ describe("adminReducer series", () => {
     const base = makeSnapshot();
     expect(adminReducer(base, { type: "tick", now: at })).toBe(base);
     expect(adminReducer(undefined, { type: "tick", now: at })).toBeUndefined();
+  });
+  describe("siem alerts", () => {
+    it("a_delta_alert_goes_first_and_the_delta_kpis_replace_the_old_ones", () => {
+      const base = makeSnapshot({
+        siem_enabled: true,
+        siem_alerts: [makeSiemAlert("old")],
+      });
+      const kpis = makeKpis({ siem_alerts: 2 });
+      const next = adminReducer(
+        base,
+        delta(makeDelta({ siem_alert: makeSiemAlert("new"), kpis })),
+      );
+      expect(next?.siem_alerts.map((a) => a.event_id)).toEqual(["new", "old"]);
+      expect(next?.kpis.siem_alerts).toBe(2);
+      expect(next?.siem_enabled).toBe(true);
+    });
+
+    it("ignores_an_alert_that_is_already_listed", () => {
+      const base = makeSnapshot({ siem_alerts: [makeSiemAlert("a")] });
+      const next = adminReducer(
+        base,
+        delta(makeDelta({ siem_alert: makeSiemAlert("a") })),
+      );
+      expect(next?.siem_alerts).toBe(base.siem_alerts);
+    });
+
+    it("caps_the_client_list_dropping_the_oldest", () => {
+      const full = Array.from({ length: MAX_SIEM_ALERTS }, (_, i) =>
+        makeSiemAlert(`a${String(i)}`),
+      );
+      const next = adminReducer(
+        makeSnapshot({ siem_alerts: full }),
+        delta(makeDelta({ siem_alert: makeSiemAlert("fresh") })),
+      );
+      expect(next?.siem_alerts).toHaveLength(MAX_SIEM_ALERTS);
+      expect(next?.siem_alerts[0]?.event_id).toBe("fresh");
+      expect(next?.siem_alerts.at(-1)?.event_id).toBe(
+        `a${String(MAX_SIEM_ALERTS - 2)}`,
+      );
+    });
   });
 });
 

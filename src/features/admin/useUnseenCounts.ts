@@ -11,6 +11,7 @@ import type {
   AdminCriticalFinding,
   AdminEventEntry,
   AdminInFlightScan,
+  AdminSiemAlert,
 } from "../../api";
 import {
   advanceUnseen,
@@ -26,6 +27,7 @@ export function useUnseenCounts(
     findings: AdminCriticalFinding[];
     /** The live log, not the paused view: paused events still count. */
     events: AdminEventEntry[];
+    siem: AdminSiemAlert[];
   },
 ): Record<AdminTabId, number> {
   const scans = useMemo(
@@ -40,9 +42,13 @@ export function useUnseenCounts(
     () => lists.events.map((event) => event.event_id),
     [lists.events],
   );
+  const siem = useMemo(
+    () => lists.siem.map((alert) => alert.event_id),
+    [lists.siem],
+  );
   const ids: TabIds = useMemo(
-    () => ({ scans, findings, events }),
-    [scans, findings, events],
+    () => ({ scans, findings, events, siem }),
+    [scans, findings, events, siem],
   );
 
   const [state, setState] = useState(() => initialUnseen(selected, ids));

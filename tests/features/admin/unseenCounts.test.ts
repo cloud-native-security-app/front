@@ -11,6 +11,7 @@ const ids = (over: Partial<TabIds> = {}): TabIds => ({
   scans: [],
   findings: [],
   events: [],
+  siem: [],
   ...over,
 });
 
@@ -20,7 +21,12 @@ describe("initialUnseen", () => {
       "scans",
       ids({ scans: ["s1"], findings: ["f1"], events: ["e1", "e2"] }),
     );
-    expect(state.counts).toEqual({ scans: 0, findings: 0, events: 0 });
+    expect(state.counts).toEqual({
+      scans: 0,
+      findings: 0,
+      events: 0,
+      siem: 0,
+    });
   });
 });
 

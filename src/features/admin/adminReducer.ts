@@ -10,6 +10,8 @@ import { applySeriesEvent, rotateSeries } from "./series";
 export const MAX_RECENT_EVENTS = 100;
 export const MAX_CRITICAL_FINDINGS = 50;
 export const MAX_IN_FLIGHT = 1000;
+/** The Gateway keeps 8; the client keeps more so a quiet tab loses nothing. */
+export const MAX_SIEM_ALERTS = 50;
 
 export type AdminState = AdminSnapshot | undefined;
 
@@ -61,6 +63,11 @@ function applyDelta(state: AdminSnapshot, delta: AdminDelta): AdminSnapshot {
     !state.critical_findings.some((f) => f.event_id === finding.event_id)
       ? [finding, ...state.critical_findings].slice(0, MAX_CRITICAL_FINDINGS)
       : state.critical_findings;
+  const alert = delta.siem_alert;
+  const siemAlerts =
+    alert && !state.siem_alerts.some((a) => a.event_id === alert.event_id)
+      ? [alert, ...state.siem_alerts].slice(0, MAX_SIEM_ALERTS)
+      : state.siem_alerts;
   const events = delta.event
     ? [delta.event, ...state.recent_events].slice(0, MAX_RECENT_EVENTS)
     : state.recent_events;
@@ -71,6 +78,7 @@ function applyDelta(state: AdminSnapshot, delta: AdminDelta): AdminSnapshot {
     kpis: delta.kpis,
     scans_in_flight: applyScanChange(state, delta),
     critical_findings: findings,
+    siem_alerts: siemAlerts,
     recent_events: events,
     ...(state.series && delta.event
       ? { series: applySeriesEvent(state.series, delta.event) }

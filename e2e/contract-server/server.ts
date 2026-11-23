@@ -40,12 +40,15 @@ import type {
 import {
   emitAdminBurst,
   emitAdminEvent,
+  emitSiemAlert,
   forceAdminStatus,
   handleAdminEvents,
   handleAdminMetrics,
   resetAdminFeed,
   setAdminSeries,
+  setAdminSiem,
   type EmitRequest,
+  type SiemAlertRequest,
   closeAdminStreams,
 } from "./adminFeed.ts";
 import {
@@ -653,6 +656,10 @@ async function handleAdminTestControl(
     forceAdminStatus(store.admin, typeof status === "number" ? status : null);
   } else if (pathname === "/__test__/admin/series") {
     setAdminSeries(store.admin, record["enabled"] !== false);
+  } else if (pathname === "/__test__/admin/siem") {
+    setAdminSiem(store.admin, record["enabled"] !== false);
+  } else if (pathname === "/__test__/admin/siem-alert") {
+    emitSiemAlert(store.admin, record as unknown as SiemAlertRequest);
   } else if (pathname === "/__test__/admin/reset") {
     resetAdminFeed(store.admin);
   } else {

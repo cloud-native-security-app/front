@@ -228,6 +228,30 @@ export interface AdminKpis {
   rate_limit_hits: number;
   /** Records skipped since the Gateway process started (not windowed). */
   malformed_records: number;
+  /** SIEM (IDS) alerts in the window; 0 when the backend predates them. */
+  siem_alerts: number;
+  /** All four severities are always present (zero-filled by the parser). */
+  siem_alerts_by_severity: AdminSiemSeverityCounts;
+}
+
+export type AdminSiemSeverity = "low" | "medium" | "high" | "critical";
+
+export type AdminSiemSeverityCounts = Record<AdminSiemSeverity, number>;
+
+/** One IDS alert (`siem_alerts` of the snapshot, `siem_alert` of a delta). */
+export interface AdminSiemAlert {
+  event_id: string;
+  /** RFC 3339. */
+  occurred_at: string;
+  severity: AdminSiemSeverity;
+  rule_id: string;
+  /** Wazuh rule level, 0..15. */
+  rule_level: number;
+  description: string;
+  agent: { id: string; name: string };
+  src_ip: string | null;
+  dest_ip: string | null;
+  signature: string | null;
 }
 
 export type AdminScanFlightStatus = "requested" | "running";
@@ -288,6 +312,10 @@ export interface AdminSnapshot {
   recent_events: AdminEventEntry[];
   /** Absent (or `null`) when the backend predates the time series. */
   series?: AdminSeries | null;
+  /** `false` when SIEM is off or the backend predates it (parser default). */
+  siem_enabled: boolean;
+  /** Newest first; malformed entries are dropped by the parser. */
+  siem_alerts: AdminSiemAlert[];
 }
 
 export type AdminScanChangeStatus = "requested" | "running" | "finished";
@@ -305,6 +333,8 @@ export interface AdminDelta {
   kpis: AdminKpis;
   scan_change: AdminScanChange | null;
   critical_finding: AdminCriticalFinding | null;
+  /** New IDS alert (never in `event`); `null` when the delta carries none. */
+  siem_alert: AdminSiemAlert | null;
 }
 
 /** SSE `closed` event: the Gateway ends the stream after a failed role re-check. */

@@ -2,16 +2,18 @@
  * Pure unseen-items counter behind the admin tab badges (AP-10). A tab that
  * is not selected counts the ids that appeared in its list since the tab was
  * last selected. An id counts as new when it was not in the previously seen
- * list, so a fresh snapshot after a reconnect (same items, new arrays) adds
+ * list (the initial snapshot counts as seen: only alerts that arrive later
+ * count, keeping this one rule for every tab), so a fresh snapshot after a reconnect (same items, new arrays) adds
  * nothing, and removals (a finished scan) never count.
  */
 
-export type AdminTabId = "scans" | "findings" | "events";
+export type AdminTabId = "scans" | "findings" | "events" | "siem";
 
 export const ADMIN_TAB_IDS: readonly AdminTabId[] = [
   "scans",
   "findings",
   "events",
+  "siem",
 ];
 
 export type TabIds = Record<AdminTabId, readonly string[]>;
@@ -27,7 +29,7 @@ export function initialUnseen(selected: AdminTabId, ids: TabIds): UnseenState {
   return {
     selected,
     ids,
-    counts: { scans: 0, findings: 0, events: 0 },
+    counts: { scans: 0, findings: 0, events: 0, siem: 0 },
   };
 }
 

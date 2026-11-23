@@ -12,6 +12,11 @@
  *   end live streams with a `closed` event (`{ "status": null }` clears it)
  * - `POST /__test__/admin/series` `{ "enabled": false }` drops `series` from
  *   the snapshot (an older backend); `true` brings it back
+ * - `POST /__test__/admin/siem`   `{ "enabled": true }` turns SIEM on (seed
+ *   alert, `siem_enabled: true`) or off (an older/disabled backend: no
+ *   alerts); live streams get a fresh `snapshot` frame
+ * - `POST /__test__/admin/siem-alert` push one IDS alert (delta with
+ *   `siem_alert` and `event: null`, like events-service); ignored when off
  * - `POST /__test__/admin/reset`  back to the seed snapshot
  * - `POST /__test__/session/role` (in `server.ts`) changes the role of the
  *   calling session; a downgrade ends live streams with a `closed` event
@@ -28,6 +33,8 @@ import type {
   AdminEventEntry,
   AdminKpis,
   AdminScanChange,
+  AdminSiemAlert,
+  AdminSiemSeverity,
   AdminSeries,
   AdminSnapshot,
 } from "../../src/api/types";
@@ -42,6 +49,7 @@ export interface AdminFeedState {
   /** Source of `snapshot.series`: the window is rebuilt from these. */
   seriesEvents: SeriesEvent[];
   seriesEnabled: boolean;
+  siemEnabled: boolean;
 }
 
 interface SeriesEvent {
@@ -112,6 +120,8 @@ function seedSnapshot(): AdminSnapshot {
       active_users: 2,
       rate_limit_hits: 3,
       malformed_records: 0,
+      siem_alerts: 0,
+      siem_alerts_by_severity: { low: 0, medium: 0, high: 0, critical: 0 },
     },
     scans_in_flight: [
       { scan_id: "scan-seed-1", status: "running", since: now },
@@ -138,8 +148,26 @@ function seedSnapshot(): AdminSnapshot {
         payload: {},
       },
     ],
+    siem_enabled: false,
+    siem_alerts: [],
   };
 }
+
+const SIEM_SEED_ALERT: AdminSiemAlert = {
+  event_id: "siem-seed-1",
+  occurred_at: new Date().toISOString(),
+  severity: "medium",
+  rule_id: "5503",
+  rule_level: 8,
+  description: "PAM: User login failed.",
+  agent: { id: "001", name: "web-01" },
+  src_ip: "10.0.0.5",
+  dest_ip: null,
+  signature: null,
+};
+
+/** The server keeps at most 8 alerts in the snapshot. */
+const SIEM_SNAPSHOT_MAX = 8;
 
 export function createAdminFeedState(): AdminFeedState {
   const state: AdminFeedState = {
@@ -149,6 +177,7 @@ export function createAdminFeedState(): AdminFeedState {
     counter: 0,
     seriesEvents: seedSeriesEvents(),
     seriesEnabled: true,
+    siemEnabled: false,
   };
   refreshSeries(state);
   return state;
@@ -256,6 +285,7 @@ export function emitAdminEvent(
     kpis,
     scan_change: change,
     critical_finding: finding,
+    siem_alert: null,
   };
   state.snapshot = {
     ...previous,
@@ -322,7 +352,93 @@ export function setAdminSeries(state: AdminFeedState, enabled: boolean): void {
   refreshSeries(state);
 }
 
+function siemKpis(
+  alerts: AdminSiemAlert[],
+): AdminKpis["siem_alerts_by_severity"] {
+  const counts = { low: 0, medium: 0, high: 0, critical: 0 };
+  for (const alert of alerts) {
+    counts[alert.severity] += 1;
+  }
+  return counts;
+}
+
+export function setAdminSiem(state: AdminFeedState, enabled: boolean): void {
+  state.siemEnabled = enabled;
+  const alerts = enabled ? [SIEM_SEED_ALERT] : [];
+  state.snapshot = {
+    ...state.snapshot,
+    siem_enabled: enabled,
+    siem_alerts: alerts,
+    kpis: {
+      ...state.snapshot.kpis,
+      siem_alerts: alerts.length,
+      siem_alerts_by_severity: siemKpis(alerts),
+    },
+  };
+  refreshSeries(state);
+  for (const write of state.streams.values()) {
+    write("snapshot", state.snapshot);
+  }
+}
+
+export interface SiemAlertRequest {
+  severity?: AdminSiemSeverity;
+  rule_level?: number;
+  description?: string;
+  signature?: string | null;
+}
+
+/** Applies one IDS alert and broadcasts its delta (no `event`, like the real feed). */
+export function emitSiemAlert(
+  state: AdminFeedState,
+  request: SiemAlertRequest,
+): void {
+  if (!state.siemEnabled) {
+    return;
+  }
+  state.counter += 1;
+  const alert: AdminSiemAlert = {
+    event_id: `siem-emitted-${String(state.counter)}`,
+    occurred_at: new Date().toISOString(),
+    severity: request.severity ?? "high",
+    rule_id: "5712",
+    rule_level: request.rule_level ?? 10,
+    description: request.description ?? "sshd: brute force attempt",
+    agent: { id: "002", name: "db-01" },
+    src_ip: "203.0.113.7",
+    dest_ip: "10.0.0.9",
+    signature: request.signature ?? null,
+  };
+  const previous = state.snapshot;
+  const counts = { ...previous.kpis.siem_alerts_by_severity };
+  counts[alert.severity] += 1;
+  const kpis = {
+    ...previous.kpis,
+    siem_alerts: previous.kpis.siem_alerts + 1,
+    siem_alerts_by_severity: counts,
+  };
+  const delta: AdminDelta = {
+    seq: previous.seq + 1,
+    event: null,
+    kpis,
+    scan_change: null,
+    critical_finding: null,
+    siem_alert: alert,
+  };
+  state.snapshot = {
+    ...previous,
+    seq: delta.seq,
+    generated_at: alert.occurred_at,
+    kpis,
+    siem_alerts: [alert, ...previous.siem_alerts].slice(0, SIEM_SNAPSHOT_MAX),
+  };
+  for (const write of state.streams.values()) {
+    write("delta", delta);
+  }
+}
+
 export function resetAdminFeed(state: AdminFeedState): void {
+  state.siemEnabled = false;
   state.snapshot = seedSnapshot();
   state.seriesEvents = seedSeriesEvents();
   state.seriesEnabled = true;

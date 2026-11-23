@@ -18,7 +18,8 @@ test.describe.configure({ mode: "serial" });
 
 async function adminControl(
   request: APIRequestContext,
-  action: "emit" | "status" | "reset" | "burst" | "series",
+  action:
+    "emit" | "status" | "reset" | "burst" | "series" | "siem" | "siem-alert",
   data: object = {},
 ): Promise<void> {
   const response = await request.post(`/__test__/admin/${action}`, { data });
@@ -725,4 +726,91 @@ test.describe("per_minute_charts", () => {
       expect(results.violations.map((v) => v.id)).toEqual([]);
     });
   }
+});
+
+// SR-04: the "Alertas IDS" tab (shown only when the snapshot has siem_enabled).
+test("the_ids_tab_is_hidden_when_siem_is_disabled", async ({
+  page,
+  context,
+}) => {
+  await login(context, "admin");
+  await page.goto("/escanear");
+  await page
+    .getByRole("navigation", { name: "Secciones" })
+    .getByRole("link", { name: "Administración" })
+    .click();
+  await expect(
+    page.getByRole("tab", { name: "Escaneos en curso" }),
+  ).toBeVisible();
+  await expect(page.getByRole("tab", { name: /Alertas IDS/ })).toHaveCount(0);
+});
+
+test("the_ids_tab_counts_new_alerts_and_lists_them_when_opened", async ({
+  page,
+  context,
+  request,
+}) => {
+  await adminControl(request, "siem", { enabled: true });
+  await login(context, "admin");
+  await page.goto("/escanear");
+  await page
+    .getByRole("navigation", { name: "Secciones" })
+    .getByRole("link", { name: "Administración" })
+    .click();
+  const tab = page.getByRole("tab", { name: /^Alertas IDS/ });
+  await expect(tab).toBeVisible();
+  // The alert in the first snapshot counts as seen.
+  await expect(tab).toHaveAccessibleName("Alertas IDS");
+  // Emit only once the live stream is connected, or the alert would arrive
+  // inside the first snapshot (counted as seen).
+  await expect(
+    page.getByRole("status", { name: "Estado de la conexión" }),
+  ).toHaveText("En vivo");
+
+  await adminControl(request, "siem-alert", {
+    severity: "critical",
+    rule_level: 14,
+    description: "<b>Intrusion</b> detected",
+    signature: "ET SCAN Nmap",
+  });
+  await expect(
+    page.getByRole("tab", { name: "Alertas IDS, 1 nuevo" }),
+  ).toBeVisible();
+
+  await tab.click();
+  await expect(tab).toHaveAttribute("aria-selected", "true");
+  await expect(tab).toHaveAccessibleName("Alertas IDS");
+  const panel = page.getByRole("tabpanel", { name: "Alertas IDS" });
+  await expect(panel.getByText("<b>Intrusion</b> detected")).toBeVisible();
+  await expect(panel.getByText("Nivel 14")).toBeVisible();
+  await expect(panel.getByText("ET SCAN Nmap")).toBeVisible();
+  await expect(panel.getByText("db-01")).toBeVisible();
+  await expect(panel.getByText("PAM: User login failed.")).toBeVisible();
+  await expect(
+    panel.getByRole("list", { name: "Resumen por severidad" }),
+  ).toContainText("Crítica: 1");
+});
+
+test("the_ids_tab_falls_back_to_the_default_tab_when_siem_turns_off", async ({
+  page,
+  context,
+  request,
+}) => {
+  await adminControl(request, "siem", { enabled: true });
+  await login(context, "admin");
+  await page.goto("/escanear");
+  await page
+    .getByRole("navigation", { name: "Secciones" })
+    .getByRole("link", { name: "Administración" })
+    .click();
+  await page.getByRole("tab", { name: /^Alertas IDS/ }).click();
+  await expect(
+    page.getByRole("status", { name: "Estado de la conexión" }),
+  ).toHaveText("En vivo");
+
+  await adminControl(request, "siem", { enabled: false });
+  await expect(page.getByRole("tab", { name: /Alertas IDS/ })).toHaveCount(0);
+  await expect(
+    page.getByRole("tab", { name: "Escaneos en curso" }),
+  ).toHaveAttribute("aria-selected", "true");
 });

@@ -6,6 +6,7 @@ import type {
   AdminDelta,
   AdminEventEntry,
   AdminKpis,
+  AdminSiemAlert,
   AdminSnapshot,
 } from "../../../src/api";
 
@@ -18,6 +19,8 @@ export function makeKpis(overrides: Partial<AdminKpis> = {}): AdminKpis {
     active_users: 0,
     rate_limit_hits: 0,
     malformed_records: 0,
+    siem_alerts: 0,
+    siem_alerts_by_severity: { low: 0, medium: 0, high: 0, critical: 0 },
     ...overrides,
   };
 }
@@ -54,6 +57,25 @@ export function makeFinding(
   };
 }
 
+export function makeSiemAlert(
+  id: string,
+  overrides: Partial<AdminSiemAlert> = {},
+): AdminSiemAlert {
+  return {
+    event_id: id,
+    occurred_at: "2026-11-11T10:00:00Z",
+    severity: "high",
+    rule_id: "5712",
+    rule_level: 10,
+    description: `Regla ${id}`,
+    agent: { id: "001", name: "web-01" },
+    src_ip: "10.0.0.5",
+    dest_ip: "10.0.0.9",
+    signature: null,
+    ...overrides,
+  };
+}
+
 export function makeSnapshot(
   overrides: Partial<AdminSnapshot> = {},
 ): AdminSnapshot {
@@ -65,6 +87,8 @@ export function makeSnapshot(
     scans_in_flight: [],
     critical_findings: [],
     recent_events: [],
+    siem_enabled: false,
+    siem_alerts: [],
     ...overrides,
   };
 }
@@ -76,6 +100,7 @@ export function makeDelta(overrides: Partial<AdminDelta> = {}): AdminDelta {
     kpis: makeKpis(),
     scan_change: null,
     critical_finding: null,
+    siem_alert: null,
     ...overrides,
   };
 }

@@ -7,6 +7,7 @@ export {
   MAX_CRITICAL_FINDINGS,
   MAX_IN_FLIGHT,
   MAX_RECENT_EVENTS,
+  MAX_SIEM_ALERTS,
   adminReducer,
 } from "./adminReducer";
 export type { AdminAction, AdminState } from "./adminReducer";
