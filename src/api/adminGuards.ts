@@ -14,6 +14,9 @@ import type {
   AdminScanChange,
   AdminSeries,
   AdminSeriesBucket,
+  AdminSiemAlert,
+  AdminSiemSeverity,
+  AdminSiemSeverityCounts,
   AdminSnapshot,
   AdminStreamClosed,
 } from "./types";
@@ -158,4 +161,99 @@ export function isAdminStreamClosed(
   value: unknown,
 ): value is AdminStreamClosed {
   return isRec(value) && isStr(value["reason"]);
+}
+
+const SIEM_SEVERITIES: readonly AdminSiemSeverity[] = [
+  "low",
+  "medium",
+  "high",
+  "critical",
+];
+
+function isSiemSeverity(value: unknown): value is AdminSiemSeverity {
+  return SIEM_SEVERITIES.some((severity) => severity === value);
+}
+
+function isSiemAlert(value: unknown): value is AdminSiemAlert {
+  return (
+    isRec(value) &&
+    isStr(value["event_id"]) &&
+    isStr(value["occurred_at"]) &&
+    isSiemSeverity(value["severity"]) &&
+    isStr(value["rule_id"]) &&
+    isNum(value["rule_level"]) &&
+    value["rule_level"] >= 0 &&
+    value["rule_level"] <= 15 &&
+    isStr(value["description"]) &&
+    isRec(value["agent"]) &&
+    isStr(value["agent"]["id"]) &&
+    isStr(value["agent"]["name"]) &&
+    isNullable(value["src_ip"], isStr) &&
+    isNullable(value["dest_ip"], isStr) &&
+    isNullable(value["signature"], isStr)
+  );
+}
+
+/** A tolerant read: an absent or malformed alert is `null`, never an error. */
+function readSiemAlert(value: unknown): AdminSiemAlert | null {
+  return isSiemAlert(value) ? value : null;
+}
+
+function readSiemKpis(kpis: AdminKpis): AdminKpis {
+  // Untyped read: an older backend sends none of these fields.
+  const raw: Rec = { ...kpis };
+  const counts = isRec(raw["siem_alerts_by_severity"])
+    ? raw["siem_alerts_by_severity"]
+    : {};
+  const byCount = (key: AdminSiemSeverity): number => {
+    const n = counts[key];
+    return isNum(n) && n >= 0 ? n : 0;
+  };
+  const siem_alerts_by_severity: AdminSiemSeverityCounts = {
+    low: byCount("low"),
+    medium: byCount("medium"),
+    high: byCount("high"),
+    critical: byCount("critical"),
+  };
+  const total = raw["siem_alerts"];
+  return {
+    ...kpis,
+    siem_alerts: isNum(total) && total >= 0 ? total : 0,
+    siem_alerts_by_severity,
+  };
+}
+
+/**
+ * Validates a snapshot and fills in the SIEM fields: an older backend (or
+ * one with SIEM off) yields `siem_enabled=false`, no alerts and zero counts;
+ * a malformed alert (unknown severity included) is dropped, not fatal.
+ * `undefined` when the base shape is invalid.
+ */
+export function normalizeAdminSnapshot(
+  value: unknown,
+): AdminSnapshot | undefined {
+  if (!isAdminSnapshot(value)) {
+    return undefined;
+  }
+  const raw: Rec = { ...value };
+  const alerts = Array.isArray(raw["siem_alerts"]) ? raw["siem_alerts"] : [];
+  return {
+    ...value,
+    kpis: readSiemKpis(value.kpis),
+    siem_enabled: raw["siem_enabled"] === true,
+    siem_alerts: alerts.filter(isSiemAlert),
+  };
+}
+
+/** Delta counterpart of `normalizeAdminSnapshot` (`siem_alert` or `null`). */
+export function normalizeAdminDelta(value: unknown): AdminDelta | undefined {
+  if (!isAdminDelta(value)) {
+    return undefined;
+  }
+  const raw: Rec = { ...value };
+  return {
+    ...value,
+    kpis: readSiemKpis(value.kpis),
+    siem_alert: readSiemAlert(raw["siem_alert"]),
+  };
 }

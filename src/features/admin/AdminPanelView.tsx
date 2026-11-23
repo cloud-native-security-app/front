@@ -13,6 +13,7 @@ import {
   ADMIN_EVENTS_TITLE,
   ADMIN_FINDINGS_TITLE,
   ADMIN_SCANS_TITLE,
+  ADMIN_SIEM_TITLE,
   ADMIN_TABS_LABEL,
   adminConnectionMessage,
 } from "../../copy";
@@ -23,6 +24,7 @@ import { CriticalFindingsFeed } from "./CriticalFindingsFeed";
 import { EventLog } from "./EventLog";
 import { KpiTiles } from "./KpiTiles";
 import { ScansInFlightList } from "./ScansInFlightList";
+import { SiemAlertsPanel } from "./SiemAlertsPanel";
 import { useFrameValue } from "./useFrameValue";
 import { usePausedEvents } from "./usePausedEvents";
 import { useUnseenCounts } from "./useUnseenCounts";
@@ -44,8 +46,13 @@ export function AdminPanelView({
   const log = usePausedEvents(snapshot.recent_events);
   // Charts follow the series at most once per animation frame (bursts).
   const series = useFrameValue(snapshot.series);
-  const [tab, setTab] = useState<AdminTabId>("scans");
+  const [selected, setTab] = useState<AdminTabId>("scans");
+  // The SIEM tab only exists while the backend says SIEM is on; if it goes
+  // away while selected, fall back to the default tab.
+  const tab: AdminTabId =
+    selected === "siem" && !snapshot.siem_enabled ? "scans" : selected;
   const unseen = useUnseenCounts(tab, {
+    siem: snapshot.siem_alerts,
     scans: snapshot.scans_in_flight,
     findings: snapshot.critical_findings,
     events: snapshot.recent_events,
@@ -91,6 +98,21 @@ export function AdminPanelView({
               />
             ),
           },
+          ...(snapshot.siem_enabled
+            ? [
+                {
+                  id: "siem",
+                  label: ADMIN_SIEM_TITLE,
+                  unseen: unseen.siem,
+                  panel: (
+                    <SiemAlertsPanel
+                      alerts={snapshot.siem_alerts}
+                      counts={snapshot.kpis.siem_alerts_by_severity}
+                    />
+                  ),
+                },
+              ]
+            : []),
         ]}
       />
     </div>

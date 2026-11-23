@@ -11,8 +11,8 @@
  */
 
 import {
-  isAdminDelta,
-  isAdminSnapshot,
+  normalizeAdminDelta,
+  normalizeAdminSnapshot,
   isAdminStreamClosed,
 } from "./adminGuards";
 import { gatewayBaseUrl } from "./config";
@@ -38,10 +38,13 @@ export async function getAdminMetrics(): Promise<ApiResult<AdminSnapshot>> {
   switch (result.status) {
     case 200: {
       const parsed = parseJson(result.bodyText);
-      if (!parsed.ok || !isAdminSnapshot(parsed.value)) {
+      const snapshot = parsed.ok
+        ? normalizeAdminSnapshot(parsed.value)
+        : undefined;
+      if (!snapshot) {
         return { ok: false, error: { kind: "unexpected", status: 200 } };
       }
-      return { ok: true, value: parsed.value };
+      return { ok: true, value: snapshot };
     }
     case 401:
       notifyUnauthorized();
@@ -107,14 +110,16 @@ export function subscribeToAdminEvents(
 
   source.addEventListener("snapshot", (event) => {
     const data = parseData(event);
-    if (!finished && isAdminSnapshot(data)) {
-      handlers.onSnapshot(data);
+    const snapshot = normalizeAdminSnapshot(data);
+    if (!finished && snapshot) {
+      handlers.onSnapshot(snapshot);
     }
   });
   source.addEventListener("delta", (event) => {
     const data = parseData(event);
-    if (!finished && isAdminDelta(data)) {
-      handlers.onDelta(data);
+    const delta = normalizeAdminDelta(data);
+    if (!finished && delta) {
+      handlers.onDelta(delta);
     }
   });
   source.addEventListener("closed", (event) => {

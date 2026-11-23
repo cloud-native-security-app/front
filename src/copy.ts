@@ -329,6 +329,24 @@ export function newCriticalFindingAnnouncement(finding: {
   return `Nuevo hallazgo crítico: ${what} ${where} (escaneo ${finding.scan_id}).`;
 }
 
+export const ADMIN_SIEM_TITLE = "Alertas IDS";
+export const ADMIN_NO_SIEM_ALERTS_MESSAGE = "Sin alertas IDS recientes.";
+export const ADMIN_SIEM_SUMMARY_LABEL = "Resumen por severidad";
+export const ADMIN_SIEM_REGION_LABEL = "Lista desplazable de alertas IDS";
+export const ADMIN_SIEM_SEVERITY_LABEL = {
+  low: "Baja",
+  medium: "Media",
+  high: "Alta",
+  critical: "Crítica",
+} as const;
+export function adminSiemRuleLevel(level: number): string {
+  return `Nivel ${String(level)}`;
+}
+export const ADMIN_SIEM_AGENT_LABEL = "Agente";
+export const ADMIN_SIEM_SRC_LABEL = "Origen";
+export const ADMIN_SIEM_DEST_LABEL = "Destino";
+export const ADMIN_SIEM_SIGNATURE_LABEL = "Firma";
+
 export const ADMIN_EVENTS_TITLE = "Registro de eventos";
 export const ADMIN_EVENT_FILTER_LABEL = "Tipo de evento";
 export const ADMIN_ALL_EVENT_TYPES_LABEL = "Todos los tipos";
