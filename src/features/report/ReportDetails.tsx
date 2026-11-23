@@ -17,6 +17,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import type {
+  EmailStatus,
   ScanMode,
   ScanResult,
   ScanVulnerability,
@@ -42,6 +43,7 @@ import {
   UNPATCHED_QUALIFIER,
   cveLinkLabel,
 } from "../../copy";
+import { ReportEmailStatus } from "./ReportEmailStatus";
 
 /** Most severe first; also the order of the summary buttons. */
 const SEVERITY_ORDER: readonly VulnerabilitySeverity[] = [
@@ -202,6 +204,11 @@ export interface ReportDetailsProps {
    * unknown: neither the mode line nor the patch notice is shown.
    */
   mode?: ScanMode;
+  /** Email delivery of this report, from the history entry (absent = unknown). */
+  emailStatus?: EmailStatus;
+  emailedAt?: string;
+  /** Email of the signed-in account. */
+  email?: string;
   onExport: () => void;
 }
 
@@ -214,6 +221,9 @@ export function ReportDetails({
   scanId,
   report,
   mode,
+  emailStatus,
+  emailedAt,
+  email,
   onExport,
 }: ReportDetailsProps) {
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -282,6 +292,11 @@ export function ReportDetails({
           {REPORT_PATCH_STATE_NOT_VERIFIED}
         </p>
       )}
+      <ReportEmailStatus
+        status={emailStatus}
+        email={email}
+        emailedAt={emailedAt}
+      />
       <button type="button" onClick={onExport}>
         {EXPORT_REPORT_LABEL}
       </button>

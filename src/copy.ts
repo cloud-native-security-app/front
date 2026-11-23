@@ -105,6 +105,27 @@ export const REPORT_MODE_PREFIX = "Modo de escaneo";
 export const REPORT_PATCH_STATE_NOT_VERIFIED =
   "Estado de parches no verificado: este escaneo se hizo solo con la IP, sin credenciales SSH. Los hallazgos se basan en la versión de los servicios y pueden incluir vulnerabilidades ya corregidas.";
 
+/** Email delivery of the report (feature `report_email`). */
+export function reportEmailSentMessage(
+  email: string | undefined,
+  sentAt: string | undefined,
+): string {
+  const base =
+    email === undefined
+      ? "Informe enviado por correo"
+      : `Informe enviado a ${email}`;
+  return sentAt === undefined ? base : `${base} el ${sentAt}`;
+}
+export function reportEmailPendingMessage(email: string | undefined): string {
+  return email === undefined
+    ? "Enviando el informe por correo…"
+    : `Enviando el informe a ${email}…`;
+}
+export const REPORT_EMAIL_FAILED_MESSAGE =
+  "No se pudo enviar el informe por correo.";
+export const REPORT_EMAIL_DISABLED_MESSAGE =
+  "El envío por correo no está configurado.";
+
 /** Refusals of `POST /api/scans` in IP-only mode. */
 export const NETWORK_SCAN_NOT_PERMITTED_MESSAGE =
   "Tu cuenta no tiene permiso para escanear solo con la IP. Usa el modo con credenciales SSH o pide acceso a quien administra la aplicación.";

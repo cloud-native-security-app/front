@@ -5,6 +5,7 @@
 import {
   isNetworkScanRejectionReason,
   isScanHistoryEntryArray,
+  normalizeHistoryEntry,
   isSubmitScanResponse,
 } from "./guards";
 import { mapCommonErrorStatus, parseJson, performRequest } from "./httpClient";
@@ -116,7 +117,7 @@ export async function getScanHistory(): Promise<ApiResult<ScanHistoryEntry[]>> {
   if (!parsed.ok || !isScanHistoryEntryArray(parsed.value)) {
     return { ok: false, error: { kind: "unexpected", status: result.status } };
   }
-  return { ok: true, value: parsed.value };
+  return { ok: true, value: parsed.value.map(normalizeHistoryEntry) };
 }
 
 /**

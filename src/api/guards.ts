@@ -11,6 +11,7 @@ import type {
   NetworkCredential,
   NetworkScanRejectionReason,
   Role,
+  EmailStatus,
   ScanHistoryEntry,
   ScanMode,
   ScanOutcomeEvent,
@@ -124,6 +125,41 @@ export function isScanHistoryEntry(value: unknown): value is ScanHistoryEntry {
     (value["failure_reason"] === null || isString(value["failure_reason"])) &&
     (value["mode"] === undefined || isScanMode(value["mode"]))
   );
+}
+
+const EMAIL_STATUSES: readonly EmailStatus[] = [
+  "pending",
+  "sent",
+  "failed",
+  "disabled",
+];
+
+/** Unknown or mistyped values are `undefined` (hidden), never an error. */
+export function parseEmailStatus(value: unknown): EmailStatus | undefined {
+  return isString(value) &&
+    (EMAIL_STATUSES as readonly string[]).includes(value)
+    ? (value as EmailStatus)
+    : undefined;
+}
+
+/**
+ * Keeps `email_status`/`emailed_at` only when the status is a known one, so
+ * a new Gateway value can never break the history (unlike `mode`).
+ */
+export function normalizeHistoryEntry(
+  entry: ScanHistoryEntry,
+): ScanHistoryEntry {
+  const { email_status, emailed_at, ...rest } = entry as ScanHistoryEntry & {
+    email_status?: unknown;
+    emailed_at?: unknown;
+  };
+  const status = parseEmailStatus(email_status);
+  if (status === undefined) {
+    return rest;
+  }
+  return isString(emailed_at)
+    ? { ...rest, email_status: status, emailed_at }
+    : { ...rest, email_status: status };
 }
 
 export function isScanHistoryEntryArray(

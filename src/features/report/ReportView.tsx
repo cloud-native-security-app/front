@@ -17,12 +17,14 @@
  * "ajustar estado cuando cambia una prop".
  */
 
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 
 import {
   getReport,
   getScanHistory,
   type ApiError,
+  type EmailStatus,
+  type ScanHistoryEntry,
   type ScanMode,
   type ScanResult,
 } from "../../api";
@@ -34,6 +36,7 @@ import {
   networkErrorMessage,
   unexpectedErrorMessage,
 } from "../../copy";
+import { SessionContext } from "../../auth/sessionContext";
 import { SCAN_STATUS_LABEL } from "../scan/scanStatus";
 import { buildReportExport } from "./buildReportExport";
 import { downloadTextFile } from "./downloadTextFile";
@@ -43,7 +46,13 @@ type ReportState =
   | { status: "loading" }
   | { status: "not_ready" }
   | { status: "error"; message: string }
-  | { status: "loaded"; report: ScanResult; mode: ScanMode | undefined };
+  | {
+      status: "loaded";
+      report: ScanResult;
+      mode: ScanMode | undefined;
+      emailStatus: EmailStatus | undefined;
+      emailedAt: string | undefined;
+    };
 
 function describeReportError(error: ApiError): string {
   switch (error.kind) {
@@ -64,10 +73,16 @@ function describeReportError(error: ApiError): string {
 
 function toReportState(
   result: Awaited<ReturnType<typeof getReport>>,
-  mode: ScanMode | undefined,
+  entry: ScanHistoryEntry | undefined,
 ): ReportState {
   if (result.ok) {
-    return { status: "loaded", report: result.value, mode };
+    return {
+      status: "loaded",
+      report: result.value,
+      mode: entry?.mode,
+      emailStatus: entry?.email_status,
+      emailedAt: entry?.emailed_at,
+    };
   }
   if (result.error.kind === "not_ready") {
     return { status: "not_ready" };
@@ -80,6 +95,9 @@ export interface ReportViewProps {
 }
 
 export function ReportView({ scanId }: ReportViewProps) {
+  // Raw context (not `useSession`): the report also renders without a session
+  // provider, and then the email address is simply unknown.
+  const email = useContext(SessionContext)?.user?.email;
   const [trackedScanId, setTrackedScanId] = useState(scanId);
   const [state, setState] = useState<ReportState>({ status: "loading" });
   if (scanId !== trackedScanId) {
@@ -93,15 +111,16 @@ export function ReportView({ scanId }: ReportViewProps) {
     // `HistoryTable`/`SessionProvider`): la llamada se dispara dentro del
     // efecto y el `setState` ocurre en el `.then()`, guardado por `active`
     // para no actualizar tras el desmontaje o un cambio de `scanId`.
-    // The report carries no scan mode: it comes from the history entry. If
+    // The report carries no scan mode nor email status: they come from the
+    // history entry. If
     // the history cannot be read, the mode is simply unknown (nothing shown).
     void Promise.all([getReport(scanId), getScanHistory()]).then(
       ([result, history]) => {
         if (active) {
-          const mode = history.ok
-            ? history.value.find((entry) => entry.scanId === scanId)?.mode
+          const entry = history.ok
+            ? history.value.find((item) => item.scanId === scanId)
             : undefined;
-          setState(toReportState(result, mode));
+          setState(toReportState(result, entry));
         }
       },
     );
@@ -136,6 +155,9 @@ export function ReportView({ scanId }: ReportViewProps) {
       scanId={scanId}
       report={state.report}
       mode={state.mode}
+      emailStatus={state.emailStatus}
+      emailedAt={state.emailedAt}
+      email={email}
       onExport={() => downloadTextFile(buildReportExport(scanId, state.report))}
     />
   );

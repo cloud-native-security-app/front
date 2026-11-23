@@ -33,6 +33,7 @@ export type {
   ApiError,
   ApiResult,
   CreateNetworkCredentialInput,
+  EmailStatus,
   MeResponse,
   NetworkCredential,
   NetworkScanRejectionReason,

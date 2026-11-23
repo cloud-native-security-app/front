@@ -70,6 +70,21 @@ describe("ReportDetails", () => {
     expect(badge).toHaveClass("severity-badge");
   });
 
+  it("muestra_el_estado_del_envio_por_correo_cuando_se_conoce", () => {
+    render(
+      <ReportDetails
+        scanId="scan-1"
+        report={REPORT}
+        emailStatus="sent"
+        email="ana@example.test"
+        onExport={vi.fn()}
+      />,
+    );
+    expect(
+      screen.getByText(/Informe enviado a ana@example.test/),
+    ).toBeVisible();
+  });
+
   it("nunca_vuelca_el_reporte_como_json_crudo_en_pantalla", () => {
     render(
       <ReportDetails scanId="scan-1" report={REPORT} onExport={vi.fn()} />,

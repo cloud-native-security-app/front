@@ -120,8 +120,33 @@ function requireSessionToken(
   return token;
 }
 
+/**
+ * Email status of a completed scan, derived from the target so e2e tests can
+ * pick one: `172.16.62.*` failed, `172.16.63.*` disabled, `172.16.64.*`
+ * pending, anything else sent. Other statuses carry neither field (gateway
+ * D-22).
+ */
+function emailFieldsFor(
+  record: ScanRecord,
+): Pick<ScanHistoryEntry, "email_status" | "emailed_at"> {
+  if (record.status !== "COMPLETADO") {
+    return {};
+  }
+  if (record.target.startsWith("172.16.62.")) {
+    return { email_status: "failed" };
+  }
+  if (record.target.startsWith("172.16.63.")) {
+    return { email_status: "disabled" };
+  }
+  if (record.target.startsWith("172.16.64.")) {
+    return { email_status: "pending" };
+  }
+  return { email_status: "sent", emailed_at: record.updatedAt };
+}
+
 function toHistoryEntry(record: ScanRecord): ScanHistoryEntry {
   return {
+    ...emailFieldsFor(record),
     scanId: record.scanId,
     target: record.target,
     mode: record.mode,
