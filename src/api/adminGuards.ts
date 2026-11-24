@@ -183,7 +183,7 @@ function isSiemAlert(value: unknown): value is AdminSiemAlert {
     isStr(value["rule_id"]) &&
     isNum(value["rule_level"]) &&
     value["rule_level"] >= 0 &&
-    value["rule_level"] <= 15 &&
+    value["rule_level"] <= 16 &&
     isStr(value["description"]) &&
     isRec(value["agent"]) &&
     isStr(value["agent"]["id"]) &&
