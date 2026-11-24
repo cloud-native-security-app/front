@@ -245,7 +245,7 @@ export interface AdminSiemAlert {
   occurred_at: string;
   severity: AdminSiemSeverity;
   rule_id: string;
-  /** Wazuh rule level, 0..15. */
+  /** Wazuh rule level, 0..16 (16 is reserved for custom rules). */
   rule_level: number;
   description: string;
   agent: { id: string; name: string };

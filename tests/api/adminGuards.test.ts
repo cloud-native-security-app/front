@@ -110,10 +110,20 @@ describe("normalizeAdminSnapshot siem", () => {
     expect(snapshot?.kpis.siem_alerts_by_severity.high).toBe(2);
   });
 
+  it("keeps_a_level_16_alert_from_a_custom_wazuh_rule", () => {
+    const level16 = { ...alert, rule_level: 16, severity: "critical" };
+    const snapshot = normalizeAdminSnapshot({
+      ...makeSnapshot(),
+      siem_enabled: true,
+      siem_alerts: [level16],
+    });
+    expect(snapshot?.siem_alerts).toEqual([level16]);
+  });
+
   it.each([
     ["an unknown severity", { ...alert, severity: "urgent" }],
     ["a missing event_id", { ...alert, event_id: undefined }],
-    ["a rule_level out of range", { ...alert, rule_level: 16 }],
+    ["a rule_level out of range", { ...alert, rule_level: 17 }],
     ["a missing agent name", { ...alert, agent: { id: "001" } }],
     ["a non-string ip", { ...alert, src_ip: 4 }],
     ["not an object", "x"],
