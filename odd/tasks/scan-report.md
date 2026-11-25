@@ -2,7 +2,7 @@
 
 - Engram topic: `odd/scan-report/tasks` (project: `front`)
 - Branch: `feature/scan_report` (not created yet; spans `front`, `gateway`, `user-service`)
-- Status: in progress; D1 = option A; SRP-01/02/03 done, SRP-04 pending deploy
+- Status: done; D1 = option A; SRP-01..SRP-04 done
 - Priority: 5
 
 ## Objective
@@ -25,7 +25,7 @@
 - [x] SRP-01 (user-service commits 98cc00f + ca63d81) user-service: store the scan result with the history entry; endpoint to read it by scan id for the owner (Strict TDD, testcontainers Postgres).
 - [x] SRP-02 (gateway commit 7d76da0) gateway: forward the `completed` result to user-service; `GET /api/scans/{id}/report` (404 not found/not owner, 409 not ready); OpenAPI docs; LocalStack e2e.
 - [x] SRP-03 front (2026-10-20, branch `feature/scan_report`, uncommitted): remove the "speculative contract" warning in `src/api/report.ts`; report as a panel/page with "Volver", focus moved to its heading; export JSON.
-- [ ] SRP-04 (pending deploy of user-service + gateway) Live check on AWS: completed scan -> report renders.
+- [x] SRP-04 (2026-11-25, lab, `develop` deployed) Live check on AWS: a completed scan rendered its report, the JSON export downloaded, and the report email arrived.
 
 ## Acceptance criteria
 
