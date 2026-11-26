@@ -200,6 +200,11 @@ export const collapsedDuplicatesNote = (count: number): string =>
     ? "1 coincidencia repetida se agrupó con otra del mismo identificador (se conserva la de mayor severidad)."
     : `${count} coincidencias repetidas se agruparon con otras del mismo identificador (se conserva la de mayor severidad).`;
 
+export const alreadyConfirmedPossibleNote = (count: number): string =>
+  count === 1
+    ? "1 coincidencia por versión ya figura como confirmada y se muestra solo una vez."
+    : `${count} coincidencias por versión ya figuran como confirmadas y se muestran solo una vez.`;
+
 export const UNPATCHED_QUALIFIER = "· sin parche";
 
 export const dismissedByBackportNote = (count: number): string =>
