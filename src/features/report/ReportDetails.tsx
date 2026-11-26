@@ -38,6 +38,7 @@ import {
   SEVERITY_LABEL,
   SEVERITY_SUMMARY_LABEL,
   VERSION_MATCH_GROUP_TITLE,
+  alreadyConfirmedPossibleNote,
   collapsedDuplicatesNote,
   dismissedByBackportNote,
   UNPATCHED_QUALIFIER,
@@ -246,16 +247,27 @@ export function ReportDetails({
   const rawVulnerabilities = report.vulnerabilities.filter(
     (v) => v.patch_state !== "fixed",
   );
+  const rawConfirmed = rawVulnerabilities.filter(
+    (v) => v.confidence !== "version_match",
+  );
+  // A "posible" whose id is already confirmed (e.g. vulners listing the CVE
+  // that ftp-vsftpd-backdoor confirmed) is shown and counted once, as confirmed.
+  const confirmedIds = new Set(
+    rawConfirmed.flatMap((v) =>
+      v.id === null || v.id === undefined ? [] : [v.id],
+    ),
+  );
   const rawPossible = rawVulnerabilities.filter(
     (v) => v.confidence === "version_match",
   );
-  const uniquePossible = dedupeById(rawPossible);
-  const collapsedCount = rawPossible.length - uniquePossible.length;
+  const openPossible = rawPossible.filter(
+    (v) => v.id === null || v.id === undefined || !confirmedIds.has(v.id),
+  );
+  const alreadyConfirmedCount = rawPossible.length - openPossible.length;
+  const uniquePossible = dedupeById(openPossible);
+  const collapsedCount = openPossible.length - uniquePossible.length;
   // What is displayed: confirmed as-is, "posibles" deduped by id.
-  const all = [
-    ...rawVulnerabilities.filter((v) => v.confidence !== "version_match"),
-    ...uniquePossible,
-  ];
+  const all = [...rawConfirmed, ...uniquePossible];
   const counts = SEVERITY_ORDER.map((severity) => ({
     severity,
     count: all.filter((v) => v.severity === severity).length,
@@ -399,6 +411,11 @@ export function ReportDetails({
       )}
       {dismissedCount > 0 && (
         <p className="field-help">{dismissedByBackportNote(dismissedCount)}</p>
+      )}
+      {alreadyConfirmedCount > 0 && (
+        <p className="field-help">
+          {alreadyConfirmedPossibleNote(alreadyConfirmedCount)}
+        </p>
       )}
     </section>
   );

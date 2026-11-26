@@ -342,6 +342,56 @@ describe("posibles dedup", () => {
     expect(screen.getAllByRole("article")).toHaveLength(2);
   });
 
+  // A CVE confirmed by an NSE script (e.g. ftp-vsftpd-backdoor) is often also
+  // listed by vulners as a version match: show and count it once, as confirmed.
+  const CONFIRMED_AND_POSSIBLE = reportWith([
+    finding("CVE-2011-2523", "high", "confirmed"),
+    finding("CVE-2011-2523", "critical", "version_match"),
+    finding("CVE-2020-0002", "medium", "version_match"),
+  ]);
+
+  it("una_posible_con_el_mismo_id_que_una_confirmada_no_se_muestra", () => {
+    renderReport(CONFIRMED_AND_POSSIBLE);
+    expect(screen.getAllByRole("article")).toHaveLength(2);
+    const card = screen
+      .getByText("CVE-2011-2523")
+      .closest("article") as HTMLElement;
+    expect(card).toHaveAttribute("data-severity", "high");
+    expect(within(card).getByText("Confirmada")).toBeInTheDocument();
+    expect(
+      screen.getByText(/Posibles \(según versión\) \(1\)/),
+    ).toBeInTheDocument();
+  });
+
+  it("una_posible_ya_confirmada_no_suma_en_los_conteos_y_se_avisa", () => {
+    renderReport(CONFIRMED_AND_POSSIBLE);
+    const summary = screen.getByRole("group", {
+      name: /resumen por severidad/i,
+    });
+    expect(within(summary).queryByText(/Crítica/)).not.toBeInTheDocument();
+    expect(within(summary).getByText("Alta: 1")).toBeInTheDocument();
+    expect(within(summary).getByText("Media: 1")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "1 coincidencia por versión ya figura como confirmada y se muestra solo una vez.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/se agruparon/i)).not.toBeInTheDocument();
+  });
+
+  it("una_confirmada_descartada_por_backport_no_oculta_la_posible", () => {
+    renderReport(
+      reportWith([
+        finding("CVE-2011-2523", "high", "confirmed", "fixed"),
+        finding("CVE-2011-2523", "critical", "version_match"),
+      ]),
+    );
+    const card = screen
+      .getByText("CVE-2011-2523")
+      .closest("article") as HTMLElement;
+    expect(card).toHaveAttribute("data-severity", "critical");
+  });
+
   it("los_conteos_por_severidad_reflejan_los_hallazgos_mostrados", () => {
     renderReport(DUPES);
     const summary = screen.getByRole("group", {
